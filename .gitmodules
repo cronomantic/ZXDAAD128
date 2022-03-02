@@ -1,0 +1,6 @@
+[submodule "src/RCS"]
+	path = src/RCS
+	url = https://github.com/einar-saukas/RCS
+[submodule "src/ZX0"]
+	path = src/ZX0
+	url = https://github.com/einar-saukas/ZX0.git
