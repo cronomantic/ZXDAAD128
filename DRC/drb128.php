@@ -6,6 +6,8 @@
 
 global $adventure;
 global $isBigEndian;
+global $xMessageOffsets;
+global $maxFileSizeForXMessages;
 
 $isBigEndian = false;
 
@@ -145,6 +147,12 @@ function writeFF()
 function writeBlock($size)
 {
     for ($i=0;$i<$size;$i++) writeZero();
+}
+
+//writes an array of bytes on the buffer
+function appendBuffer($buff)
+{
+    foreach ($buff as $b) writeByte($b);     
 }
 
 function string2intArr($string)
@@ -396,6 +404,7 @@ function getCompressableTables($compression, &$adventure)
 
 //================================================================= messages  ========================================================
 
+
 function replaceChars($str)
 {
     // replace special Spanish and other languages characters
@@ -489,6 +498,45 @@ function checkStrings($adventure)
 }
 
 
+function generateXMessages($adventure)
+{
+    $currentOffset = 0;
+    $currentFile = 0;
+    $maxFileSize = 16;
+
+    $i = 64 / $maxFileSize;
+    $xmBuffer = array_fill(0, $i, array());
+    $xmBufferPTR = array_fill(0, $i, 0);
+
+    $GLOBALS['maxFileSizeForXMessages'] = $maxFileSize;
+    $maxFileSize *= 1024; // Convert K to byte
+    
+    for($i=0;$i<sizeof($adventure->xmessages);$i++)
+    {
+        $message = $adventure->xmessages[$i];
+        $messageLength = strlen($message->Text);
+        if ($messageLength + $currentOffset + 1  > $maxFileSize) // Won't fit, next File  , +1  for the end of message mark
+        {
+            $currentFile++;
+            $currentOffset = 0;
+        }
+        $GLOBALS['xMessageOffsets'][$i] = $currentOffset + $currentFile * $maxFileSize;
+        // Saving length as a truncated value to make it fit in one byte, the printing routine will have to recover the missing bit by filling with 1. That will provide 
+        // a length which could be maximum 1 bytes longer than real, what is not really important cause the end of message mark will avoid that extra char being printed
+        for ($j=0;$j<$messageLength;$j++)
+        {   
+            $xmBuffer[$currentFile][$xmBufferPTR[$currentFile]] = (ord($message->Text[$j]) ^ OFUSCATE_VALUE);
+            $xmBufferPTR[$currentFile]++;
+            $currentOffset++;
+        }
+        $xmBuffer[$currentFile][$xmBufferPTR[$currentFile]] = (ord("\n") ^ OFUSCATE_VALUE ); //mark of end of string
+        $xmBufferPTR[$currentFile]++;
+        $currentOffset++;
+    }
+
+    return $xmBuffer;
+}
+
 function generateMessages($messageList, &$currentAddress)
 {
 
@@ -562,11 +610,6 @@ function generateOTX($adventure, &$currentAddress)
     generateMessages($adventure->objects, $currentAddress); 
 }
 
-function generateXMessages($adventure, &$currentAddress)
-{
-    generateMessages($adventure->xmessages, $currentAddress); 
-}
-
 
 function getSizeMTX($adventure)
 {
@@ -586,11 +629,6 @@ function getSizeLTX($adventure)
 function getSizeOTX($adventure)
 {
     return calculateSizeMessages($adventure->objects); 
-}
-
-function getSizeXMessages($adventure)
-{
-    return calculateSizeMessages($adventure->xmessages);
 }
 
 //================================================================= connections ========================================================
@@ -844,9 +882,13 @@ function generateProcesses($adventure, &$currentAddress, $subtarget)
                 else if  ($condact->Opcode == XMES_OPCODE)  // Convert XMESS in a Maluva CALL, XMESSAGE does not actually get to drb, as drf already converts all XMESSAGE into XMESS with a \n added to the string
                 {
                     $condact->Opcode = EXTERN_OPCODE;
-                    //$messno = $condact->Param1;
-                    $condact->NumParams = 2;
+                    $messno = $condact->Param1;
+                    $offset = $GLOBALS['xMessageOffsets'][$messno];
+                    if ($offset>0xFFFF) Error('Size of xMessages exceeds the 64K limit');
+                    $condact->NumParams = 3;
                     $condact->Param2 = 3; // Maluva's function 3
+                    $condact->Param1 = $offset & 0xFF; // Offset LSB
+                    $condact->Param3 = ($offset & 0xFF00) >> 8; // Offset MSB
                     $condact->Condact = 'EXTERN';
                 }
                 else if ($condact->Opcode == XPICTURE_OPCODE)
@@ -1471,6 +1513,8 @@ $adventure->forcedDebugMode = array_key_exists('d', $opts);
 $adventure->forcedPadding = array_key_exists('p', $opts);
 $adventure->useBestFit = array_key_exists('b', $opts);
 
+$cursorCode = 0x5f;
+
 $outputFileName = '';
 if (array_key_exists('o', $opts)) $outputFileName = $opts['o'];
 if ($outputFileName == '') $outputFileName = $inputFileName;
@@ -1601,8 +1645,8 @@ $numberOfProcesses = sizeof($adventure->processes);
 writeByte($numberOfProcesses);
 
 // Fill the rest of the header with zeros, as we don't know yet the offset values. Will comeupdate them later.
-writeBlock(40 + 2 * 13);
-$bankCurrentAddress[$currBank]+= (8 + 40 + 2*13);
+writeBlock((0x42-0x08) + (2*13));
+$bankCurrentAddress[$currBank]+= (0x42 + (2*13));
 
 $compressedTextOffset = 0;
 $processListOffset = 0;
@@ -1618,14 +1662,20 @@ $objectWeightAndAttrOffset = 0;
 $objectExtraAttrOffset = 0;
 $charsetLookupOffset = 0;
 $imageIdxLookupOffset = 0;
-$xmessLookupOffset = 0;
 $objectLookupBank = 0;
 $locationLookupBank = 0;
 $messageLookupBank = 0;
 $sysmessLookupBank = 0;
 $charsetLookupBank = 0;
 $imageIdxLookupBank = 0;
-$xmessLookupBank = 0;
+$xmess0LookupOffset = 0;
+$xmess0LookupBank = 0;
+$xmess1LookupOffset = 0;
+$xmess1LookupBank = 0;
+$xmess2LookupOffset = 0;
+$xmess2LookupBank = 0;
+$xmess3LookupOffset = 0;
+$xmess3LookupBank = 0;
 
 // *********************************************
 // 2 *************** DUMP DATA *****************
@@ -1705,6 +1755,11 @@ $initiallyAtOffset = $bankCurrentAddress[$currBank];
 if ($adventure->verbose) echo "Initially at      [" . prettyFormat($initiallyAtOffset) . "][$currBank]\n";
 generateObjectInitially($adventure, $bankCurrentAddress[$currBank]);
 addPaddingIfRequired($bankCurrentAddress[$currBank]);
+
+// Generate XMessagess if avaliable
+$xMessages = generateXMessages($adventure);
+
+
 // Dump Processes
 generateProcesses($adventure, $bankCurrentAddress[$currBank], $subtarget);
 $processListOffset = $bankCurrentAddress[$currBank] - sizeof($adventure->processes) * 2;
@@ -1712,6 +1767,7 @@ if ($adventure->verbose) echo "Processes         [" . prettyFormat($processListO
 
 //Updating size available
 $bankSizeAvailable[$currBank] -= ($bankCurrentAddress[$currBank] - $baseAddress);
+
 
 // ***********************************************
 // 4 ********* Reorganize blocks *****************
@@ -1723,7 +1779,10 @@ $blockSize = array(
     'MTX' => getSizeMTX($adventure),
     'OTX' => getSizeOTX($adventure),
     'LTX' => getSizeLTX($adventure),
-    'XMES' => getSizeXMessages($adventure),
+    'XMES0' => sizeof($xMessages[0]),
+    'XMES1' => sizeof($xMessages[1]),
+    'XMES2' => sizeof($xMessages[2]),
+    'XMES3' => sizeof($xMessages[3]),
 );
 
 if (sizeof($screenFileSizes) > 0)
@@ -1815,13 +1874,53 @@ foreach($blockBank as $currBlock => $currBank)
             if ($adventure->verbose) echo "Locations         [" . prettyFormat($locationLookupOffset) . "][$currBank]\n";
             addPaddingIfRequired($bankCurrentAddress[$currBank]);
             break;
-        case 'XMES':
+        case 'XMES0':
             // Dump XMessagess if avaliable
-            generateXMessages($adventure, $bankCurrentAddress[$currBank]);
-            $xmessLookupOffset =  $bankCurrentAddress[$currBank] - 2 * sizeof($adventure->xmessages);
-            $xmessLookupBank = $currBank;
-            if ($adventure->verbose) echo "Extra Messages    [" . prettyFormat($xmessLookupOffset) . "][$currBank]\n";
-            addPaddingIfRequired($bankCurrentAddress[$currBank]);
+            $size = sizeof($xMessages[0]);
+            if ($size > 0) {
+                $xmess0LookupOffset = $bankCurrentAddress[$currBank];
+                $xmess0LookupBank = $currBank;
+                appendBuffer($xMessages[0]);
+                $bankCurrentAddress[$currBank] += $size;
+                if ($adventure->verbose) echo "Extra Messages 0  [" . prettyFormat($xmess0LookupOffset) . "][$currBank]\n";
+                addPaddingIfRequired($bankCurrentAddress[$currBank]);
+            }
+            break;
+        case 'XMES1':
+            // Dump XMessagess if avaliable
+            $size = sizeof($xMessages[1]);
+            if ($size > 0) {
+                $xmess1LookupOffset = $bankCurrentAddress[$currBank];
+                $xmess1LookupBank = $currBank;
+                appendBuffer($xMessages[1]);
+                $bankCurrentAddress[$currBank] += $size;
+                if ($adventure->verbose) echo "Extra Messages 1  [" . prettyFormat($xmess1LookupOffset) . "][$currBank]\n";
+                addPaddingIfRequired($bankCurrentAddress[$currBank]);
+            }
+            break;
+        case 'XMES2':
+            // Dump XMessagess if avaliable
+            $size = sizeof($xMessages[2]);
+            if ($size > 0) {
+                $xmess2LookupOffset = $bankCurrentAddress[$currBank];
+                $xmess2LookupBank = $currBank;
+                appendBuffer($xMessages[2]);
+                $bankCurrentAddress[$currBank] += $size;
+                if ($adventure->verbose) echo "Extra Messages 2  [" . prettyFormat($xmess2LookupOffset) . "][$currBank]\n";
+                addPaddingIfRequired($bankCurrentAddress[$currBank]);
+            }
+            break;
+        case 'XMES3':
+            // Dump XMessagess if avaliable
+            $size = sizeof($xMessages[3]);
+            if ($size > 0) {
+                $xmess3LookupOffset = $bankCurrentAddress[$currBank];
+                $xmess3LookupBank = $currBank;
+                appendBuffer($xMessages[3]);
+                $bankCurrentAddress[$currBank] += $size;
+                if ($adventure->verbose) echo "Extra Messages 3  [" . prettyFormat($xmess3LookupOffset) . "][$currBank]\n";
+                addPaddingIfRequired($bankCurrentAddress[$currBank]);
+            }
             break;
         case 'PICIDX': //Do nothing for now
             break;
@@ -1885,15 +1984,29 @@ writeWord($objectNamesOffset, $GLOBALS['isBigEndian']);
 writeWord($objectWeightAndAttrOffset, $GLOBALS['isBigEndian']);
 // Extra object attributes 
 writeWord($objectExtraAttrOffset, $GLOBALS['isBigEndian']);
+
 //Beginning the new header fields here...
-// Xtra messages
-writeWord($xmessLookupOffset, $GLOBALS['isBigEndian']);
+// Xtra messages 0
+writeWord($xmess0LookupOffset, $GLOBALS['isBigEndian']);
+// Xtra messages 1
+writeWord($xmess1LookupOffset, $GLOBALS['isBigEndian']);
+// Xtra messages 2
+writeWord($xmess2LookupOffset, $GLOBALS['isBigEndian']);
+// Xtra messages 3
+writeWord($xmess3LookupOffset, $GLOBALS['isBigEndian']);
+//Number of bank of the image index 0
+writeByte($xmess0LookupBank);
+//Number of bank of the image index 1
+writeByte($xmess1LookupBank);
+//Number of bank of the image index 2
+writeByte($xmess2LookupBank);
+//Number of bank of the image index 3
+writeByte($xmess3LookupBank);
+
 //Position of the font
 writeWord($charsetLookupOffset, $GLOBALS['isBigEndian']);
 //Position of the image index
 writeWord($imageIdxLookupOffset, $GLOBALS['isBigEndian']);
-//Number of Extra Messages
-writeByte(sizeof($adventure->xmessages));
 //Number of images
 writeByte(sizeof($imageLookupOffset));
 //Number of bank of object descriptions
@@ -1904,14 +2017,13 @@ writeByte($locationLookupBank);
 writeByte($messageLookupBank);
 //Number of bank of system messages
 writeByte($sysmessLookupBank);
-//Number of bank of the image index
+//Number of bank of character ser
 writeByte($charsetLookupBank);
 //Number of bank of the image index
 writeByte($imageIdxLookupBank);
-//Number of bank of the image index
-writeByte($xmessLookupBank);
-//Padding
-writeFF();
+//Code of the character used as a cursor.
+writeByte($cursorCode);
+
 for($i=0;$i<13;$i++)
     writeWord($adventure->extvec[$i],$GLOBALS['isBigEndian']);
 

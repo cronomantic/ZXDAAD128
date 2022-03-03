@@ -36,16 +36,18 @@
 #pragma push(case_insensitive)
 #pragma case_insensitive = TRUE
 
-'------------------
-'Esto es temporal...
+'---------------------------------------------------------------------
+#ifndef FONT32
+#ifndef FONT42
+#define FONT42
+#endif
+#endif
+'---------------------------------------------------------------------
 #ifndef LANG_ES
 #ifndef LANG_EN
 #define LANG_EN
 #endif
 #endif
-'#define PLUS3
-'#define ESXDOS
-
 '---------------------------------------------------------------------
 CONST ROM48KBASIC AS uByte = %00010000
 
@@ -109,6 +111,7 @@ DIM ErrNr AS uInteger AT ErrNrAddress
 
 DIM tmpTok AS uInteger AT $6000 'We reuse the header as the token buffer (32 bytes)
 
+'---------------------------------------------------------------------
 'COpy of the header... DO NOT MOVE, MODIFY OR ADD ANOTHER VARIABLE----------
 DIM DdbNumObjDsc  AS uByte     ' 0x03 | 1 byte  | Number of object descriptions
 DIM DdbNumLocDsc  AS uByte     ' 0x04 | 1 byte  | Number of location descriptions
@@ -129,21 +132,29 @@ DIM DdbObjAttrPos AS uInteger  ' 0x1C | 2 bytes | Object weight and container/we
 DIM DdbObjExtrPos AS uInteger  ' 0x1E | 2 bytes | Extra object attributes 
 
 ' New header fields
-DIM DdbXmesPos    AS uInteger  ' 0x20 | 2 bytes | Position of Extra messages
-DIM DdbFntPos     AS uInteger  ' 0x22 | 2 bytes | Position of the font
-DIM DdbImgIdxPos  AS uInteger  ' 0x24 | 2 bytes | Position of the image index 
-DIM DdbNumXmes    AS uByte     ' 0x27 | 1 byte  | Number of extra messages
-DIM DdbNumImgs    AS uByte     ' 0x27 | 1 byte  | Number of images
-DIM DdbBnkObjDsc  AS uByte     ' 0x28 | 1 byte  | Number of bank of object descriptions
-DIM DdbBnkLocDsc  AS uByte     ' 0x29 | 1 byte  | Number of bank of location descriptions
-DIM DdbBnkUsrMsg  AS uByte     ' 0x2A | 1 byte  | Number of bank of user messages
-DIM DdbBnkSysMsg  AS uByte     ' 0x2B | 1 byte  | Number of bank of system messages
-DIM DdbBnkFnt     AS uByte     ' 0x2C | 1 byte  | Number of bank of the Character set
-DIM DdbBnkImgIdx  AS uByte     ' 0x2D | 1 byte  | Number of bank of the image index
-DIM DdbBnkXmes    AS uByte     ' 0x2E | 1 byte  | Number of bank of extra messages
-DIM DdbCursor     AS uByte     ' 0x2F | 1 byte  | Code of the character used as cursor
+DIM DdbXmes0Pos   AS uInteger  ' 0x20 | 2 bytes | Position of Extra messages (file 0)
+DIM DdbXmes1Pos   AS uInteger  ' 0x22 | 2 bytes | Position of Extra messages (file 1)
+DIM DdbXmes2Pos   AS uInteger  ' 0x24 | 2 bytes | Position of Extra messages (file 2)
+DIM DdbXmes3Pos   AS uInteger  ' 0x26 | 2 bytes | Position of Extra messages (file 3)
 
+DIM DdbXmes0Bnk   AS uByte     ' 0x28 | 1 byte  | Number of bank of extra messages (file 0)
+DIM DdbXmes1Bnk   AS uByte     ' 0x2A | 1 byte  | Number of bank of extra messages (file 1)
+DIM DdbXmes2Bnk   AS uByte     ' 0x2C | 1 byte  | Number of bank of extra messages (file 2)
+DIM DdbXmes3Bnk   AS uByte     ' 0x2E | 1 byte  | Number of bank of extra messages (file 3)
+
+DIM DdbFntPos     AS uInteger  ' 0x30 | 2 bytes | Position of the font
+DIM DdbImgIdxPos  AS uInteger  ' 0x32 | 2 bytes | Position of the image index 
+DIM DdbNumImgs    AS uByte     ' 0x34 | 1 byte  | Number of images
+DIM DdbBnkObjDsc  AS uByte     ' 0x35 | 1 byte  | Number of bank of object descriptions
+DIM DdbBnkLocDsc  AS uByte     ' 0x36 | 1 byte  | Number of bank of location descriptions
+DIM DdbBnkUsrMsg  AS uByte     ' 0x37 | 1 byte  | Number of bank of user messages
+DIM DdbBnkSysMsg  AS uByte     ' 0x38 | 1 byte  | Number of bank of system messages
+DIM DdbBnkFnt     AS uByte     ' 0x39 | 1 byte  | Number of bank of the Character set
+DIM DdbBnkImgIdx  AS uByte     ' 0x40 | 1 byte  | Number of bank of the image index
+DIM DdbCursor     AS uByte     ' 0x41 | 1 byte  | Code of the character used as cursor
 'Until here...
+'---------------------------------------------------------------------
+
 DIM DdbTarget     AS uByte
 '-----------------------------------------------------------------------------
 
@@ -1171,7 +1182,6 @@ SUB printMsg(tokStrPtr AS uInteger, doPrint AS uByte)
     LET c = 255 - PEEK(tokStrPtr)
     LET tokStrPtr = tokStrPtr + 1
     IF c bAND $80 THEN
-      'getToken(c bAND (255 bXOR 128))
       getToken(c bAND (255 bXOR 128), DdbTokensPos, tmpTok)
       LET token = tmpTok
       LET t = PEEK(token)
@@ -1214,9 +1224,23 @@ SUB printMsg(tokStrPtr AS uInteger, doPrint AS uByte)
 
 END SUB
 
+FUNCTION getSizeMessage(ByVal ptr AS uInteger) AS uInteger
+
+  DIM s AS uInteger
+
+  LET s = 1
+  DO WHILE PEEK ptr <> (10 bXOR $FF) '\n offuscated
+    LET s = s + 1
+    LET ptr = ptr + 1
+  LOOP
+
+  RETURN s
+
+END FUNCTION
+
 SUB getMessage(num AS uByte, doPrint AS uByte, msgIdxBnk AS uByte, msgIdxPtr AS uInteger)
 
-  DIM ptr, dest, p, s AS uInteger
+  DIM ptr, dest, s AS uInteger
   DIM b AS uByte
 
   LET ptr = msgIdxPtr + 2 * CAST(uInteger, num)
@@ -1225,12 +1249,7 @@ SUB getMessage(num AS uByte, doPrint AS uByte, msgIdxBnk AS uByte, msgIdxPtr AS 
   LET b = SetRAMBank(msgIdxBnk bOR ROM48KBASIC)
 
   'Get size to allocate memory
-  LET s = 1
-  LET p = ptr
-  DO WHILE PEEK p <> (10 bXOR $FF) '\n offuscated
-    LET s = s + 1
-    LET p = p + 1
-  LOOP
+  LET s = getSizeMessage(ptr)
 
   dest = allocate(s)
   MemCopy(ptr, dest, s)
@@ -1276,12 +1295,48 @@ SUB printObjectMsg(num AS uByte)
 
 END SUB
 
-SUB printMaluvaExtraMsg(num AS uByte)
+FUNCTION printMaluvaExtraMsg(lsb AS uByte, msb AS uByte) AS uByte
 
-  IF num > DdbNumXmes THEN errorCode(0)
-  getMessage(num, TRUE, DdbBnkXmes, DdbXmesPos)
+  DIM ptr, dest, s AS uInteger
+  DIM b, ba AS uByte
 
-END SUB
+  LET ba = (msb >> 6) bAND %11
+  LET ptr = CAST(uInteger, msb bAND %00111111)
+  LET ptr = (ptr << 8) bOR lsb
+
+  IF ba = 3 THEN
+    LET dest = DdbXmes3Pos
+    LET b = DdbXmes3Bnk
+  ELSEIF ba = 2 THEN
+    LET dest = DdbXmes2Pos
+    LET b = DdbXmes2Bnk
+  ELSEIF ba = 1 THEN
+    LET dest = DdbXmes1Pos
+    LET b = DdbXmes1Bnk
+  ELSE
+    LET dest = DdbXmes0Pos
+    LET b = DdbXmes0Bnk
+  END IF
+
+
+  IF dest = 0 THEN RETURN FALSE
+
+  LET ptr = dest + ptr
+  LET ba = SetRAMBank(b bOR ROM48KBASIC)
+
+  'Get size to allocate memory
+  LET s = getSizeMessage(ptr)
+
+  dest = allocate(s)
+  MemCopy(ptr, dest, s)
+  SetRAMBank(ba)
+
+  printMsg(dest, TRUE)
+  deallocate(dest)
+
+  RETURN TRUE
+
+END FUNCTION
 
 ' -------------------------------
 ' Extract object message, change the article and print it:
@@ -2831,40 +2886,38 @@ condactLISTOBJ:
 ' =============================================================================
 condactEXTERN:
 #ifndef DISABLE_EXTERN
-  'Maluva emulation 'TODO: Revisar esto
-  LET c = getValueOrIndirection() 'parameter
+  'Maluva emulation
+  LET c = getCondOrValueAndInc() 'parameter 1
   LET flagno = getCondOrValueAndInc() 'operation
   LET flagno2 = TRUE
   LET locno = flags(fMALUVA)
 
   IF flagno = 3 THEN 'XMESSAGE
-    printMaluvaExtraMsg(c)
+    LET objno = getCondOrValueAndInc() 'parameter 2 (MSB)
+    LET flagno2 = printMaluvaExtraMsg(c, objno)
+/'
   ELSEIF flagno = 4 THEN 'XPART
-#ifdef IS_UNO
+
   ELSEIF flagno = 6 THEN 'XSPLITSCR
 
   ELSEIF flagno = 10 THEN 'XSPEED
 
-#endif
-#ifdef IS_NEXT
   ELSEIF flagno = 8 THEN 'XNEXTCLS
 
   ELSEIF flagno = 9 THEN 'XNEXTRST
 
   ELSEIF flagno = 10 THEN 'XSPEED
 
-#endif
+'/
 #ifndef TAPE
   ELSEIF flagno = 0 THEN 'XPICTURE
     LET flagno2 = loadXPicture(c)
     IF flagno2 THEN showBufferedPicture()
 #endif
-/''
   ELSEIF flagno = 1 THEN 'XSAVE
-    'PRIVATEDoSAVE(TRUE)
+    PRIVATEDoSAVE()
   ELSEIF flagno = 2 THEN 'XLOAD
-    'PRIVATEDoLOAD(TRUE)
-'/
+    PRIVATEDoLOAD()
   ELSEIF flagno = 7 THEN 'XUNDONE
     LET isDone = FALSE
   END IF
@@ -4320,14 +4373,12 @@ SUB initDAAD()
 
   IF (PEEK(DDBHeaderAddress) <> 3) OR (PEEK(DDBHeaderAddress + 2) <> 95) THEN resetSys()
   LET DdbTarget = PEEK(DDBHeaderAddress + 1)
-  MemCopy(DDBHeaderAddress + 3, @DdbNumObjDsc, $30 - $5) 'Moving header data to variables
+  MemCopy(DDBHeaderAddress + 3, @DdbNumObjDsc, $42 - $3) 'Moving header data to variables
 
 #undef DDBHeaderAddress
 
   LET DdbTokensPos = DdbTokensPos + 1 'Skip first token
-  'Apparently, token table starts one byte after the token pointer (Why Tim? Why?)
-
-  IF DdbCursor = 0 THEN LET DdbCursor = $5F
+  'Apparently, token table starts one byte after the token pointer (Why Tim?, Why?)
 
   LET ramSave = memAlloc(512) '256 bytes for Flags + 256 bytes for Objects location
 
