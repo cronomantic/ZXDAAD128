@@ -1427,6 +1427,7 @@ function Syntax()
     echo ("              -b  : use best fit algorithm when assigning the memory banks (first fit by default)\n");
     echo ("  -o [outputfile] : (optional) path & file name of output files. If absent, same name of json file would be used.\n");
     echo ("  -i [image path] : (optional) the path to search for images. If not defined, no images will be loaded.\n");
+    echo ("  -k [char. id]   : (optional) character code for tje cursor. By default, 95 ("_") is used.\n");
     echo "\n";
     echo("+ <target>: The machine objetive. Valid values: TAPE, PLUS3, NEXT; UNO and ESXDOS.\n");
     echo("+ <language>: game language, should be 'EN', 'ES', 'DE', 'FR' or 'PT' (English, Spanish, German, French or Portuguese).\n");
@@ -1452,7 +1453,7 @@ echo "DAAD Reborn Compiler Backend for ZX Spectrum 128 ".VERSION_HI.".".VERSION_
 if (!function_exists ('utf8_encode')) Error('This software requires php-xml package, please use yum or apt-get to install it.');
 
 $rest_index = null;
-$opts = getopt('3vcpdbo:i:', [], $rest_index);
+$opts = getopt('3vcpdbo:i:k:', [], $rest_index);
 $posArgs = array_slice($argv, $rest_index);
 
 if (sizeof($posArgs) < 5) Syntax();
@@ -1514,6 +1515,12 @@ $adventure->forcedPadding = array_key_exists('p', $opts);
 $adventure->useBestFit = array_key_exists('b', $opts);
 
 $cursorCode = 0x5f;
+if (array_key_exists('k', $opts)){
+    $cursorCode = $opts['k'];
+    if(!is_numeric($cursorCode)) Error("Cursor code is not a number");
+    $cursorCode = intval($cursorCode);
+    if ($cursorCode < 0 || $cursorCode > 255) Error("Invalid cursor code value");
+}
 
 $outputFileName = '';
 if (array_key_exists('o', $opts)) $outputFileName = $opts['o'];

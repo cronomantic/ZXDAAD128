@@ -21,7 +21,6 @@ function Syntax()
     echo ("+ [options]: one or more of the following:\n");
     echo ("  -d [path]      : (Optional) Destination of the loader and data filer to include on a image.");
     echo ("  -s [SCR file]  : (Optional) SCR file for loading screen.");
-    echo ("             -v  : verbose output.\n");
     echo ("\n");
     echo ("The order of the positional arguments determine the order of loading into the banks, ¡Be careful!");
 }

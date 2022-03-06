@@ -1224,6 +1224,7 @@ SUB printMsg(tokStrPtr AS uInteger, doPrint AS uByte)
 
 END SUB
 
+/'
 FUNCTION getSizeMessage(ByVal ptr AS uInteger) AS uInteger
 
   DIM s AS uInteger
@@ -1237,6 +1238,27 @@ FUNCTION getSizeMessage(ByVal ptr AS uInteger) AS uInteger
   RETURN s
 
 END FUNCTION
+'/
+
+FUNCTION FASTCALL getSizeMessage(ByVal ptr AS uInteger) AS uInteger
+ASM
+PROC
+    LOCAL loop1, endL
+
+    LD DE, 1       ;DE=counter, HL=pointer
+loop1:
+    LD A, (HL)
+    CP $F5         ;(10 bXOR $FF) '\n offuscated
+    JR Z, endL
+    INC HL
+    INC DE
+    JR loop1
+endL:
+    EX DE, HL      ;Move counter to HL
+ENDP
+END ASM
+END FUNCTION
+
 
 SUB getMessage(num AS uByte, doPrint AS uByte, msgIdxBnk AS uByte, msgIdxPtr AS uInteger)
 

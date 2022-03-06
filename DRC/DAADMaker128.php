@@ -23,7 +23,6 @@ function Syntax()
     echo ("  -t [TAP file]  : (Optional) Name of the tape file. Otherwise, the name of the first bank file will be used.");
     echo ("  -s [SCR file]  : (Optional) SCR file for loading screen.");
     echo ("  -n Filename    : (Optional) Name of the program for the loader.");
-    echo ("             -v  : verbose output.\n");
     echo ("\n");
     echo ("The order of the positional arguments determine the order of loading into the banks, ¡Be careful!");
 }
@@ -218,7 +217,7 @@ if (array_key_exists('s', $opts))
 }
 
 //Program Name
-$programFileName = 'ZXB-DAAD';
+$programFileName = 'ZxDAAD128';
 if (array_key_exists('n', $opts)) $programFileName = $opts['n'];
 
 
