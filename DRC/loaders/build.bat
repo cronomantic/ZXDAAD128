@@ -7,8 +7,8 @@ echo --------------------------------
 rem python -m compileall %~dp0\zxbasic
 rem tup || goto :error
 
-sjasmplus loader.asm  || goto :error
-sjasmplus loaderplus3.asm  || goto :error
+sjasmplus loader.asm --lst=loader.lst || goto :error
+sjasmplus loaderplus3.asm --lst=loaderplus3.lst || goto :error
 
 echo --------------------------------
 echo Hecho

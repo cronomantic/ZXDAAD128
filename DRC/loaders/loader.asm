@@ -13,9 +13,6 @@ REPORT_R   EQU  $0806
 PORT_128   EQU  $7FFD
 BANK_VAR   EQU  $5b5c
 
-PORT_VAR   EQU  $5B5C
-
-NUM_BLOCKS EQU  8
 
     ORG 23755
 
@@ -28,7 +25,7 @@ SIZE_TABLE:
    ; Clear screen
 START:
     DI
-    LD SP, BNK0_ADDR-1
+    LD SP, BNK0_ADDR-2
     CALL INIT_STATE
     
     LD A,(BANK_VAR)
@@ -104,7 +101,7 @@ _bank7:
     CALL LOAD
 
 RUN:
-    POP AF
+    LD A, 0 | %00010000
     CALL BANK_CHANGE
     JP INIT_ADDR                    ;Jump to destination
 
@@ -122,7 +119,7 @@ LOAD:                               ; HL = address, DE = size
     CALL LD_BYTES                   ; Load block
     RET C
     POP HL                          ;Return address, not necessary
-    POP AF                          ;previous bank value
+    XOR A
     CALL BANK_CHANGE
     JP 0                            ;reset
 

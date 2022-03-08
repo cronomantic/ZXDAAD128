@@ -9,9 +9,7 @@ This project is a **DAAD** interpreter created from scratch with [**Boriel's ZXB
 **DAAD** is a multi-machine and multi-graphics adventure writer, enabling you to target a broad range of 8-bit and 16-bit systems.
 You can see the classic interpreters [here](https://github.com/daad-adventure-writer/daad).
 
-**ZXDAAD128** requires to use the frontend of [**DAAD Reborn Compiler**](https://github.com/daad-adventure-writer/DRC/wiki) with a specific backend supplied with this project in order to distribute parts of the database around other banks.
-
-The Messages (**MTX**), System Messages (**STX**), Location Descriptions (**LTX**), Object Descriptions (**OTX**) and the character set will be allocated on other banks if they do not fit on the space available on bank 0. All the other database data will always be on Bank 0.
+**ZXDAAD128** requires to use the frontend of [**DAAD Reborn Compiler**](https://github.com/daad-adventure-writer/DRC/wiki) with a specific backend supplied with this project in order to distribute parts of the database around other banks. The Messages (**MTX**), System Messages (**STX**), Location Descriptions (**LTX**), Object Descriptions (**OTX**) and the character set will be allocated on other banks if they do not fit on the space available on bank 0. All the other database data will always be on Bank 0.
 
 **ZXDAAD128** supports compressed bitmap graphics with the **DCP** tool, instead of the traditional vector graphics.  
 The tool uses the **ZX0** compressor by Einar Saukas to compress full SCR files and the images will also be allocated on the banks of RAM by the compiler backend.  
@@ -46,16 +44,32 @@ These are the essential requirements to create adventures with this interpreter:
 If you want to compile the interpreter, you will also need:
 
 - **ZXBasic**, from [here](http://www.boriel.com/files/zxb/zxbasic-1.16.3-beta5-win32.zip).
+  
+And for DCP:
 
-And if you want to compile the DCP program, any standard C compiler will serve.
+- **A C standard compiler**
 
 ***
 
 ## **How to use**
 
-### **Excecuting the frontend**
+### **Creating an adventure**
 
-In order to use the interpreter, first you must create and compile a `DSF` file with the frontend program `DRF` as described on its [documentation](https://github.com/daad-adventure-writer/DRC/wiki) with the ZX target and the desired subtarget, like so:  
+To create your own adventure you need a text source file (**.DSF**), and the source file must be encoded with *Windows-1252* or *ISO-8859-1* charsets.  
+
+There are empty templates in several languages to start your adventure:
+
+- [English DSF blank template](https://github.com/daad-adventure-writer/DRC/blob/master/BLANK_EN.DSF)
+- [Spanish DSF blank template](https://github.com/daad-adventure-writer/DRC/blob/master/BLANK_ES.DSF)
+
+To learn more about **how to create your own adventure** your can:
+
+-  Read our [**Wiki pages with several articles**](https://github.com/nataliapc/msx2daad/wiki) about **DAAD** and **MSX2DAAD**.
+- Also you can follow this great [**DAAD Tutorial for beginners**](https://medium.com/@uto_dev/a-daad-tutorial-for-beginners-1-b2568ec4df05) writed by the author of the [**DRC**](https://github.com/daad-adventure-writer/DRC/wiki) compiler.
+
+### **Executing the frontend**
+
+After you have the `DSF` file of your adventure, you must compile it with the frontend program `DRF` as described on its [documentation](https://github.com/daad-adventure-writer/DRC/wiki) with the ZX target and the desired subtarget, like so:  
 
 ```
     drf zx mygame.dsf
@@ -92,7 +106,7 @@ The meaning of these parameters are the following:
 And these are the optional parameters:
 
 - **-v** : verbose output
-- **-3h** : Prepend +3 header to the resulting files (3h stands for 'Three header')
+- **-3** : Prepend +3 header to the resulting files
 - **-c** : Forced classic mode
 - **-d** : Forced debug mode
 - **-p** : Forced padding
@@ -146,7 +160,7 @@ The versions with disk support require some RAM available for buffers and contro
 
 ### **DCP**
 
-With this tool you can compress SCR files (dumps of the Spectrum vRAM) in order to allocate then on the banks of RAM or load them from disk with the `XPICTURE` condAct.  
+With this tool you can compress SCR files (dumps of the Spectrum video RAM) in order to allocate then on the banks of RAM or load them from disk with the `XPICTURE` condAct.  
 The use is quite simple:
 
 ```
@@ -182,14 +196,14 @@ It works in the same way as `DAADMaker128`:
     php daadmakerPlus3.php [options] <bank0.AD0> [bank1.AD1] ...
 ```
 
-Again the bank files should be stated on the command line *in the correct order* and *do not forget any file*.  
+Again, the bank files should be stated on the command line *in the correct order* and *do not forget any file*.  
 Also, you have the following options:
 
 - **-d** **[path]**      : Destination of the loader and data filer to include on a image.
 - **-s** **[SCR file]**  : SCR file which will be used as loading screen.
 
-This program will generate two files: `bin.bin` (the binary data to load) and `disk` (the loader).
-After that, you need to create a disk image file with those two files included. For that, you can use the program `MKP3FS` from taptools. You can find compiled versions [here](http://www.seasip.info/ZX/unix.html).
+This program will generate two files: a `bin.bin` file (the binary data to load) and a `disk` file(the loader).
+After that, you can create a disk image file with those two files included. For that, you can use the program `MKP3FS` from taptools. You can find compiled versions [here](http://www.seasip.info/ZX/unix.html).
 
 ***
 
@@ -205,6 +219,8 @@ After that, you need to create a disk image file with those two files included. 
 ***
 
 ## **How to compile**
+
+### **Compiling the interpreter**
 
 In order to compile, Boriel's ZXBasic is required.
 This is an example of the command line options to compile the interpreter for tape & english:
@@ -224,9 +240,9 @@ Most of these options have optimal values. You can alter some of them, but be aw
   
 There also are symbols you can define with the `-D` option in order to customize your interpreter:
 
-- Languaje:
-  - `LANG_ES`: Use the Spanish languaje.
-  - `LANG_EN`: Use the English languaje (default).
+- Language:
+  - `LANG_ES`: Use the Spanish language.
+  - `LANG_EN`: Use the English language (default).
 - Disk drive support:
   - `PLUS3`: Use +3DOS.
   - `ESXDOS`: Use ESXDOS.
@@ -234,6 +250,10 @@ There also are symbols you can define with the `-D` option in order to customize
 - Number of characters per line:
   - `FONT32`: 32 characters per line
   - `FONT42`: 42 characters per line (default).
+
+### **Compiling DCP**
+
+If you want to compile the DCP program, any standard C compiler will serve. You can tinker with the Makefile for your needs.
 
 ***
 

@@ -4423,7 +4423,6 @@ SUB initDAAD()
 END SUB
 '===============================================================================
 'Main loop
-
 #ifdef PLUS3
 InitPlus3Disc()
 #endif

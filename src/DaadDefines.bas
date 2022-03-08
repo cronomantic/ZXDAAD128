@@ -2,9 +2,6 @@
 #define _DAAD_DEFINES_
 
 
-' (C) Cronomantic 2022 - This code is released under the GPL v3 license
-
-
 #define TEXT_BUFFER_LEN   100
 
 ' Maximum number of Windows
@@ -24,7 +21,9 @@
 #define fStack    24  ' A small stack (always 2 bytes pushed) 10 pushes
 #define fO2Num    25  ' 1st free in system 64
 #define fO2Con    26  ' Object 2 is a container
-#define fO2Loc    27  'efine fDarkF    28  'efine fGFlags   29  ' This is best tested using HASAT GMODE
+#define fO2Loc    27  '
+#define fDarkF    28  '
+#define fGFlags   29  ' This is best tested using HASAT GMODE
 #define fScore    30  ' (Optional) Score flag
 #define fTurns    31  ' Number of turns taken (2 bytes LE)
 #define fVerb     33  ' Verb for the current logical sentence
