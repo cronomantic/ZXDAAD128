@@ -28,8 +28,6 @@ START:
     LD SP, BNK0_ADDR-2
     CALL INIT_STATE
     
-    LD A,(BANK_VAR)
-    PUSH AF
 _intro:
     LD DE, (SIZE_TABLE + 0)
     LD A, D

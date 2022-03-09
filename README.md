@@ -2,6 +2,29 @@
 
 ***
 
+## **Table of Contents**
+
+- [**ZXDAAD128**](#zxdaad128)
+  - [**Table of Contents**](#table-of-contents)
+  - [**Description**](#description)
+  - [**Shortcomings**](#shortcomings)
+  - [**Supported languages**](#supported-languages)
+  - [**Requirements**](#requirements)
+  - [**How to use**](#how-to-use)
+    - [**Creating an adventure**](#creating-an-adventure)
+    - [**Executing the frontend**](#executing-the-frontend)
+    - [**DRB128**](#drb128)
+    - [**The interpreters**](#the-interpreters)
+    - [**DCP**](#dcp)
+    - [**DAADMaker128**](#daadmaker128)
+    - [**DAADMakerPlus3**](#daadmakerplus3)
+  - [**How to compile**](#how-to-compile)
+    - [**Compiling the interpreter**](#compiling-the-interpreter)
+    - [**Compiling DCP**](#compiling-dcp)
+  - [**License & Acknowledgments**](#license--acknowledgments)
+
+***
+
 ## **Description**
 
 This project is a **DAAD** interpreter created from scratch with [**Boriel's ZXBasic**](https://github.com/boriel/zxbasic) for **Spectrum 128k** and compatible systems and enabling the use of the extra banks to make bigger adventures and showing bitmap images without the requirement of disk.
@@ -27,6 +50,16 @@ Supports loading and saving on tape or disk with ESXDOS or +3DOS and 42 or 32 ch
 
 ***
 
+## **Shortcomings**
+
+- The interpreter is very big!
+- The images are always full screen. They do not ajust themselves to the dimensions and position of the active window, which is the standard behaviour.
+- CondActs `CALL`, `GFX` & `SFX` not implemented.
+- Maluva's condActs `XPART`, `XBEEP`. `XSPLITSCR`, `XNEXTCLS`, `XNEXTRST` & `XSPEED` not supported.
+- No support for Externs.
+  
+***
+
 ## **Supported languages**
 
 - English
@@ -47,7 +80,7 @@ If you want to compile the interpreter, you will also need:
   
 And for DCP:
 
-- **A C standard compiler**
+- Any **C99** standard compiler.
 
 ***
 
@@ -62,10 +95,10 @@ There are empty templates in several languages to start your adventure:
 - [English DSF blank template](https://github.com/daad-adventure-writer/DRC/blob/master/BLANK_EN.DSF)
 - [Spanish DSF blank template](https://github.com/daad-adventure-writer/DRC/blob/master/BLANK_ES.DSF)
 
-To learn more about **how to create your own adventure** your can:
+To learn more about **how to create your own adventure**, your can:
 
--  Read our [**Wiki pages with several articles**](https://github.com/nataliapc/msx2daad/wiki) about **DAAD** and **MSX2DAAD**.
-- Also you can follow this great [**DAAD Tutorial for beginners**](https://medium.com/@uto_dev/a-daad-tutorial-for-beginners-1-b2568ec4df05) writed by the author of the [**DRC**](https://github.com/daad-adventure-writer/DRC/wiki) compiler.
+- Read the excellent [**Wiki pages**](https://github.com/nataliapc/msx2daad/wiki) of Natalia's [**Msx2Daad**](https://github.com/nataliapc/msx2daad) project, to know more about **DAAD**.
+- Also you can follow this great [**DAAD Tutorial for beginners**](https://medium.com/@uto_dev/a-daad-tutorial-for-beginners-1-b2568ec4df05) writted by the author of the [**DRC**](https://github.com/daad-adventure-writer/DRC/wiki) compiler.
 
 ### **Executing the frontend**
 
@@ -113,26 +146,27 @@ And these are the optional parameters:
 - **-b**  : use best fit algorithm when assigning the memory banks (first fit by default).
 - **-o [outputfile]** : (optional) path & file name of the output files. If absent, same path & file name of json file would be used.
 - **-i [image path]** : (optional) the path for the images to include. If not defined, no images will be loaded.
-- **-k [char. id]** : (optional) the number of the character which will be used as a cursor. By default the character "_" will be used.
+- **-k [char. id]** : (optional) the number of the character which will be used as a cursor. By default, the character "_" will be used (code 95).
 
 The character set file must be a 2048 bytes file, 8 bytes per character, 256 characters. Please take in mind that if you are using a 42 lines interpreter, the character set must be 6x8, so despite each of your characters has 8 bits per scanline to define, make sure you don't use the two rightmost ones (and even the third rightmost one if you want to have some space between characters).  
 Two character sets, `AD8x8.CHR` and `AD6x8.CHR`, are included for your own use.
 
 By default, the backend will generate one or more files with the same name and path of the input file, but instead the extension `.ADn`, being n a number.
 This number is the memory bank where the contents of the corresponding file should be loaded.
-So in the previous example, on the path of mygame.json, you would get files like mygame.AD0, mygame.AD1, and so on...  
+So in the previous example, on the path of `mygame.json`, you would get files like `mygame.AD0`, `mygame.AD1`, and so on...  
 With the `-o` optional parameter, you can define a different name and path for the output files.
 
 The file with extension `.AD0` should be loaded with the bank 0 active at the address 0x6000 and jump to address 0x6002 in order to run. The other files (if any), should be loaded at 0xC000 with the corresponding bank of the extension active. However, there are two scripts on the distribution, `DAADMaker128` and `DAADMakerPlus3`, which can do the job for you. They will be explained on the following sections.
 
 The backend program will put the interpreter and the main code of the database on Bank 0 always, but it will allocate the Messages (**MTX**), System Messages (**STX**), Location Descriptions (**LTX**), Object Descriptions (**OTX**), the character set, the extra messages and compressed images on other banks if necessary.
-The default policy of allocation is *first fit*, that is, it will allocate a data block on the first bank where there is enough space avaliable to fit. This policy will generate the lower number of files. However if there are too much blocks (i.e. images), it becomes inefficient. On that case, you can use the `-b` parameter, which will enable the *best fit* allocation policy instead.
+The default policy of allocation is *first fit*, that is, it will allocate a data block on the first bank where there is enough space avaliable to fit. This policy will generate the lower number of files.  
+However, if there are too much blocks (i.e. images), it becomes inefficient. On that case, you can use the `-b` parameter, which will enable the *best fit* allocation policy instead. This means that the block will be allocated on the bank with less space where it can fit.
 
 The backend compiler includes the tokens included in the default databases for both English and Spanish, in order to compress the texts.
 If you need to get the better tokens for a given title you can use [DRT](https://github.com/daad-adventure-writer/DRT) by Jose Manuel Ferrer, a nice tokenizer for DAAD texts which will get the best compression. In order to use them, you must put the tokens file on the same path and with the same name of the input file, but with extension `.TOK` instead.
 
-If you want images on memory, you must provide a path to a directory in them with the option `-i`. The program will scan the directory for files with name like `012.DCP`, a three digit number as the filename and with DCP extension, that's it.  
-To show this image you should do a call to the condAct `PICTURE` with the number of the file as parameter (`PICTURE 12`) to preload it, and then use `DISPLAY` to show it on screen.
+If you want images on memory, you must provide a path to a directory with the image files with the option `-i`. The program will scan the directory for files with name like `012.DCP`, a three digit number from 0 to 255 (included) as the filename and with DCP extension.
+To show this image you should do a call to the condAct `PICTURE` with the number of the file as parameter (i.e. `PICTURE 12` for image of file `012.DCP`) to preload it, and then use `DISPLAY` to show it on screen. Please refer to those two condActs on the original DAAD manual.
 
 ### **The interpreters**
 
@@ -143,18 +177,18 @@ The following is the list of the capabilities of each one:
 
 |      **Interpreter**     | **Chars.** **per** **line** | **Language** | **Disk support** | **Banks** **not** **avaliable** | **XPICTURE** **support** |
 |--------------------------|:------------------------:|:------------:|:----------------:|:----------------:|:----------------:|
-| ZXD128_TAPE_EN_C42.ZDI   |            42            |    English   |       None       |   None   | No |
-| ZXD128_TAPE_ES_C42.ZDI   |            42            |    Spanish   |       None       |   None   | No |
-| ZXD128_TAPE_EN_C32.ZDI   |            32            |    English   |       None       |   None   | No |
-| ZXD128_TAPE_ES_C32.ZDI   |            32            |    Spanish   |       None       |   None   | No |
-| ZXD128_ESXDOS_EN_C42.ZDI |            42            |    English   |      ESXDOS      |   Half of Bank 7   | Yes |
-| ZXD128_ESXDOS_ES_C42.ZDI |            42            |    Spanish   |      ESXDOS      |   Half of Bank 7   | Yes |
-| ZXD128_ESXDOS_EN_C32.ZDI |            32            |    English   |      ESXDOS      |   Half of Bank 7   | Yes |
-| ZXD128_ESXDOS_ES_C32.ZDI |            32            |    Spanish   |      ESXDOS      |   Half of Bank 7   | Yes |
-| ZXD128_PLUS3_EN_C42.ZDI  |            42            |    English   |       +3DOS      |   Half of Bank 6 and bank 7   | Yes |
-| ZXD128_PLUS3_ES_C42.ZDI  |            42            |    Spanish   |       +3DOS      |   Half of Bank 6 and bank 7   | Yes |
-| ZXD128_PLUS3_EN_C32.ZDI  |            32            |    English   |       +3DOS      |   Half of Bank 6 and bank 7   | Yes |
-| ZXD128_PLUS3_ES_C32.ZDI  |            32            |    Spanish   |       +3DOS      |   Half of Bank 6 and bank 7   | Yes |
+| ZXD128_TAPE_EN_C42.ZDI   |  42  |    English   |       None       |   None   | No |
+| ZXD128_TAPE_ES_C42.ZDI   |  42  |    Spanish   |       None       |   None   | No |
+| ZXD128_TAPE_EN_C32.ZDI   |  32  |    English   |       None       |   None   | No |
+| ZXD128_TAPE_ES_C32.ZDI   |  32  |    Spanish   |       None       |   None   | No |
+| ZXD128_ESXDOS_EN_C42.ZDI |  42  |    English   |      ESXDOS      |   Half of Bank 7   | Yes |
+| ZXD128_ESXDOS_ES_C42.ZDI |  42  |    Spanish   |      ESXDOS      |   Half of Bank 7   | Yes |
+| ZXD128_ESXDOS_EN_C32.ZDI |  32  |    English   |      ESXDOS      |   Half of Bank 7   | Yes |
+| ZXD128_ESXDOS_ES_C32.ZDI |  32  |    Spanish   |      ESXDOS      |   Half of Bank 7   | Yes |
+| ZXD128_PLUS3_EN_C42.ZDI  |  42  |    English   |       +3DOS      |   Half of Bank 6 and bank 7   | Yes |
+| ZXD128_PLUS3_ES_C42.ZDI  |  42  |    Spanish   |       +3DOS      |   Half of Bank 6 and bank 7   | Yes |
+| ZXD128_PLUS3_EN_C32.ZDI  |  32  |    English   |       +3DOS      |   Half of Bank 6 and bank 7   | Yes |
+| ZXD128_PLUS3_ES_C32.ZDI  |  32  |    Spanish   |       +3DOS      |   Half of Bank 6 and bank 7   | Yes |
 
 The versions with disk support require some RAM available for buffers and control, so some banks will not be available. Take that into consideration when developing adventures for these versions.
 
@@ -174,7 +208,7 @@ The parameter `-f` will force the overwritting of the destination file if it alr
 
 `DAADMaker128` will help you create a `.TAP` file from the bank files created with `drc128` with a loader.  
 You can also add an optional loading screen in .SCR format. If you don't provide one the game won't have a loading screen but will work anyway.  
-This is a PHP script, so like with `drc128`, you need to have PHP installed.  
+This is a PHP script, so like with `drb128`, you need to have PHP installed.  
 
 ```
     php daadmaker128 [options] <bank0.AD0> [bank1.AD1] ...
@@ -193,28 +227,17 @@ This php script is the equivalent of the previous one, but instead it will creat
 It works in the same way as `DAADMaker128`:  
 
 ```
-    php daadmakerPlus3.php [options] <bank0.AD0> [bank1.AD1] ...
+    php daadmakerPlus3 [options] <bank0.AD0> [bank1.AD1] ...
 ```
 
 Again, the bank files should be stated on the command line *in the correct order* and *do not forget any file*.  
 Also, you have the following options:
 
-- **-d** **[path]**      : Destination of the loader and data filer to include on a image.
+- **-d** **[path]**      : Destination of the loader and data filer to include on a disk image.
 - **-s** **[SCR file]**  : SCR file which will be used as loading screen.
 
-This program will generate two files: a `bin.bin` file (the binary data to load) and a `disk` file(the loader).
+This program will generate two files: a `bin.bin` file (the binary data to load) and a `disk` file (the loader).
 After that, you can create a disk image file with those two files included. For that, you can use the program `MKP3FS` from taptools. You can find compiled versions [here](http://www.seasip.info/ZX/unix.html).
-
-***
-
-## **Shortcomings**
-
-- The interpreter is very big! Almost 24 Kb on some cases!
-- The images are always full screen. They do not ajust themselves to the dimensions and position of the active window, which is the standard behaviour.
-- No support for ZXUno & Next.
-- CondActs `CALL`, `GFX` & `SFX` not implemented.
-- No support for Externs.
-- ESXDOS is still experimental.
 
 ***
 
@@ -226,7 +249,7 @@ In order to compile, Boriel's ZXBasic is required.
 This is an example of the command line options to compile the interpreter for tape & english:
 
 ```
-  zxbc -o ZXD128_EN.ZDI --optimize 4 --org 0x6002 -H 3072 -D LANG_EN ZXDAAD128.bas 
+  zxbc -o MY_INTERPRETER.ZDI --optimize 4 --org 0x6002 -H 3072 -D LANG_EN ZXDAAD128.bas 
 ```
 
 Check ZXBasic documentation or the command line `--help` of the compiler to know the meaning of the command line options.
@@ -253,7 +276,7 @@ There also are symbols you can define with the `-D` option in order to customize
 
 ### **Compiling DCP**
 
-If you want to compile the DCP program, any standard C compiler will serve. You can tinker with the Makefile for your needs.
+If you want to compile the DCP program, any standard C99 compiler will serve. You can tinker with the Makefile for your own needs.
 
 ***
 
@@ -263,6 +286,7 @@ If you want to compile the DCP program, any standard C compiler will serve. You 
 - The graphic compressor **DCP** is based on [**RCS**](https://github.com/einar-saukas/RCS) & [**ZX0**](https://github.com/einar-saukas/ZX0) which are created by Einar Saukas and is distributed under a 'BSD-3' License.
 - **DRB128** is a fork from Uto's original [**DRB**](https://github.com/daad-adventure-writer/daad), (c) Uto 2018. Is distributed under the GPLv3 license.
 - [**Boriel's ZXBasic**](https://github.com/boriel/zxbasic) and its libraries have been used to build the interpreter. They are distributed under the GPLv3 license and the MIT License respectively.
+- This work has been made posible thanks to [**DAAD Ready**](https://github.com/Utodev/DAAD-Ready), by Uto and [**Msx2Daad**](https://github.com/nataliapc/msx2daad) bu NataliaPC.
 - Plus3 loader has been made thanks to the help of Sergio thEpOpE.
 
 ***
