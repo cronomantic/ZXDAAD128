@@ -223,7 +223,7 @@ There are also the following optional parameteres to customize the loader:
 
 ### **DAADMakerPlus3**
 
-This php script is the equivalent of the previous one, but instead it will create two files to make al self-bootable disk for +3.
+This php script is the equivalent of the previous one, but instead it will create two files to make a self-bootable disk for +3.
 It works in the same way as `DAADMaker128`:  
 
 ```
