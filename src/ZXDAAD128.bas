@@ -1249,10 +1249,10 @@ SUB getMessage(num AS uByte, doPrint AS uByte, msgIdxBnk AS uByte, msgIdxPtr AS 
   DIM ptr, dest, s AS uInteger
   DIM b AS uByte
 
+  LET b = SetRAMBank(msgIdxBnk bOR ROM48KBASIC)
+
   LET ptr = msgIdxPtr + 2 * CAST(uInteger, num)
   LET ptr = PEEK(uInteger, ptr)
-
-  LET b = SetRAMBank(msgIdxBnk bOR ROM48KBASIC)
 
   'Get size to allocate memory
   LET s = getSizeMessage(ptr)
@@ -1323,7 +1323,6 @@ FUNCTION printMaluvaExtraMsg(lsb AS uByte, msb AS uByte) AS uByte
     LET dest = DdbXmes0Pos
     LET b = DdbXmes0Bnk
   END IF
-
 
   IF dest = 0 THEN RETURN FALSE
 

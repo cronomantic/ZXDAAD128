@@ -71,7 +71,7 @@ Supports loading and saving on tape or disk with ESXDOS or +3DOS and 42 or 32 ch
 
 These are the essential requirements to create adventures with this interpreter:
 
-- **DAAD Reborn Compiler**, more precisely, the frontend program `DRF.exe`. It can be obtained [here](https://www.ngpaws.com/downloads/DAAD/DRC/).
+- **DAAD Reborn Compiler**, more precisely, the frontend program `DRF.exe`, version 0.27 or upper. It can be obtained [here](https://www.ngpaws.com/downloads/DAAD/DRC/).
 - **PHP**, which can be obtained [here](https://www.php.net/), please follow its installation instructions for your OS.
 
 If you want to compile the interpreter, you will also need:
