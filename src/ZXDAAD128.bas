@@ -2363,6 +2363,7 @@ SUB PRIVATEDoALL()
   LOOP
 
   LET flags(fDAObjNo) = objno
+  LET flags(fCONum) = objno
   LET flags(fNoun1) = PEEK(objNounId + objno)
   LET flags(fAdject1) = PEEK(objAdjetiveId + objno)
   LET objno = objno + 1
