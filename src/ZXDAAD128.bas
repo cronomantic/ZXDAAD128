@@ -1704,36 +1704,6 @@ retContinue:
 
 END SUB
 '==============================================================================
-'' Move next logical sentence to start of logical 
-'' sentence buffer.
-SUB nextLogicalSentence()
-
-  DIM t, p, c AS uByte
-
-  LET p = 0
-  LET c = 0
-
-  LET t = lsBuffer0(p)
-  DO WHILE t <> CONJUNCTION AND t <> 0
-    LET p = p + 2
-    LET t = lsBuffer0(p)
-  LOOP
-
-  LET p = p + 2
-
-  DO
-    LET t = lsBuffer0(p)
-    LET lsBuffer0(c) = t
-    LET lsBuffer0(c + 1) = lsBuffer0(p + 1)
-    LET c = c + 2
-    IF NOT t THEN EXIT DO
-    LET p = p + 2
-  LOOP
-  LET lsBuffer0(c) = 0
-  LET lsBuffer0(c + 1) = 0
-
-END SUB
-
 'Clear pending logical sentences if any.
 SUB clearLogicalSentences()
 
@@ -1745,8 +1715,7 @@ END SUB
 ' Set the flags with the current logical sentence.
 FUNCTION populateLogicalSentence() AS uByte
 
-  DIM p, c, type, id, adj, ret AS uByte
-  DIM obj AS uByte
+  DIM p, c, type, id, adj, ret, obj AS uByte
 
  'Clear parser flags
   LET flags(fVerb) = NULLWORD
@@ -1760,12 +1729,17 @@ FUNCTION populateLogicalSentence() AS uByte
   LET flags(fCPAdject) = NULLWORD
 
   LET p = 0
+  LET c = 0
   LET adj = fAdject1
   LET ret = FALSE
 
-  DO WHILE lsBuffer0(p) AND (lsBuffer0(p+1) <> CONJUNCTION) AND p < LS_BUFFER0_LEN
+  DO
+    IF p >= LS_BUFFER0_LEN THEN EXIT DO 'End of buffer
     LET id = lsBuffer0(p)
+    IF id = 0 THEN EXIT DO 'Read token 0
     LET type = lsBuffer0(p+1)
+    IF type = CONJUNCTION THEN EXIT DO 'Is a conjuntion
+
     IF type = VERB AND flags(fVerb) = NULLWORD THEN 'VERB
       LET flags(fVerb) = id
       LET ret = TRUE
@@ -1814,7 +1788,19 @@ FUNCTION populateLogicalSentence() AS uByte
     END IF
   END IF
 
-  nextLogicalSentence()
+nextLogicalSentence:
+  ' Move next logical sentence to start of logical sentence buffer.
+
+  'Skipping conjuntion
+  IF p < LS_BUFFER0_LEN AND id <> 0 AND type = CONJUNCTION THEN LET p = p + 2
+
+  IF p < LS_BUFFER0_LEN THEN
+    LET c = LS_BUFFER0_LEN - p
+    MemMove(@lsBuffer0(p), @lsBuffer0(0), c)
+  END IF
+
+  LET lsBuffer0(c) = 0 : LET c = c + 1
+  LET lsBuffer0(c) = 0
 
   RETURN ret
 
