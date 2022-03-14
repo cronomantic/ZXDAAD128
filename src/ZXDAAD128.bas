@@ -176,6 +176,8 @@ DIM lastPrompt AS uByte
 
 DIM borderScr AS uByte = 0
 
+DIM previousVerb AS uByte = NULLWORD
+
 DIM tmpMsg AS uInteger
 DIM ramSave AS uInteger
 
@@ -1709,13 +1711,16 @@ SUB clearLogicalSentences()
 
   MemSet(@lsBuffer0(0), 0, LS_BUFFER0_LEN)
   MemSet(@lsBuffer1(0), 0, LS_BUFFER1_LEN)
+  LET previousVerb = NULLWORD
 
 END SUB
 
 ' Set the flags with the current logical sentence.
 FUNCTION populateLogicalSentence() AS uByte
 
-  DIM p, c, type, id, adj, ret, obj AS uByte
+  DIM p, c AS uByte
+  DIM type, id, adj, obj AS uByte
+  DIM ret, pron, n, v AS uByte
 
  'Clear parser flags
   LET flags(fVerb) = NULLWORD
@@ -1725,24 +1730,28 @@ FUNCTION populateLogicalSentence() AS uByte
   LET flags(fPrep) = NULLWORD
   LET flags(fNoun2) = NULLWORD
   LET flags(fAdject2) = NULLWORD
-  LET flags(fCPNoun) = NULLWORD
-  LET flags(fCPAdject) = NULLWORD
 
   LET p = 0
   LET c = 0
   LET adj = fAdject1
   LET ret = FALSE
+  LET pron = FALSE
 
-  DO
-    IF p >= LS_BUFFER0_LEN THEN EXIT DO 'End of buffer
+  DO WHILE p < LS_BUFFER0_LEN 'End of buffer
+
     LET id = lsBuffer0(p)
     IF id = 0 THEN EXIT DO 'Read token 0
     LET type = lsBuffer0(p+1)
     IF type = CONJUNCTION THEN EXIT DO 'Is a conjuntion
+    IF type = SEPARATOR THEN EXIT DO 'Is a separator
 
-    IF type = VERB AND flags(fVerb) = NULLWORD THEN 'VERB
+    IF type = PRONOUNVERB AND flags(fVerb) = NULLWORD AND NOT pron THEN 'Verb with pronoun
       LET flags(fVerb) = id
-      LET ret = TRUE
+      LET pron = TRUE
+    ELSEIF type = VERB AND flags(fVerb) = NULLWORD THEN 'VERB
+      LET flags(fVerb) = id
+    ELSEIF type = PRONOUN AND flags(fNoun1) = NULLWORD AND NOT pron THEN 'Pronoun
+      LET pron = TRUE
     ELSEIF type = NOUN AND flags(fNoun1) = NULLWORD THEN 'NOUN1
       ' word that works like noun and verb
       IF id < 20 AND flags(fVerb) = NULLWORD THEN
@@ -1750,26 +1759,40 @@ FUNCTION populateLogicalSentence() AS uByte
       ELSE 'works only like noun
         LET flags(fNoun1) = id
       END IF
-      LET ret = TRUE
     ELSEIF type = NOUN AND flags(fNoun2) = NULLWORD THEN 'NOUN2
       LET flags(fNoun2) = id
       LET adj = fAdject2
-      LET ret = TRUE
     ELSEIF type = ADVERB AND flags(fAdverb) = NULLWORD THEN 'ADVERB
       LET flags(fAdverb) = id
-      LET ret = TRUE
     ELSEIF type = PREPOSITION AND flags(fPrep) = NULLWORD THEN 'PREP
       LET flags(fPrep) = id
-      LET ret = TRUE
     ELSEIF type = ADJECTIVE AND adj = fAdject1 AND flags(fAdject1) = NULLWORD THEN 'ADJ1
       LET flags(fAdject1) = id
-      LET ret = TRUE
     ELSEIF type = ADJECTIVE AND adj = fAdject2 AND flags(fAdject2) = NULLWORD THEN 'ADJ2
       LET flags(fAdject2) = id
-      LET ret = TRUE
     END IF
+
     LET p = p + 2
   LOOP
+
+  LET v = flags(fVerb)
+  LET n = flags(fNoun1)
+
+  ' Missing verb but present noun, replace with previous verb
+  IF v = NULLWORD AND n <> NULLWORD AND previousVerb <> NULLWORD THEN
+    LET v = previousVerb
+    LET flags(fVerb) = previousVerb
+  END IF
+
+  IF n <> NULLWORD AND n >= LAST_PROPER_NOUN THEN
+    LET flags(fCPNoun) = n
+    LET flags(fCPAdject) = flags(fAdject1)
+  END IF
+
+  IF n = NULLWORD AND pron THEN
+    LET flags(fNoun1) = flags(fCPNoun)
+    LET flags(fAdject1) = flags(fCPAdject)
+  END IF
 
   IF flags(fNoun2) <> NULLWORD THEN
     LET obj = getObjectId(flags(fNoun2), flags(fAdject2), LOC_HERE)
@@ -1788,21 +1811,26 @@ FUNCTION populateLogicalSentence() AS uByte
     END IF
   END IF
 
+  'Preserve verb to be used by next sentence
+  IF v <> NULLWORD THEN LET previousVerb = v
+
 nextLogicalSentence:
   ' Move next logical sentence to start of logical sentence buffer.
 
   'Skipping conjuntion
-  IF p < LS_BUFFER0_LEN AND id <> 0 AND type = CONJUNCTION THEN LET p = p + 2
+  IF p < LS_BUFFER0_LEN AND id <> 0 AND (type = CONJUNCTION OR type = SEPARATOR) THEN 
+    LET p = p + 2
+  END IF
 
   IF p < LS_BUFFER0_LEN THEN
     LET c = LS_BUFFER0_LEN - p
     MemMove(@lsBuffer0(p), @lsBuffer0(0), c)
   END IF
 
-  LET lsBuffer0(c) = 0 : LET c = c + 1
   LET lsBuffer0(c) = 0
+  LET lsBuffer0(c+1) = 0
 
-  RETURN ret
+  RETURN (v <> NULLWORD) OR (n <> NULLWORD)
 
 END FUNCTION
 
@@ -1810,83 +1838,178 @@ END FUNCTION
 FUNCTION useLiteralSentence() AS uByte
 
   MemCopy(@lsBuffer1(0), @lsBuffer0(0), LS_BUFFER1_LEN)
+  LET previousVerb = NULLWORD
   RETURN populateLogicalSentence()
 
+END FUNCTION
+
+'Chech if the word exists on the vocabulary
+FUNCTION checkWordVoc(ByVal ptr AS uInteger, ByVal wlen AS uByte, _
+                      ByRef id AS uByte, ByRef type AS uByte) AS uByte
+
+  DIM voc AS uInteger
+  DIM tmpVoc(0 TO 4) AS uByte
+  DIM i, v AS uByte
+
+  IF wlen > 5 THEN LET wlen = 5
+
+  MemSet(@tmpVoc(0), 32, 5)
+  MemCopy(ptr, @tmpVoc(0), wlen)
+  FOR i = 0 TO 4
+    LET tmpVoc(i) = 255 - tmpVoc(i)
+  NEXT i
+
+  'Search it in VOCabulary table
+  LET voc = DdbVocPos
+  LET v = PEEK voc
+  DO WHILE v
+    IF NOT strcmp(@tmpVoc(0), voc, 5) THEN
+      LET id = PEEK(voc + 5)
+      LET type = PEEK(voc + 6)
+      RETURN TRUE
+    END IF
+    LET voc = voc + 7
+    LET v = PEEK voc
+  LOOP
+
+  RETURN FALSE
+
+END FUNCTION
+
+
+FUNCTION FASTCALL isSeparator(c AS uByte) AS uByte
+ASM
+PROC
+  LOCAL endS
+
+  LD C, TRUE
+  CP $2E         ; '.'
+  JR Z, endS
+  CP $2C         ; ','
+  JR Z, endS
+  CP $3B         ; ';'
+  JR Z, endS
+  CP $3A         ; ':' 
+  JR Z, endS
+  LD C, FALSE
+endS:
+  LD A, C
+
+ENDP
+END ASM
 END FUNCTION
 
 'Parse the words in user entry text and compare them with vocabulary table.
 SUB parser()
 
-  DIM p, p2, voc AS uInteger
-  DIM tmpVoc, lsBuffer, aux AS uInteger
-  DIM i, c, c2, v AS uByte
+  DIM p, p2 AS uInteger
+  DIM lsBuffer, aux AS uInteger
+  DIM c, c2, pron, wlen, l2, req AS uByte
+  DIM id, type, id2, type2 AS uByte
 
   LET lsBuffer = @lsBuffer0(0)
-  LET aux = @lsBuffer1(0)
-
+  LET aux = NULL
   LET p = tmpMsg
-  LET tmpVoc = memAlloc(8)
 
   'Clear logical sentences buffer
   clearLogicalSentences()
 
   LET c = PEEK p
   DO WHILE c
-    'Clear tmp voc
-    MemSet(tmpVoc, 32, 5)
 
     IF c = 34 THEN '"'
-      LET aux = lsBuffer
-      LET lsBuffer = @lsBuffer1(0)
-      LET p = p + 1
-      LET c = PEEK p
+      IF aux = NULL THEN
+        LET aux = lsBuffer
+        LET lsBuffer = @lsBuffer1(0)
+      ELSE
+        LET lsBuffer = aux
+        LET aux = NULL
+      END IF
+    ELSEIF isSeparator(c) THEN
+        POKE lsBuffer, c : LET lsBuffer = lsBuffer + 1
+        POKE lsBuffer, SEPARATOR : LET lsBuffer = lsBuffer + 1
+        POKE lsBuffer, 0
+    ELSEIF c <> 32 THEN 'Space
+
+      'Find end of the word
+      LET p2 = p
+      LET c2 = PEEK p2
+      DO WHILE c2
+        IF c2 = 32 THEN EXIT DO
+        IF c2 = 34 THEN EXIT DO
+        IF isSeparator(c2) THEN EXIT DO
+        LET p2 = p2 + 1
+        LET c2 = PEEK p2
+      LOOP
+
+      LET wlen = CAST(uByte, p2-p)
+      IF checkWordVoc(p, wlen, id, type) THEN
+
+#ifdef LANG_ES
+      'In spanish, check pronominal sufixes
+        LET req = TRUE
+        IF type = VERB THEN
+          LET pron = FALSE
+          IF NOT strcmp(p2-2, @pronominalsString, 2) THEN 'LO
+            LET pron = TRUE
+            LET l2 = wlen - 2
+          ELSEIF NOT strcmp(p2-2, @pronominalsString+3, 2) THEN 'LA
+            LET pron = TRUE
+            LET l2 = wlen - 2
+          ELSEIF NOT strcmp(p2-3, @pronominalsString+6, 3) THEN 'LOS
+            LET pron = TRUE
+            LET l2 = wlen - 3
+          ELSEIF NOT strcmp(p2-3, @pronominalsString+10, 3) THEN 'LAS
+            LET pron = TRUE
+            LET l2 = wlen - 3
+          END IF
+          IF pron THEN
+            LET req = FALSE
+            'If we have a word ending with pronominal suffixes, we need to check whether the word is a verb 
+            'also without the termination, to avoid the HABLA bug where "LA" is part of the verb habLAr and
+            'not a suffix. So first we remove the termination & then check if still can be recognized as a verb
+            IF checkWordVoc(p, l2, id2, type2) THEN
+              IF id2 = id AND type2 = type THEN 
+                LET req = TRUE    
+                LET type = PRONOUNVERB 'Phony type for verbs with pronominal suffix
+              END IF
+            END IF
+            'Please notice the word has to be first recognized as verb, so all Spanish verbs which are not
+            '5 characters long should have synonyms including the suffix or part of it: DAR->DARLO, COGE->COGEL
+          END IF
+        END IF
+        IF req THEN
+          POKE lsBuffer, id : LET lsBuffer = lsBuffer + 1
+          POKE lsBuffer, type : LET lsBuffer = lsBuffer + 1
+          POKE lsBuffer, 0
+        END IF
+#else
+        POKE lsBuffer, id : LET lsBuffer = lsBuffer + 1
+        POKE lsBuffer, type : LET lsBuffer = lsBuffer + 1
+        POKE lsBuffer, 0
+#endif
+      END IF
+
+      LET p = p2
+      LET c = c2
+      CONTINUE DO
+
     END IF
 
-    'Copy first 5 chars max of word'
-    LET p2 = p
-
-    LET c2 = PEEK p2
-    DO WHILE p2 - p < 5 AND c2 <> 32 AND c2 <> 34 AND c2 <> 0
-      LET p2 = p2 + 1
-      LET c2 = PEEK p2
-    LOOP
-    MemCopy(p, tmpVoc, p2-p)
-    FOR i = 0 TO 4
-      POKE (tmpVoc + i),(255 - (PEEK(tmpVoc + i)))
-    NEXT i
-
-    'Search it in VOCabulary table
-    LET voc = DdbVocPos
-
-    LET v = PEEK voc
-    DO WHILE v
-      IF NOT strcmp(tmpVoc, voc, 5) THEN
-        POKE lsBuffer, (PEEK (voc + 5)) : LET lsBuffer = lsBuffer + 1
-        POKE lsBuffer, (PEEK (voc + 6)) : LET lsBuffer = lsBuffer + 1
-        POKE lsBuffer, 0
-        EXIT DO
-      END IF
-      LET voc = voc + 7
-      LET v = PEEK voc
-    LOOP
-
-    'Find end of word
-    DO WHILE c <> 0 AND c <> 32
-      IF c = 34 THEN '"'
-        LET lsBuffer = aux
-      END IF
-      LET p = p + 1
-      LET c = PEEK p
-    LOOP
-
-    'Find next word
-    DO WHILE c <> 0 AND c = 32
-      LET p = p + 1
-      LET c = PEEK p
-    LOOP
-
+    LET p = p + 1
+    LET c = PEEK p
   LOOP
-  deallocate(tmpVoc)
+
+  RETURN
+
+'--------------------------------
+pronominalsString:
+ASM
+  DEFB $4C, $4F, $0 ; 'LO'
+  DEFB $4C, $41, $0 ; 'LA'
+  DEFB $4C, $4F, $53, $0 ; 'LOS'
+  DEFB $4C, $41, $53, $0 ; 'LAS'
+END ASM
 
 END SUB
 
@@ -2951,7 +3074,7 @@ condactADVERB:
 '=============================================================================
 condactSFX:
   'TODO
-  GOTO NextCondact
+  GOTO condactNOT_USED
 '=============================================================================
 condactDESC:
 'Prints the text for location locno. without a NEWLINE.
@@ -3855,7 +3978,7 @@ condactMOUSE:
 
 condactGFX:
   'TODO
-  GOTO NextCondact
+  GOTO condactNOT_USED
 ' =============================================================================
 condactISNOTAT:
 'Succeeds if Object objno. is not at Location locno
@@ -4046,7 +4169,7 @@ condactWHATO:
 ' =============================================================================
 condactCALL:
   'TODO
-  GOTO NextCondact
+  GOTO condactNOT_USED
 ' =============================================================================
 condactPUTO:
 'The position of the currently referenced object (i.e. that object whose 

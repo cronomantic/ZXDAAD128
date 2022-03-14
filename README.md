@@ -288,5 +288,6 @@ If you want to compile the DCP program, any standard C99 compiler will serve. Yo
 - [**Boriel's ZXBasic**](https://github.com/boriel/zxbasic) and its libraries have been used to build the interpreter. They are distributed under the GPLv3 license and the MIT License respectively.
 - This work has been made posible thanks to [**DAAD Ready**](https://github.com/Utodev/DAAD-Ready), by Uto and [**Msx2Daad**](https://github.com/nataliapc/msx2daad) bu NataliaPC.
 - Plus3 loader has been made thanks to the help of Sergio thEpOpE.
+- Thanks to [Dwalin](www.rudolphinerur.com) for his help on testing the interpreter.
 
 ***

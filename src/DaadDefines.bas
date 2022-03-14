@@ -125,15 +125,19 @@
 #define LANGUAGE_ES     1
 
 'Vocabulary types
-#define VERB  0
-#define ADVERB  1
-#define NOUN 2
-#define ADJECTIVE 3
-#define PREPOSITION  4
-#define CONJUNCTION  5
-#define PRONOUN  6
+#define VERB            0
+#define ADVERB          1
+#define NOUN            2
+#define ADJECTIVE       3
+#define PREPOSITION     4
+#define CONJUNCTION     5
+#define PRONOUN         6
+#define PRONOUNVERB     128
+#define SEPARATOR       129
 
 #define NUM_PROCS 10
 #define NO_LASTPICTURE $FFFF
+
+#define LAST_PROPER_NOUN 50
 
 #endif
