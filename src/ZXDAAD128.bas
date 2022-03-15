@@ -3,13 +3,13 @@
 
 '
 ' (C) Cronomantic 2022 - This code is released under the GPL v3 license
-' 
+'
 '  Acknowledgments:
 '
 '  Inspired by MSX-DAAD by NataliaPC (some code comes from here): https://github.com/nataliapc/msx2daad
 '  Utodev & Co. for the necessary info & tools about DAAD: https://github.com/daad-adventure-writer
 '  RCS is created by Einar Saukas: https://github.com/einar-saukas/RCS
-'  ZX0 is created by Einar Saukas: https://github.com/einar-saukas/ZX0     
+'  ZX0 is created by Einar Saukas: https://github.com/einar-saukas/ZX0
 '  Printing routines by Britlion.
 '
 
@@ -113,7 +113,7 @@ DIM DdbVocPos     AS uInteger  ' 0x16 | 2 bytes | Vocabulary
 DIM DdbObjLocLst  AS uInteger  ' 0x18 | 2 bytes | Objects "initialy at" list position
 DIM DdbObjNamePos AS uInteger  ' 0x1A | 2 bytes | Object names positions
 DIM DdbObjAttrPos AS uInteger  ' 0x1C | 2 bytes | Object weight and container/wearable attributes
-DIM DdbObjExtrPos AS uInteger  ' 0x1E | 2 bytes | Extra object attributes 
+DIM DdbObjExtrPos AS uInteger  ' 0x1E | 2 bytes | Extra object attributes
 
 ' New header fields
 DIM DdbXmes0Pos   AS uInteger  ' 0x20 | 2 bytes | Position of Extra messages (file 0)
@@ -127,7 +127,7 @@ DIM DdbXmes2Bnk   AS uByte     ' 0x2C | 1 byte  | Number of bank of extra messag
 DIM DdbXmes3Bnk   AS uByte     ' 0x2E | 1 byte  | Number of bank of extra messages (file 3)
 
 DIM DdbFntPos     AS uInteger  ' 0x30 | 2 bytes | Position of the font
-DIM DdbImgIdxPos  AS uInteger  ' 0x32 | 2 bytes | Position of the image index 
+DIM DdbImgIdxPos  AS uInteger  ' 0x32 | 2 bytes | Position of the image index
 DIM DdbNumImgs    AS uByte     ' 0x34 | 1 byte  | Number of images
 DIM DdbBnkObjDsc  AS uByte     ' 0x35 | 1 byte  | Number of bank of object descriptions
 DIM DdbBnkLocDsc  AS uByte     ' 0x36 | 1 byte  | Number of bank of location descriptions
@@ -246,7 +246,7 @@ PROC
     DI
     LD ($5b5c),A
     OUT (C),A                     ;update port
-    EI 
+    EI
     POP AF                        ;Recovering previous value
 ENDP
 END ASM
@@ -260,10 +260,8 @@ PROC
     LD BC, $7ffd
     DI
     OUT (C),A          ;update port
-#ifdef PLUS3
     LD B,$1F           ;BC=1FFD
     OUT (C),A          ;update port
-#endif
     LD HL, 0
     EX (SP), HL
 ENDP
@@ -279,7 +277,7 @@ FUNCTION memAlloc(s AS uInteger) AS uInteger
 END FUNCTION
 
 FUNCTION ToUpper(c AS uByte) AS uByte
-  IF c >= 97 AND c <= 122 THEN 
+  IF c >= 97 AND c <= 122 THEN
     LET c = c - 97
     LET c = c + 65
   END IF
@@ -287,7 +285,7 @@ FUNCTION ToUpper(c AS uByte) AS uByte
 END FUNCTION
 
 FUNCTION ToLower(c AS uByte) AS uByte
-  IF c >= 65 AND c <= 90 THEN 
+  IF c >= 65 AND c <= 90 THEN
     LET c = c - 65
     LET c = c + 97
   END IF
@@ -301,7 +299,7 @@ FUNCTION strnicmp(s1 AS uInteger, s2 AS uInteger, n AS uInteger) AS uByte
   DIM c1, c2 AS uByte
 
   IF n = 0 THEN RETURN 0
-  
+
   IF (s1 bOR s2) = 0 THEN RETURN 0
   IF s1 = 0 OR s2 = 0 THEN RETURN 1
 
@@ -820,9 +818,9 @@ END SUB
  ' Function: waitForTimeout
  ' --------------------------------
  ' Wait for a timeout or key pressed
- ' 
- ' @param timeFlag	A mask to compare with Timer Flag.
- ' @return			Boolean for timeout if reached or not.
+ '
+ ' @param timeFlag  A mask to compare with Timer Flag.
+ ' @return          Boolean for timeout if reached or not.
  '/
 FUNCTION waitForTimeout(timerFlag AS uInteger) AS uByte
 
@@ -870,7 +868,7 @@ SUB pushCurrentWindow(w AS uByte)
   LET winH(w) = cwinH
   LET cursorX(w) = ccursorX
   LET cursorY(w) = ccursorY
-  LET winMode(w) = cwinMode 
+  LET winMode(w) = cwinMode
   LET winAttr(w) = AttrD
 
 END SUB
@@ -1061,18 +1059,18 @@ END SUB
  ' Function: errorCode
  ' --------------------------------
  ' Show a system error (see DAAD manual section 4.3)
- ' 
+ '
  ' Print "Game error n" where n is one of:
- ' 		0 - Invalid object number
- ' 		1 - Illegal assignment to HERE (Flag 38)
- ' 		2 - Attempt to set object to loc 255
- ' 		3 - Limit reached on PROCESS calls
- ' 		4 - Attempt to nest DOALL
- ' 		5 - Illegal CondAct (corrupt or old db!)
- ' 		6 - Invalid process call
- ' 		7 - Invalid message number
- ' 		8 - Invalid PICTURE (drawstring only)
- ' 		9 - Can't allocate memory
+ '      0 - Invalid object number
+ '      1 - Illegal assignment to HERE (Flag 38)
+ '      2 - Attempt to set object to loc 255
+ '      3 - Limit reached on PROCESS calls
+ '      4 - Attempt to nest DOALL
+ '      5 - Illegal CondAct (corrupt or old db!)
+ '      6 - Invalid process call
+ '      7 - Invalid message number
+ '      8 - Invalid PICTURE (drawstring only)
+ '      9 - Can't allocate memory
  '/
 SUB errorCode(cod AS uByte)
 
@@ -1091,7 +1089,7 @@ END SUB
 
 /'
 'DO NOT DELETE, conserve for future reference
-'Get the token descompressed on tmpTok 
+'Get the token descompressed on tmpTok
 SUB getToken(num AS uByte)
 
   DIM p, i AS uInteger
@@ -1195,7 +1193,7 @@ SUB printMsg(tokStrPtr AS uInteger, doPrint AS uByte)
       POKE i, c
       LET i = i + 1
       IF c = 32 OR c = 10 THEN
-        IF c = 10 THEN 
+        IF c = 10 THEN
           LET i = i - 1
           POKE i, 0
         END IF
@@ -1350,13 +1348,13 @@ END FUNCTION
 ' "Un palo" -> "El palo"
 ' "Una linterna" -> "La linterna"
 ' "A lantern" -> "Lantern"
-'  
-' @param num		Number of object name.
-' @param modif		Modifier for uppercase.
-' @return			none.
+'
+' @param num        Number of object name.
+' @param modif      Modifier for uppercase.
+' @return           none.
 ' -------------------------------
 SUB printObjectMsgModif(num AS uByte, modif AS uByte)
-  
+
   DIM ini AS uInteger
 #ifdef LANG_ES
   DIM p AS uInteger
@@ -1430,9 +1428,9 @@ END SUB
 
 '==============================================================================
 ' Return the object ID by Noun+Adjc ID.
-' noun		Noun ID.
-' adjc		Adjective ID, or NULLWORD to disable adjective filter.
-' location		Location where the object must be, LOC_HERE to disable location filter, or (LOC_CONTAINER bOR numLocation) if location is a container.
+' noun      Noun ID.
+' adjc      Adjective ID, or NULLWORD to disable adjective filter.
+' location      Location where the object must be, LOC_HERE to disable location filter, or (LOC_CONTAINER bOR numLocation) if location is a container.
 ' returns the Object ID if found or NULLWORD.
 FUNCTION getObjectId(noun AS uByte, adjc AS uByte, location AS uInteger) AS uByte
 
@@ -1451,8 +1449,8 @@ FUNCTION getObjectId(noun AS uByte, adjc AS uByte, location AS uInteger) AS uByt
       END IF
 
       'Its placed in 'location'
-      IF PEEK(objLocation + i) = loc THEN 
-        RETURN i 
+      IF PEEK(objLocation + i) = loc THEN
+        RETURN i
       END IF
 
       '...or if it's in a container
@@ -1468,12 +1466,12 @@ FUNCTION getObjectId(noun AS uByte, adjc AS uByte, location AS uInteger) AS uByt
 END FUNCTION
 
 
-'Return the weight of a object by ID. Also can return 
+'Return the weight of a object by ID. Also can return
 'the total weight of location or carried/worn objects
 'if objno is NULLWORD.
-' 
-'objno			Object ID or NULLWORD.
-'isCarriedWorn	Check carried/worn objects if True.
+'
+'objno          Object ID or NULLWORD.
+'isCarriedWorn  Check carried/worn objects if True.
 'Returns the weight of one or a sum of objects.
 '
 FUNCTION getObjectWeight(objno AS uByte, isCarriedWorn AS uByte) AS uByte
@@ -1549,7 +1547,7 @@ SUB initObjects()
   LET pAtt = DdbObjAttrPos
   LET pEatt = DdbObjExtrPos
   LET pNam = DdbObjNamePos
-  
+
   LET objLo = objLocation
   LET objAt = objAttr
   LET objE2 = objExtAttr2
@@ -1754,7 +1752,7 @@ FUNCTION populateLogicalSentence() AS uByte
       LET pron = TRUE
     ELSEIF type = NOUN AND flags(fNoun1) = NULLWORD THEN 'NOUN1
       ' word that works like noun and verb
-      IF id < 20 AND flags(fVerb) = NULLWORD THEN
+      IF (id < LAST_CONVERTIBLE_NOUN) AND (flags(fVerb) = NULLWORD) THEN
         LET flags(fVerb) = id
       ELSE 'works only like noun
         LET flags(fNoun1) = id
@@ -1815,13 +1813,12 @@ FUNCTION populateLogicalSentence() AS uByte
   IF v <> NULLWORD THEN LET previousVerb = v
 
 nextLogicalSentence:
-  ' Move next logical sentence to start of logical sentence buffer.
-
-  'Skipping conjuntion
-  IF p < LS_BUFFER0_LEN AND id <> 0 AND (type = CONJUNCTION OR type = SEPARATOR) THEN 
+  'Skipping conjuntion or separator
+  IF p < LS_BUFFER0_LEN AND id <> 0 AND (type = CONJUNCTION OR type = SEPARATOR) THEN
     LET p = p + 2
   END IF
 
+  ' Move next logical sentence to start of logical sentence buffer.
   IF p < LS_BUFFER0_LEN THEN
     LET c = LS_BUFFER0_LEN - p
     MemMove(@lsBuffer0(p), @lsBuffer0(0), c)
@@ -1869,7 +1866,7 @@ FUNCTION checkWordVoc(ByVal ptr AS uInteger, ByVal wlen AS uByte, _
       RETURN TRUE
     END IF
     LET voc = voc + 7
-    LET v = PEEK voc
+    LET v = PEEK(voc)
   LOOP
 
   RETURN FALSE
@@ -1889,7 +1886,7 @@ PROC
   JR Z, endS
   CP $3B         ; ';'
   JR Z, endS
-  CP $3A         ; ':' 
+  CP $3A         ; ':'
   JR Z, endS
   LD C, FALSE
 endS:
@@ -1927,8 +1924,7 @@ SUB parser()
       END IF
     ELSEIF isSeparator(c) THEN
         POKE lsBuffer, c : LET lsBuffer = lsBuffer + 1
-        POKE lsBuffer, SEPARATOR : LET lsBuffer = lsBuffer + 1
-        POKE lsBuffer, 0
+        POKE lsBuffer, SEPARATOR : LET lsBuffer = lsBuffer + 1 'Phony type for separators
     ELSEIF c <> 32 THEN 'Space
 
       'Find end of the word
@@ -1965,12 +1961,12 @@ SUB parser()
           END IF
           IF pron THEN
             LET req = FALSE
-            'If we have a word ending with pronominal suffixes, we need to check whether the word is a verb 
+            'If we have a word ending with pronominal suffixes, we need to check whether the word is a verb
             'also without the termination, to avoid the HABLA bug where "LA" is part of the verb habLAr and
             'not a suffix. So first we remove the termination & then check if still can be recognized as a verb
             IF checkWordVoc(p, l2, id2, type2) THEN
-              IF id2 = id AND type2 = type THEN 
-                LET req = TRUE    
+              IF id2 = id AND type2 = type THEN
+                LET req = TRUE
                 LET type = PRONOUNVERB 'Phony type for verbs with pronominal suffix
               END IF
             END IF
@@ -1981,12 +1977,10 @@ SUB parser()
         IF req THEN
           POKE lsBuffer, id : LET lsBuffer = lsBuffer + 1
           POKE lsBuffer, type : LET lsBuffer = lsBuffer + 1
-          POKE lsBuffer, 0
         END IF
 #else
         POKE lsBuffer, id : LET lsBuffer = lsBuffer + 1
         POKE lsBuffer, type : LET lsBuffer = lsBuffer + 1
-        POKE lsBuffer, 0
 #endif
       END IF
 
@@ -2016,7 +2010,7 @@ END SUB
 '
 ' Function: getLogicalSentence
 ' --------------------------------
-' Get the first logical sentence from parsed user entry 
+' Get the first logical sentence from parsed user entry
 ' and fill noun, verbs, adjectives, etc.
 ' If no sentences prompt to user.
 ' Returns <> 0 if any logical sentence found.
@@ -2049,32 +2043,32 @@ DIM isDone AS uByte = FALSE                            'Variable for ISDONE/ISNO
 
 ' 0:not count for ISDONE | 1:count for ISDONE
 DIM condactFlagList(0 TO 127) AS uByte => {_
-  0, 0, 0, 0, 0,_	' 0-4
-  0, 0, 0, 0, 0,_	' 5-9
-  0, 0, 0, 0, 0,_	' 10-14
-  0, 0, 0, 1, 1,_	' 15-19
-  0, 1, 1, 1, 1,_	' 20-24
-  1, 1, 1, 1, 1,_	' 25-29
-  1, 1, 1, 1, 1,_	' 30-34
-  1, 1, 1, 1, 1,_	' 35-39
-  1, 1, 1, 1, 1,_	' 40-44
-  1, 1, 1, 1, 1,_	' 45-49
-  1, 1, 1, 1, 1,_	' 50-54
-  0, 1, 1, 0, 0,_	' 55-59
-  1, 1, 1, 1, 1,_	' 60-64
-  1, 1, 1, 0, 0,_	' 65-69
-  0, 1, 1, 1, 1,_	' 70-74
-  0, 0, 1, 1, 0,_	' 75-79
-  0, 1, 1, 1, 1,_	' 80-84
-  1, 1, 1, 0, 1,_	' 85-89
-  1, 1, 1, 1, 1,_	' 90-94
-  1, 1, 1, 1, 1,_	' 95-99
-  1, 1, 1, 0, 1,_	' 100-104
-  1, 1, 1, 0, 1,_	' 105-109
-  1, 0, 0, 0, 0,_	' 110-114
-  0, 0, 1, 1, 1,_	' 115-119
-  1, 1, 1, 1, 1,_	' 120-124
-  1, 1, 1 _ 
+  0, 0, 0, 0, 0,_   ' 0-4
+  0, 0, 0, 0, 0,_   ' 5-9
+  0, 0, 0, 0, 0,_   ' 10-14
+  0, 0, 0, 1, 1,_   ' 15-19
+  0, 1, 1, 1, 1,_   ' 20-24
+  1, 1, 1, 1, 1,_   ' 25-29
+  1, 1, 1, 1, 1,_   ' 30-34
+  1, 1, 1, 1, 1,_   ' 35-39
+  1, 1, 1, 1, 1,_   ' 40-44
+  1, 1, 1, 1, 1,_   ' 45-49
+  1, 1, 1, 1, 1,_   ' 50-54
+  0, 1, 1, 0, 0,_   ' 55-59
+  1, 1, 1, 1, 1,_   ' 60-64
+  1, 1, 1, 0, 0,_   ' 65-69
+  0, 1, 1, 1, 1,_   ' 70-74
+  0, 0, 1, 1, 0,_   ' 75-79
+  0, 1, 1, 1, 1,_   ' 80-84
+  1, 1, 1, 0, 1,_   ' 85-89
+  1, 1, 1, 1, 1,_   ' 90-94
+  1, 1, 1, 1, 1,_   ' 95-99
+  1, 1, 1, 0, 1,_   ' 100-104
+  1, 1, 1, 0, 1,_   ' 105-109
+  1, 0, 0, 0, 0,_   ' 110-114
+  0, 0, 1, 1, 1,_   ' 115-119
+  1, 1, 1, 1, 1,_   ' 120-124
+  1, 1, 1 _
 }
 
 '#define pPROC condactProc(currProc)
@@ -2203,7 +2197,7 @@ endStr:
     OR A          ;tests if save is zero
     JP NZ, SAVE_CODE
     INC A         ;Sets 1 for Load OP
-    JP LOAD_CODE 
+    JP LOAD_CODE
 ENDP
 #include once "tape.asm"
 
@@ -2491,7 +2485,7 @@ SUB PRIVATEDoDONE()
 END SUB
 
 SUB PRIVATEDoLISTAT(loc AS uByte, listobj AS uByte)
-  
+
   DIM i AS uInteger
   DIM flag AS uByte
   DIM lastFound AS uByte = NULLWORD
@@ -2506,7 +2500,7 @@ SUB PRIVATEDoLISTAT(loc AS uByte, listobj AS uByte)
         IF (flag bAND F53_LISTED) THEN
           IF i < DdbNumObjDsc THEN
             printSystemMsg(46)'", "
-          ELSE 
+          ELSE
             printSystemMsg(47)'" y "
           END IF
         END IF
@@ -2594,7 +2588,7 @@ SUB PRIVATEDoGET(objno AS uByte)
   referencedObject(objno)
   IF (loc = LOC_CARRIED OR loc = LOC_WORN) THEN
     printSystemMsg(25)
-  ELSEIF loc <> flags(fPlayer) THEN 
+  ELSEIF loc <> flags(fPlayer) THEN
     printSystemMsg(26)
   ELSEIF ((getObjectWeight(NULLWORD, TRUE) + getObjectWeight(objno, FALSE)) > flags(fStrength)) THEN
     printSystemMsg(43)
@@ -2704,7 +2698,7 @@ SUB PRIVATEDoTAKEOUT(objno AS uByte, locno AS uByte)
 END SUB
 
 SUB PRIVATEAutoEND(msgOK AS uByte, msgKO AS uByte)
-  
+
   DIM objno AS uByte
 
   LET objno = getObjectId(flags(fNoun1), flags(fAdject1), LOC_HERE)
@@ -2717,7 +2711,7 @@ SUB PRIVATEAutoEND(msgOK AS uByte, msgKO AS uByte)
 END SUB
 
 FUNCTION PRIVATEcheckLocCARRWORNHERE() AS uByte
-  
+
   DIM noun, adjc, objno AS uByte
 
   LET noun = flags(fNoun1)
@@ -2728,7 +2722,7 @@ FUNCTION PRIVATEcheckLocCARRWORNHERE() AS uByte
     IF objno = NULLWORD THEN
       LET objno = getObjectId(noun, adjc, flags(fPlayer)) 'HERE
     END IF
-  END IF  
+  END IF
   RETURN objno
 
 END FUNCTION
@@ -2799,6 +2793,17 @@ END SUB
 
 #ifdef PLUS3
 InitPlus3Disc()
+#else
+ASM
+    DI
+    LD BC,$1FFD                   ;BC=1FFD
+    LD A,($5B67)                  ;Rom 2 selection (+3dos / 48 basic)
+    AND %11111000
+    OR %00000100
+    OUT (C),A                     ;update port
+    LD ($5B67),A                  ;update system var
+END ASM
+  SetRAMBank(ROM48KBASIC)
 #endif
 '-------------------------------------------------------------------------------
 'Initialization
@@ -2873,7 +2878,7 @@ DO
 
     LET indirection = INDIRECTION_MASK bAND currCondact
     LET currCondact = CONDACT_MASK bAND currCondact
-  
+
     ON (currCondact) GOTO _
       condactAT,       condactNOTAT,     condactATGT,      condactATLT,      condactPRESENT,  _ ' 0-4
       condactABSENT,   condactWORN,      condactNOTWORN,   condactCARRIED,   condactNOTCARR,  _ ' 5-9
@@ -3057,7 +3062,7 @@ condactLT:
   GOTO NextCondact
 '=============================================================================
 condactADJECT1:
-'Succeeds if the first noun's adjective in the current LS is word. 
+'Succeeds if the first noun's adjective in the current LS is word.
 #ifndef DISABLE_ADJECT1
   LET flagno = getValueOrIndirection()
   LET continueEntryProc(currProc) = (flags(fAdject1) = flagno)
@@ -3085,7 +3090,7 @@ condactDESC:
 '=============================================================================
 condactQUIT:
 'SM12 ("Are you sure?") is printed and called. Will succeed if the player replies
-'starts with the first letter of SM30 ("Y") to then the remainder of the entry is 
+'starts with the first letter of SM30 ("Y") to then the remainder of the entry is
 'discarded is carried out.
 #ifndef DISABLE_QUIT
   printSystemMsg(12)
@@ -3095,15 +3100,15 @@ condactQUIT:
   LET c = PEEK(tmpMsg)
   getSystemMsg(30)
   IF PEEK(tmpMsg) = c THEN PRIVATEDoEND()
-  LET continueEntryProc(currProc) = FALSE 
+  LET continueEntryProc(currProc) = FALSE
 #endif
   GOTO NextCondact
 '=============================================================================
 condactEND:
 'SM13 ("Would you like to play again?") is printed and the input routine called.
-'Any DOALL loop and sub-process calls are cancelled. If the reply does not start 
+'Any DOALL loop and sub-process calls are cancelled. If the reply does not start
 'with the first character of SM31 a jump is made to Initialise.
-'Otherwise the player is returned to the operating system - by doing the command 
+'Otherwise the player is returned to the operating system - by doing the command
 'EXIT 0.
 #ifndef DISABLE_END
   PRIVATEDoEND()
@@ -3129,7 +3134,7 @@ condactOK:
   GOTO NextCondact
 '=============================================================================
 condactANYKEY:
-''SM16 ("Press any key to continue") is printed and the keyboard is scanned until 
+''SM16 ("Press any key to continue") is printed and the keyboard is scanned until
 'a key is pressed or until the timeout duration has elapsed if enabled.
 #ifndef DISABLE_ANYKEY
   printSystemMsg(16)
@@ -3140,10 +3145,10 @@ condactANYKEY:
   GOTO NextCondact
 '=============================================================================
 condactSAVE:
-'This action saves the current game position on disc or tape. SM60 ("Type in 
-'name of file.") is printed and the input routine is called to get the filename 
-'from the player. If the supplied filename is not acceptable SM59 ("File name 
-'error.") is printed - this is not checked on 8 bit machines, the file name 
+'This action saves the current game position on disc or tape. SM60 ("Type in
+'name of file.") is printed and the input routine is called to get the filename
+'from the player. If the supplied filename is not acceptable SM59 ("File name
+'error.") is printed - this is not checked on 8 bit machines, the file name
 'is MADE acceptable!
 #ifndef DISABLE_SAVE
   PRIVATEDoSAVE()
@@ -3151,10 +3156,10 @@ condactSAVE:
   GOTO NextCondact
 '=============================================================================
 condactLOAD:
-'This action loads a game position from disc or tape. A filename is obtained 
-'in the same way as for SAVE. A variety of errors may appear on each machine 
-'if the file is not found or suffers a load error. Usually 'I/O Error'. The 
-'next action is carried out only if the load is successful. Otherwise a system 
+'This action loads a game position from disc or tape. A filename is obtained
+'in the same way as for SAVE. A variety of errors may appear on each machine
+'if the file is not found or suffers a load error. Usually 'I/O Error'. The
+'next action is carried out only if the load is successful. Otherwise a system
 'clear, GOTO 0, RESTART is carried out.
 #ifndef DISABLE_LOAD
   PRIVATEDoLOAD()
@@ -3170,10 +3175,10 @@ condactDPRINT:
   GOTO NextCondact
 '=============================================================================
 condactDISPLAY:
-'If value=0 then the last buffered picture is placed onscreen. 
-'If value !=0 and the picture is not a subroutine then the given window area 
-'is cleared. This is normally used with indirection and a flag to check and 
-'display darkness. 
+'If value=0 then the last buffered picture is placed onscreen.
+'If value !=0 and the picture is not a subroutine then the given window area
+'is cleared. This is normally used with indirection and a flag to check and
+'display darkness.
 #ifndef DISABLE_DISPLAY
   LET flagno = getValueOrIndirection()
   LET c = flags(fCurWin)
@@ -3193,10 +3198,10 @@ condactCLS:
   GOTO NextCondact
 '=============================================================================
 condactDROPALL:
-'All objects which are carried or worn are created at the current location (i.e. 
-'all objects are dropped) and Flag 1 is set to 0. This is included for 
+'All objects which are carried or worn are created at the current location (i.e.
+'all objects are dropped) and Flag 1 is set to 0. This is included for
 'compatibility with older writing systems.
-'Note that a DOALL 254 will carry out a true DROP ALL, taking care of any special 
+'Note that a DOALL 254 will carry out a true DROP ALL, taking care of any special
 'actions included.
 #ifndef DISABLE_DROPALL
   LET c = $FF
@@ -3205,24 +3210,24 @@ condactDROPALL:
     LET locno = PEEK(objLocation + c)
     IF locno = LOC_CARRIED OR locno = LOC_WORN THEN
       POKE (objLocation + c), flags(fPlayer)
-    END IF 
+    END IF
   LOOP WHILE (c < DdbNumObjDsc)
-  LET flags(fNOCarr) = 0 
+  LET flags(fNOCarr) = 0
 #endif
   GOTO NextCondact
 '=============================================================================
 condactAUTOG:
-'A search for the object number represented by Noun(Adjective)1 is made in 
-'the object definition section in order of location priority; here, carried, 
-'worn. i.e. The player is more likely to be trying to GET an object that is 
-'at the current location than one that is carried or worn. If an object is 
-'found its number is passed to the GET action. Otherwise if there is an 
-'object in existence anywhere in the game or if Noun1 was not in the 
-'vocabulary then SM26 ("There isn't one of those here.") is printed. Else 
-'SM8 ("I can't do that.") is printed (i.e. It is not a valid object but does 
-'exist in the game). Either way actions NEWTEXT & DONE are performed 
+'A search for the object number represented by Noun(Adjective)1 is made in
+'the object definition section in order of location priority; here, carried,
+'worn. i.e. The player is more likely to be trying to GET an object that is
+'at the current location than one that is carried or worn. If an object is
+'found its number is passed to the GET action. Otherwise if there is an
+'object in existence anywhere in the game or if Noun1 was not in the
+'vocabulary then SM26 ("There isn't one of those here.") is printed. Else
+'SM8 ("I can't do that.") is printed (i.e. It is not a valid object but does
+'exist in the game). Either way actions NEWTEXT & DONE are performed
 #ifndef DISABLE_AUTOG
-  LET ccNoun = flags(fNoun1) 
+  LET ccNoun = flags(fNoun1)
   LET ccAdjc = flags(fAdject1)
   LET objno = getObjectId(ccNoun, ccAdjc, flags(fPlayer))' HERE
   IF objno = NULLWORD THEN
@@ -3242,15 +3247,15 @@ condactAUTOG:
   GOTO NextCondact
 '=============================================================================
 condactAUTOD:
-'A search for the object number represented by Noun(Adjective)1 is made in 
-'the object definition section in order of location priority; carried, worn, 
-'here. i.e. The player is more likely to be trying to DROP a carried object 
-'than one that is worn or here. If an object is found its number is passed 
-'to the DROP action. Otherwise if there is an object in existence anywhere 
+'A search for the object number represented by Noun(Adjective)1 is made in
+'the object definition section in order of location priority; carried, worn,
+'here. i.e. The player is more likely to be trying to DROP a carried object
+'than one that is worn or here. If an object is found its number is passed
+'to the DROP action. Otherwise if there is an object in existence anywhere
 'in the game or if Noun1 was not in the vocabulary then SM28 ("I don't have
-'one of those.") is printed. Else SM8 ("I can't do that.") is printed (i.e. 
-'It is not a valid object but does exist in the game). Either way actions 
-'NEWTEXT & DONE are performed 
+'one of those.") is printed. Else SM8 ("I can't do that.") is printed (i.e.
+'It is not a valid object but does exist in the game). Either way actions
+'NEWTEXT & DONE are performed
 #ifndef DISABLE_AUTOD
   LET objno = PRIVATEcheckLocCARRWORNHERE()
   IF objno <> NULLWORD THEN
@@ -3264,14 +3269,14 @@ condactAUTOD:
   GOTO NextCondact
 '=============================================================================
 condactAUTOW:
-'A search for the object number represented by Noun(Adjective)1 is made in 
-'the object definition section in order of location priority; carried, worn, 
-'here. i.e. The player is more likely to be trying to WEAR a carried object 
-'than one that is worn or here. If an object is found its number is passed 
-'to the WEAR action. Otherwise if there is an object in existence anywhere 
+'A search for the object number represented by Noun(Adjective)1 is made in
+'the object definition section in order of location priority; carried, worn,
+'here. i.e. The player is more likely to be trying to WEAR a carried object
+'than one that is worn or here. If an object is found its number is passed
+'to the WEAR action. Otherwise if there is an object in existence anywhere
 'in the game or if Noun1 was not in the vocabulary then SM28 ("I don't have
-'one of those.") is printed. Else SM8 ("I can't do that.") is printed (i.e. 
-'It is not a valid object but does exist in the game). Either way actions 
+'one of those.") is printed. Else SM8 ("I can't do that.") is printed (i.e.
+'It is not a valid object but does exist in the game). Either way actions
 'NEWTEXT & DONE are performed
 #ifndef DISABLE_AUTOW
   LET objno = PRIVATEcheckLocCARRWORNHERE()
@@ -3286,17 +3291,17 @@ condactAUTOW:
   GOTO NextCondact
 '=============================================================================
 condactAUTOR:
-'A search for the object number represented by Noun(Adjective)1 is made in 
-'the object definition section in order of location priority; worn, carried, 
-'here. i.e. The player is more likely to be trying to REMOVE a worn object 
-'than one that is carried or here. If an object is found its number is passed 
-'to the REMOVE action. Otherwise if there is an object in existence anywhere 
-'in the game or if Noun1 was not in the vocabulary then SM23 ("I'm not 
-'wearing one of those.") is printed. Else SM8 ("I can't do that.") is printed 
-'(i.e. It is not a valid object but does exist in the game). Either way 
-'actions NEWTEXT & DONE are performed 
+'A search for the object number represented by Noun(Adjective)1 is made in
+'the object definition section in order of location priority; worn, carried,
+'here. i.e. The player is more likely to be trying to REMOVE a worn object
+'than one that is carried or here. If an object is found its number is passed
+'to the REMOVE action. Otherwise if there is an object in existence anywhere
+'in the game or if Noun1 was not in the vocabulary then SM23 ("I'm not
+'wearing one of those.") is printed. Else SM8 ("I can't do that.") is printed
+'(i.e. It is not a valid object but does exist in the game). Either way
+'actions NEWTEXT & DONE are performed
 #ifndef DISABLE_AUTOR
-  LET ccNoun = flags(fNoun1) 
+  LET ccNoun = flags(fNoun1)
   LET ccAdjc = flags(fAdject1)
   LET objno = getObjectId(ccNoun, ccAdjc, LOC_WORN)         'WORN
   IF objno = NULLWORD THEN
@@ -3316,13 +3321,13 @@ condactAUTOR:
   GOTO NextCondact
 '=============================================================================
 condactPAUSE:
-'Pauses for value/50 secs. However, if value is zero then the pause is for 
-'256/50 secs. 
+'Pauses for value/50 secs. However, if value is zero then the pause is for
+'256/50 secs.
 #ifndef DISABLE_PAUSE
   LET total = getValueOrIndirection()
   if total = 0 THEN LET total = 256
   setFrames(0)
-  DO WHILE (Frames < total) 
+  DO WHILE (Frames < total)
 ASM
     HALT
 END ASM
@@ -3331,12 +3336,12 @@ END ASM
   GOTO NextCondact
 '=============================================================================
 condactSYNONYM:
-'Substitutes the given verb and noun in the LS. Nullword (Usually '_') can be 
+'Substitutes the given verb and noun in the LS. Nullword (Usually '_') can be
 'used to suppress substitution for one or the other - or both I suppose! e.g.
 '        MATCH    ON         SYNONYM LIGHT MATCH
 '        STRIKE   MATCH      SYNONYM LIGHT _
 '        LIGHT    MATCH      ....                 ; Actions...
-'will switch the LS into a standard format for several different entries. 
+'will switch the LS into a standard format for several different entries.
 'Allowing only one to deal with the actual actions.
 #ifndef DISABLE_SYNONYM
   LET c = getValueOrIndirection()
@@ -3365,21 +3370,21 @@ condactMESSAGE:
   GOTO NextCondact
 '=============================================================================
 condactREMOVE:
-'  If Object objno. is carried or at the current location (but not worn) then 
-'SM50 ("I'm not wearing the _.") is printed and actions NEWTEXT & DONE are 
+'  If Object objno. is carried or at the current location (but not worn) then
+'SM50 ("I'm not wearing the _.") is printed and actions NEWTEXT & DONE are
 'performed.
 '
-'If Object objno. is not at the current location, SM23 ("I'm not wearing one 
+'If Object objno. is not at the current location, SM23 ("I'm not wearing one
 'of those.") is printed and actions NEWTEXT & DONE are performed.
 '
-'If Object objno. is not wearable (and thus removable) then SM41 ("I can't 
+'If Object objno. is not wearable (and thus removable) then SM41 ("I can't
 'remove the _.") is printed and actions NEWTEXT & DONE are performed.
 '
-'If the maximum number of objects is being carried (Flag 1 is greater than, 
-'or the same as, Flag 37), SM42 ("I can't remove the _. My hands are full.") 
+'If the maximum number of objects is being carried (Flag 1 is greater than,
+'or the same as, Flag 37), SM42 ("I can't remove the _. My hands are full.")
 'is printed and actions NEWTEXT & DONE are performed.
 '
-'Otherwise the position of Object objno. is changed to carried. Flag 1 is 
+'Otherwise the position of Object objno. is changed to carried. Flag 1 is
 'incremented and SM38 ("I've removed the _.") printed.
 #ifndef DISABLE_REMOVE
   LET objno = getValueOrIndirection()
@@ -3388,23 +3393,23 @@ condactREMOVE:
   GOTO NextCondact
 '=============================================================================
 condactGET:
-'  If Object objno. is worn or carried, SM25 ("I already have the _.") is printed 
+'  If Object objno. is worn or carried, SM25 ("I already have the _.") is printed
 '  and actions NEWTEXT & DONE are performed.
-'  
-'  If Object objno. is not at the current location, SM26 ("There isn't one of 
+'
+'  If Object objno. is not at the current location, SM26 ("There isn't one of
 '  those here.") is printed and actions NEWTEXT & DONE are performed.
 '
-'  If the total weight of the objects carried and worn by the player plus 
-'  Object objno. would exceed the maximum conveyable weight (Flag 52) then SM43 
-'  ("The _ weighs too much for me.") is printed and actions NEWTEXT & DONE are 
+'  If the total weight of the objects carried and worn by the player plus
+'  Object objno. would exceed the maximum conveyable weight (Flag 52) then SM43
+'  ("The _ weighs too much for me.") is printed and actions NEWTEXT & DONE are
 '  performed.
 '
-'  If the maximum number of objects is being carried (Flag 1 is greater than, 
-'  or the same as, Flag 37), SM27 ("I can't carry any more things.") is printed 
-'  and actions NEWTEXT & DONE are performed. In addition any current DOALL loop 
+'  If the maximum number of objects is being carried (Flag 1 is greater than,
+'  or the same as, Flag 37), SM27 ("I can't carry any more things.") is printed
+'  and actions NEWTEXT & DONE are performed. In addition any current DOALL loop
 '  is cancelled.
 '
-'  Otherwise the position of Object objno. is changed to carried, Flag 1 is 
+'  Otherwise the position of Object objno. is changed to carried, Flag 1 is
 '  incremented and SM36 ("I now have the _.") is printed.
 #ifndef DISABLE_GET
   LET objno = getValueOrIndirection()
@@ -3413,17 +3418,17 @@ condactGET:
   GOTO NextCondact
 '=============================================================================
 condactDROP:
-'  If Object objno. is worn then SM24 ("I can't. I'm wearing the _.") is 
+'  If Object objno. is worn then SM24 ("I can't. I'm wearing the _.") is
 '  printed and actions NEWTEXT & DONE are performed.
 '
-'  If Object objno. is at the current location (but neither worn nor carried), 
-'  SM49 ("I don't have the _.") is printed and actions NEWTEXT & DONE are 
+'  If Object objno. is at the current location (but neither worn nor carried),
+'  SM49 ("I don't have the _.") is printed and actions NEWTEXT & DONE are
 '  performed.
 '
-'  If Object objno. is not at the current location then SM28 ("I don't have one 
+'  If Object objno. is not at the current location then SM28 ("I don't have one
 '  of those.") is printed and actions NEWTEXT & DONE are performed.
 '
-'  Otherwise the position of Object objno. is changed to the current location, 
+'  Otherwise the position of Object objno. is changed to the current location,
 '  Flag 1 is decremented and SM39 ("I've dropped the _.") is printed.
 #ifndef DISABLE_DROP
   LET objno = getValueOrIndirection()
@@ -3432,21 +3437,21 @@ condactDROP:
   GOTO NextCondact
 '=============================================================================
 condactWEAR:
-'If Object objno. is at the current location (but not carried or worn) SM49 
-'("I don't have the _.") is printed and actions NEWTEXT & DONE are 
+'If Object objno. is at the current location (but not carried or worn) SM49
+'("I don't have the _.") is printed and actions NEWTEXT & DONE are
 'performed.
 '
-'If Object objno. is worn, SM29 ("I'm already wearing the _.") is printed 
+'If Object objno. is worn, SM29 ("I'm already wearing the _.") is printed
 'and actions NEWTEXT & DONE are performed.
 '
-'If Object objno. is not carried, SM28 ("I don't have one of those.") is 
+'If Object objno. is not carried, SM28 ("I don't have one of those.") is
 'printed and actions NEWTEXT & DONE are performed.
 '
-'If Object objno. is not wearable (as specified in the object definition 
-'section) then SM40 ("I can't wear the _.") is printed and actions NEWTEXT & 
+'If Object objno. is not wearable (as specified in the object definition
+'section) then SM40 ("I can't wear the _.") is printed and actions NEWTEXT &
 'DONE are performed.
 '
-'Otherwise the position of Object objno. is changed to worn, Flag 1 is 
+'Otherwise the position of Object objno. is changed to worn, Flag 1 is
 'decremented and SM37 ("I'm now wearing the _.") is printed.
 #ifndef DISABLE_WEAR
   LET objno = getValueOrIndirection()
@@ -3455,7 +3460,7 @@ condactWEAR:
   GOTO NextCondact
 '=============================================================================
 condactDESTROY:
-'The position of Object objno. is changed to not-created and Flag 1 is 
+'The position of Object objno. is changed to not-created and Flag 1 is
 'decremented if the object was carried.
 #ifndef DISABLE_DESTROY
   LET objno = getValueOrIndirection()
@@ -3481,7 +3486,7 @@ condactCREATE:
   GOTO NextCondact
 '=============================================================================
 condactSWAP:
-'The positions of the two objects are exchanged. Flag 1 is not adjusted. The 
+'The positions of the two objects are exchanged. Flag 1 is not adjusted. The
 'currently referenced object is set to be Object objno 2.
 #ifndef DISABLE_SWAP
   LET objno = getValueOrIndirection()
@@ -3494,8 +3499,8 @@ condactSWAP:
   GOTO NextCondact
 '=============================================================================
 condactPLACE:
-'The position of Object objno. is changed to Location locno. Flag 1 is 
-'decremented if the object was carried. It is incremented if the object is 
+'The position of Object objno. is changed to Location locno. Flag 1 is
+'decremented if the object was carried. It is incremented if the object is
 'placed at location 254 (carried).
 #ifndef DISABLE_PLACE
   LET objno = getValueOrIndirection()
@@ -3519,7 +3524,7 @@ condactSET:
   GOTO NextCondact
 '=============================================================================
 condactCLEAR:
-'Flag flagno. is cleared to 0. 
+'Flag flagno. is cleared to 0.
 #ifndef DISABLE_CLEAR
   LET flagno = getValueOrIndirection()
   LET flags(flagno) = 0
@@ -3539,7 +3544,7 @@ condactPLUS:
   GOTO NextCondact
 '=============================================================================
 condactMINUS:
-'Flag flagno. is decreased by value. If the result is negative the flag is 
+'Flag flagno. is decreased by value. If the result is negative the flag is
 '' set to 0.
 #ifndef DISABLE_MINUS
   LET flagno = getValueOrIndirection()
@@ -3567,7 +3572,7 @@ condactNEWLINE:
   GOTO NextCondact
 ' =============================================================================
 condactPRINT:
-'The decimal contents of Flag flagno. are displayed without leading or 
+'The decimal contents of Flag flagno. are displayed without leading or
 'trailing spaces.
 #ifndef DISABLE_PRINT
   printBase10(flags(getValueOrIndirection()))
@@ -3591,7 +3596,7 @@ condactISAT:
   GOTO NextCondact
 '=============================================================================
 condactSETCO:
-'Sets the currently referenced object to objno. 
+'Sets the currently referenced object to objno.
 #ifndef DISABLE_SETCO
   referencedObject(getValueOrIndirection())
 #endif
@@ -3605,8 +3610,8 @@ condactSPACE:
   GOTO NextCondact
 ' =============================================================================
 condactHASAT:
-'Checks the attribute specified by value. 0-15 are the object attributes for 
-'the current object. There are also several attribute numbers specified as 
+'Checks the attribute specified by value. 0-15 are the object attributes for
+'the current object. There are also several attribute numbers specified as
 'symbols in SYMBOLS.SCE which check certain parts of the DAAD system flags
 #ifndef DISABLE_HASAT
   PRIVATEDoHASAT(getValueOrIndirection, FALSE)
@@ -3619,7 +3624,7 @@ condactHASNAT:
   GOTO NextCondact
 ' =============================================================================
 condactLISTOBJ:
-'If any objects are present then SM1 ("I can also see:") is printed, followed 
+'If any objects are present then SM1 ("I can also see:") is printed, followed
 'by a list of all objects present at the current location.
 'If there are no objects then nothing is printed.
 #ifndef DISABLE_LISTOBJ
@@ -3680,10 +3685,10 @@ condactEXTERN:
   GOTO NextCondact
 ' =============================================================================
 condactRAMSAVE:
-'In a similar way to SAVE this action saves all the information relevant to 
-'the game in progress not onto disc but into a memory buffer. This buffer is 
-'of course volatile and will be destroyed when the machine is turned off 
-'which should be made clear to the player. The next action is always carried 
+'In a similar way to SAVE this action saves all the information relevant to
+'the game in progress not onto disc but into a memory buffer. This buffer is
+'of course volatile and will be destroyed when the machine is turned off
+'which should be made clear to the player. The next action is always carried
 'out.
 #ifndef DISABLE_RAMSAVE
   MemCopy(@flags(0), ramSave, 256)
@@ -3692,15 +3697,15 @@ condactRAMSAVE:
   GOTO NextCondact
 ' =============================================================================
 condactRAMLOAD:
-'This action is the counterpart of RAMSAVE and allows the saved buffer to be 
-'restored. The parameter specifies the last flag to be reloaded which can be 
+'This action is the counterpart of RAMSAVE and allows the saved buffer to be
+'restored. The parameter specifies the last flag to be reloaded which can be
 'used to preserve values over a restore.
-'Note 1: The RAM actions could be used to implement an OOPS command that is 
-'common on other systems to take back the previous move; by creating an entry 
-'in the main loop which does an automatic RAMSAVE every time the player enters 
+'Note 1: The RAM actions could be used to implement an OOPS command that is
+'common on other systems to take back the previous move; by creating an entry
+'in the main loop which does an automatic RAMSAVE every time the player enters
 'a move.
-'Note 2: These four actions allow the next Condact to be carried out. They 
-'should normally always be followed by a RESTART or describe in order that 
+'Note 2: These four actions allow the next Condact to be carried out. They
+'should normally always be followed by a RESTART or describe in order that
 'the game state is restored to an identical position.
 #ifndef DISABLE_RAMLOAD
   LET pPROC = CAST(uInteger, getValueOrIndirection()) + 1
@@ -3734,7 +3739,7 @@ condactINK:
 condactBORDER:
 #ifndef DISABLE_BORDER
   'Set border colour acording to the lookup table given in the graphics editors.'
-  LET borderScr = getValueOrIndirection() bAND %111 
+  LET borderScr = getValueOrIndirection() bAND %111
   BORDER(borderScr)
 #endif
   GOTO NextCondact
@@ -3764,7 +3769,7 @@ condactADJECT2:
   GOTO NextCondact
 ' =============================================================================
 condactADD:
-'Flag flagno 2 has the contents of Flag flagno 1 added to it. If the result 
+'Flag flagno 2 has the contents of Flag flagno 1 added to it. If the result
 'exceeds 255 the flag is set to 255.
 #ifndef DISABLE_ADD
   LET flagno = getValueOrIndirection()
@@ -3790,11 +3795,11 @@ condactSUB:
   GOTO NextCondact
 ' =============================================================================
 condactPARSE:
-'The parameter 'n' controls which level of string indentation is to be 
-'searched. At the moment only two are supported by the interpreters so only 
+'The parameter 'n' controls which level of string indentation is to be
+'searched. At the moment only two are supported by the interpreters so only
 'the values 0 and 1 are valid.
 '  0 - Parse the main input line for the next LS.
-'  1 - Parse any string (phrase enclosed in quotes [""]) that was contained 
+'  1 - Parse any string (phrase enclosed in quotes [""]) that was contained
 '      in the last LS extracted.
 #ifndef DISABLE_PARSE
   IF getValueOrIndirection() = 0 THEN 'PARSE 0
@@ -3807,8 +3812,8 @@ condactPARSE:
   GOTO NextCondact
 ' =============================================================================
 condactLISTAT:
-'If any objects are present then they are listed. Otherwise SM53 ("nothing.") 
-'is printed - note that you will usually have to precede this action with a 
+'If any objects are present then they are listed. Otherwise SM53 ("nothing.")
+'is printed - note that you will usually have to precede this action with a
 'message along the lines of "In the bag is:" etc.
 #ifndef DISABLE_LISTAT
   PRIVATEDoLISTAT(getValueOrIndirection(), FALSE)
@@ -3848,7 +3853,7 @@ condactMES:
   GOTO NextCondact
 ' =============================================================================
 condactWINDOW:
-'Selects window (0-7) as current print output stream. 
+'Selects window (0-7) as current print output stream.
 #ifndef DISABLE_WINDOW
   LET c = getValueOrIndirection()
   IF c >= WINDOWS_NUM THEN GOTO NextCondact
@@ -3878,12 +3883,12 @@ condactNOTSAME:
   GOTO NextCondact
 ' =============================================================================
 condactMODE:
-'Allows the current window to have its operation flags changed. In order to 
-'calculate the number to use for the option just add the numbers shown next 
+'Allows the current window to have its operation flags changed. In order to
+'calculate the number to use for the option just add the numbers shown next
 'to each item to achieve the required bitmask combination:
 '  1 - Use the upper character set. (A permanent ^G)
 '  2 - SM32 ("More...") will not appear when the window fills.
-'e.g. MODE 3 stops the 'More...' prompt and causes all to be translated to 
+'e.g. MODE 3 stops the 'More...' prompt and causes all to be translated to
 'the 128-256 range.
 #ifndef DISABLE_MODE
   LET flagno = getValueOrIndirection()
@@ -3892,7 +3897,7 @@ condactMODE:
   GOTO NextCondact
 ' =============================================================================
 condactWINAT:
-'Sets current window to start at given line and column. Height and width to fit 
+'Sets current window to start at given line and column. Height and width to fit
 'available screen.
 #ifndef DISABLE_WINAT
   LET cwinY = getValueOrIndirection()
@@ -3907,18 +3912,18 @@ condactWINAT:
   GOTO NextCondact
 ' =============================================================================
 condactTIME:
-'Allows input to be set to 'timeout' after a specific duration in 1 second 
-'intervals, i.e. the Process 2 table will be called again if the player types 
-'nothing for the specified period. This action alters flags 48 & 49. 'option' 
-'allows this to also occur on ANYKEY and the "More..." prompt. In order to 
+'Allows input to be set to 'timeout' after a specific duration in 1 second
+'intervals, i.e. the Process 2 table will be called again if the player types
+'nothing for the specified period. This action alters flags 48 & 49. 'option'
+'allows this to also occur on ANYKEY and the "More..." prompt. In order to
 'calculate the number to use for the option just add the numbers shown next to
 'each item to achieve the required combination;
 '    1 - While waiting for first character of Input only.
 '    2 - While waiting for the key on the "More..." prompt.
 '    4 - While waiting for the key on the ANYKEY action.
-'e.g. TIME 5 6 (option = 2+4) will allow 5 seconds of inactivity on behalf of 
-'the player on input, ANYKEY or "More..." and between each key press. Whereas 
-'TIME 5 3 (option = 1+2) allows it only on the first character of input and on 
+'e.g. TIME 5 6 (option = 2+4) will allow 5 seconds of inactivity on behalf of
+'the player on input, ANYKEY or "More..." and between each key press. Whereas
+'TIME 5 3 (option = 1+2) allows it only on the first character of input and on
 '"More...".
 'TIME 0 0 will stop timeouts (default).
 #ifndef DISABLE_TIME
@@ -3930,7 +3935,7 @@ condactTIME:
 ' =============================================================================
 condactPICTURE:
 'Will load into the picture buffer the given picture. If there no corresponding
-'picture the next entry will be carried out, if there is then the next CondAct 
+'picture the next entry will be carried out, if there is then the next CondAct
 'is executed.
 #ifndef DISABLE_PICTURE
   LET flagno = getValueOrIndirection()
@@ -3941,27 +3946,27 @@ condactPICTURE:
 condactDOALL:
 'Another powerful action which allows the implementation 'ALL' type command.
 '
-'	1 - An attempt is made to find an object at Location locno.
-'	    If this is unsuccessful the DOALL is cancelled and action DONE is performed.
-'	2 - The object number is converted into the LS Noun1 (and Adjective1 if present)
-'	    by reference to the object definition section. If Noun(Adjective)1 matches
-'	    Noun(Adjective)2 then a return is made to step 1. This implements the "Verb
-'	    ALL EXCEPT object" facility of the parser.
-'	3 - The next condact and/or entry in the table is then considered. This
-'	    effectively converts a phrase of "Verb All" into "Verb object" which is
-'	    then processed by the table as if the player had typed it in.
-'	4 - When an attempt is made to exit the current table, if the DOALL is still
-'	    active (i.e. has not been cancelled by an action) then the attention of
-'	    DAAD is returned to the DOALL as from step 1; with the object search
-'	    continuing from the next highest object number to that just considered.
+'   1 - An attempt is made to find an object at Location locno.
+'       If this is unsuccessful the DOALL is cancelled and action DONE is performed.
+'   2 - The object number is converted into the LS Noun1 (and Adjective1 if present)
+'       by reference to the object definition section. If Noun(Adjective)1 matches
+'       Noun(Adjective)2 then a return is made to step 1. This implements the "Verb
+'       ALL EXCEPT object" facility of the parser.
+'   3 - The next condact and/or entry in the table is then considered. This
+'       effectively converts a phrase of "Verb All" into "Verb object" which is
+'       then processed by the table as if the player had typed it in.
+'   4 - When an attempt is made to exit the current table, if the DOALL is still
+'       active (i.e. has not been cancelled by an action) then the attention of
+'       DAAD is returned to the DOALL as from step 1; with the object search
+'       continuing from the next highest object number to that just considered.
 '
-'	The main ramification of the search method through the object definition
-'	section is; objects which have the Same Noun(Adjective) description (where the
-'	game works out which object is referred to by its presence) must be checked for
-'	in ascending order of object number, or one of them may be missed.
-'	Use the of DOALL to implement things like OPEN ALL must account for fact that
-'	doors are often flags only and would have to bemade into objects if they were to
-'	be included in a DOALL.
+'   The main ramification of the search method through the object definition
+'   section is; objects which have the Same Noun(Adjective) description (where the
+'   game works out which object is referred to by its presence) must be checked for
+'   in ascending order of object number, or one of them may be missed.
+'   Use the of DOALL to implement things like OPEN ALL must account for fact that
+'   doors are often flags only and would have to bemade into objects if they were to
+'   be included in a DOALL.
 #ifndef DISABLE_DOALL
   IF condactDOALLProc(currProc) THEN errorCode(4)
   LET pPROC = condactProc(currProc) + 1
@@ -3991,11 +3996,11 @@ condactISNOTAT:
   GOTO NextCondact
 ' =============================================================================
 condactWEIGH:
-'The true weight of Object objno. is calculated (i.e. if it is a container, 
-'any objects inside have their weight added - don't forget that nested 
-'containers stop adding their contents after ten levels) and the value is 
-'placed in Flag flagno. This will have a maximum value of 255 which will not 
-'be exceeded. If Object objno. is a container of zero weight, Flag flagno 
+'The true weight of Object objno. is calculated (i.e. if it is a container,
+'any objects inside have their weight added - don't forget that nested
+'containers stop adding their contents after ten levels) and the value is
+'placed in Flag flagno. This will have a maximum value of 255 which will not
+'be exceeded. If Object objno. is a container of zero weight, Flag flagno
 'will be cleared as objects in zero weight containers, also weigh zero!
 #ifndef DISABLE_WEIGH
   LET objno = getValueOrIndirection()
@@ -4006,19 +4011,19 @@ condactWEIGH:
   GOTO NextCondact
 ' =============================================================================
 condactPUTIN:
-'  If Object objno. is worn then SM24 ("I can't. I'm wearing the _.") is 
+'  If Object objno. is worn then SM24 ("I can't. I'm wearing the _.") is
 '  printed and actions NEWTEXT & DONE are performed.
 '
-'  If Object objno. is at the current location (but neither worn nor carried), 
-'  SM49 ("I don't have the _.") is printed and actions NEWTEXT & DONE are 
+'  If Object objno. is at the current location (but neither worn nor carried),
+'  SM49 ("I don't have the _.") is printed and actions NEWTEXT & DONE are
 '  performed.
 '
-'  If Object objno. is not at the current location, but not carried, then SM28 
-'  ("I don't have one of those.") is printed and actions NEWTEXT & DONE are 
+'  If Object objno. is not at the current location, but not carried, then SM28
+'  ("I don't have one of those.") is printed and actions NEWTEXT & DONE are
 '  performed.
 '
-'  Otherwise the position of Object objno. is changed to Location locno. 
-'  Flag 1 is decremented and SM44 ("The _ is in the"), a description of Object 
+'  Otherwise the position of Object objno. is changed to Location locno.
+'  Flag 1 is decremented and SM44 ("The _ is in the"), a description of Object
 '  locno. and SM51 (".") is printed.
 #ifndef DISABLE_PUTIN
   LET objno = getValueOrIndirection()
@@ -4028,30 +4033,30 @@ condactPUTIN:
   GOTO NextCondact
 ' =============================================================================
 condactTAKEOUT:
-'  If Object objno. is worn or carried, SM25 ("I already have the _.") is printed 
+'  If Object objno. is worn or carried, SM25 ("I already have the _.") is printed
 '  and actions NEWTEXT & DONE are performed.
 '
-'  If Object objno. is at the current location, SM45 ("The _ isn't in the"), a 
-'  description of Object locno. and SM51 (".") is printed and actions NEWTEXT & 
+'  If Object objno. is at the current location, SM45 ("The _ isn't in the"), a
+'  description of Object locno. and SM51 (".") is printed and actions NEWTEXT &
 '  DONE are performed.
 '
-'  If Object objno. is not at the current location and not at Location locno. 
-'  then SM52 ("There isn't one of those in the"), a description of Object locno. 
+'  If Object objno. is not at the current location and not at Location locno.
+'  then SM52 ("There isn't one of those in the"), a description of Object locno.
 '  and SM51 (".") is printed and actions NEWTEXT & DONE are performed.
 '
-'  If Object locno. is not carried or worn, and the total weight of the objects 
-'  carried and worn by the player plus Object objno. would exceed the maximum 
-'  conveyable weight (Flag 52) then SM43 ("The _ weighs too much for me.") is 
+'  If Object locno. is not carried or worn, and the total weight of the objects
+'  carried and worn by the player plus Object objno. would exceed the maximum
+'  conveyable weight (Flag 52) then SM43 ("The _ weighs too much for me.") is
 '  printed and actions NEWTEXT & DONE are performed.
 '
-'  If the maximum number of objects is being carried (Flag 1 is greater than, 
-'  or the same as, Flag 37), SM27 ("I can't carry any more things.") is printed 
-'  and actions NEWTEXT & DONE are performed. In addition any current DOALL loop 
-'  is cancelled. 
+'  If the maximum number of objects is being carried (Flag 1 is greater than,
+'  or the same as, Flag 37), SM27 ("I can't carry any more things.") is printed
+'  and actions NEWTEXT & DONE are performed. In addition any current DOALL loop
+'  is cancelled.
 '
-'  Otherwise the position of Object objno. is changed to carried, Flag 1 is 
-'  incremented and SM36 ("I now have the _.") is printed.Note: No check is made, 
-'  by either PUTIN or TAKEOUT, that Object locno. is actually present. This must 
+'  Otherwise the position of Object objno. is changed to carried, Flag 1 is
+'  incremented and SM36 ("I now have the _.") is printed.Note: No check is made,
+'  by either PUTIN or TAKEOUT, that Object locno. is actually present. This must
 '  be carried out by you if required.
 #ifndef DISABLE_TAKEOUT
   LET objno = getValueOrIndirection()
@@ -4061,10 +4066,10 @@ condactTAKEOUT:
   GOTO NextCondact
 ' =============================================================================
 condactNEWTEXT:
-'Forces the loss of any remaining phrases on the current input line. You 
-'would use this to prevent the player continuing without a fresh input 
-'should something go badly for his situation. e.g. the GET action carries 
-'out a NEWTEXT if it fails to get the required object for any reason, to 
+'Forces the loss of any remaining phrases on the current input line. You
+'would use this to prevent the player continuing without a fresh input
+'should something go badly for his situation. e.g. the GET action carries
+'out a NEWTEXT if it fails to get the required object for any reason, to
 'prevent disaster with a sentence such as:
 '    GET SWORD AND KILL ORC WITH IT
 'as attacking the ORC without the sword may be dangerous!
@@ -4074,12 +4079,12 @@ condactNEWTEXT:
   GOTO NextCondact
 ' =============================================================================
 condactABILITY:
-'This sets Flag 37, the maximum number of objects conveyable, to value 1 and 
-'Flag 52, the maximum weight of objects the player may carry and wear at any 
+'This sets Flag 37, the maximum number of objects conveyable, to value 1 and
+'Flag 52, the maximum weight of objects the player may carry and wear at any
 'one time (or their strength), to be value 2 .
-'No checks are made to ensure that the player is not already carrying more 
-'than the maximum. GET and so on, which check the values, will still work 
-'correctly and prevent the player carrying any more objects, even if you set 
+'No checks are made to ensure that the player is not already carrying more
+'than the maximum. GET and so on, which check the values, will still work
+'correctly and prevent the player carrying any more objects, even if you set
 'the value lower than that which is already carried!
 #ifndef DISABLE_ABILITY
   LET flags(fMaxCarr) = getValueOrIndirection()
@@ -4088,10 +4093,10 @@ condactABILITY:
   GOTO NextCondact
 ' =============================================================================
 condactWEIGHT:
-'Calculates the true weight of all objects carried and worn by the player 
-'(i.e. any containers will have the weight of their contents added up to a 
+'Calculates the true weight of all objects carried and worn by the player
+'(i.e. any containers will have the weight of their contents added up to a
 'maximum of 255), this value is then placed in Flag flagno.
-'This would be useful to ensure the player was not carrying too much weight 
+'This would be useful to ensure the player was not carrying too much weight
 'to cross a bridge without it collapsing etc.
 #ifndef DISABLE_WEIGHT
   LET flagno = getValueOrIndirection()
@@ -4100,7 +4105,7 @@ condactWEIGHT:
   GOTO NextCondact
 ' =============================================================================
 condactRANDOM:
-'Flag flagno. is set to a number from the Pseudo-random sequence from 1 
+'Flag flagno. is set to a number from the Pseudo-random sequence from 1
 'to 100
 #ifndef DISABLE_RANDOM
   LET flagno = getValueOrIndirection()
@@ -4109,9 +4114,9 @@ condactRANDOM:
   GOTO NextCondact
 ' =============================================================================
 condactINPUT:
-'  The 'stream' parameter will set the bulk of input to come from the given 
-'  window/stream. A value of 0 for 'stream' will not use the graphics stream 
-'  as might be expected, but instead causes input to come from the current 
+'  The 'stream' parameter will set the bulk of input to come from the given
+'  window/stream. A value of 0 for 'stream' will not use the graphics stream
+'  as might be expected, but instead causes input to come from the current
 '  stream when the input occurs.
 '  Bitmask options:
 '    1 - Clear window after input.
@@ -4143,7 +4148,7 @@ condactBACKAT:
   GOTO NextCondact
 ' =============================================================================
 condactPRINTAT:
-'Sets current print position to given point if in current window. If not then 
+'Sets current print position to given point if in current window. If not then
 'print position becomes top left of window.
 #ifndef DISABLE_PRINTAT
   LET c = flags(fCurWin)
@@ -4153,11 +4158,11 @@ condactPRINTAT:
   GOTO NextCondact
 ' =============================================================================
 condactWHATO:
-'A search for the object number represented by Noun(Adjective)1 is made in 
-'the object definition section in order of location priority; carried, worn, 
-'here. This is because it is assumed any use of WHATO will be related to 
-'carried objects rather than any that are worn or here. If an object is found 
-'its number is placedin flag 51, along with the standard current object 
+'A search for the object number represented by Noun(Adjective)1 is made in
+'the object definition section in order of location priority; carried, worn,
+'here. This is because it is assumed any use of WHATO will be related to
+'carried objects rather than any that are worn or here. If an object is found
+'its number is placedin flag 51, along with the standard current object
 'parameters in flags 54-57. This allows you to create other auto actions (the
 'tutorial gives an example of this for dropping objects in the tree). */
 #ifndef DISABLE_WHATO
@@ -4172,9 +4177,9 @@ condactCALL:
   GOTO condactNOT_USED
 ' =============================================================================
 condactPUTO:
-'The position of the currently referenced object (i.e. that object whose 
-'number is given in flag 51), is changed to be Location locno. Flag 54 
-'remains its old location. Flag 1 is decremented if the object was carried. 
+'The position of the currently referenced object (i.e. that object whose
+'number is given in flag 51), is changed to be Location locno. Flag 54
+'remains its old location. Flag 1 is decremented if the object was carried.
 'It is incremented if the object is placed at location 254 (carried). */
 #ifndef DISABLE_PUTO
   LET objno = flags(fCONum)
@@ -4206,15 +4211,15 @@ condactNOTDONE:
 GOTO NextCondact
 ' =============================================================================
 condactAUTOP:
-'A search for the object number represented by Noun(Adjective)1 is made in the 
-'object definition section in order of location priority; carried, worn, here. 
-'i.e. The player is more likely to be trying to PUT a carried object inside 
-'another than one that is worn or here. If an object is found its number is 
+'A search for the object number represented by Noun(Adjective)1 is made in the
+'object definition section in order of location priority; carried, worn, here.
+'i.e. The player is more likely to be trying to PUT a carried object inside
+'another than one that is worn or here. If an object is found its number is
 'passed to the PUTIN action. Otherwise if there is an object in existence
-'anywhere in the game or if Noun1 was not in the vocabulary then SM28 ("I don't 
-'have one of those.") is printed. Else SM8 ("I can't do that.") is printed 
-'(i.e. It is not a valid object but does exist in the game). Either way actions 
-'NEWTEXT & DONE are performed 
+'anywhere in the game or if Noun1 was not in the vocabulary then SM28 ("I don't
+'have one of those.") is printed. Else SM8 ("I can't do that.") is printed
+'(i.e. It is not a valid object but does exist in the game). Either way actions
+'NEWTEXT & DONE are performed
 #ifndef DISABLE_AUTOP
   LET objno = PRIVATEcheckLocCARRWORNHERE()
   IF objno = NULLWORD THEN
@@ -4228,26 +4233,26 @@ condactAUTOP:
   GOTO NextCondact
 ' =============================================================================
 condactAUTOT:
-'A search for the object number represented by Noun(Adjective)1 is made in the 
-'object definition section in order of location priority; in container, 
-'carried, worn, here. i.e. The player is more likely to be trying to get an 
-'object out of a container which is actually in there than one that is carried, 
-'worn or here. If an object is found its number is passed to the TAKEOUT action. 
-'Otherwise if there is an object in existence anywhere in the game or if Noun1 
-'was not in the vocabulary then SM52 ("There isn't one of those in the"), a 
-'description of Object locno. and SM51 (".") is printed. Else SM8 ("I can't do 
+'A search for the object number represented by Noun(Adjective)1 is made in the
+'object definition section in order of location priority; in container,
+'carried, worn, here. i.e. The player is more likely to be trying to get an
+'object out of a container which is actually in there than one that is carried,
+'worn or here. If an object is found its number is passed to the TAKEOUT action.
+'Otherwise if there is an object in existence anywhere in the game or if Noun1
+'was not in the vocabulary then SM52 ("There isn't one of those in the"), a
+'description of Object locno. and SM51 (".") is printed. Else SM8 ("I can't do
 'that.") is printed (i.e. It is not a valid object but does exist in the game).
 'Either way actions NEWTEXT & DONE are performed
 #ifndef DISABLE_AUTOT
   LET locno = getValueOrIndirection()
-  LET ccNoun = flags(fNoun1) 
+  LET ccNoun = flags(fNoun1)
   LET ccAdjc = flags(fAdject1)
   LET objno = getObjectId(ccNoun, ccAdjc, LOC_CONTAINER bOR CAST(uInteger, locno)) ' CONTAINER TODO Check if this is correct
-  IF objno = NULLWORD THEN 
+  IF objno = NULLWORD THEN
     LET objno = getObjectId(ccNoun, ccAdjc, LOC_CARRIED) ' CARRIED
-    IF objno = NULLWORD THEN 
+    IF objno = NULLWORD THEN
       LET objno = getObjectId(ccNoun, ccAdjc, LOC_WORN)      'WORN
-      IF objno = NULLWORD THEN 
+      IF objno = NULLWORD THEN
         LET objno = getObjectId(ccNoun, ccAdjc, flags(fPlayer)) 'HERE
       END IF
     END IF
@@ -4271,11 +4276,11 @@ condactAUTOT:
 ' =============================================================================
 condactMOVE:
 'This is a very powerful action designed to manipulate PSI's. It allows the
-'current LS Verb to be used to scan the connections section for the location 
-'given in Flag flagno. 
-'If the Verb is found then Flag flagno is changed to be the location number 
+'current LS Verb to be used to scan the connections section for the location
+'given in Flag flagno.
+'If the Verb is found then Flag flagno is changed to be the location number
 'associated with it, and the next condact is considered.
-'If the verb is not found, or the original location number was invalid, then 
+'If the verb is not found, or the original location number was invalid, then
 'PAW considers the next entry in the table - if present.
 #ifndef DISABLE_MOVE
   LET flagno = getValueOrIndirection()
@@ -4322,7 +4327,7 @@ condactREDO:
   GOTO NextCondact
 ' =============================================================================
 condactCENTRE:
-'Will ensure the current window is centered for the current column width of the 
+'Will ensure the current window is centered for the current column width of the
 'screen. (Does not affect line position).
 #ifndef DISABLE_CENTRE
   LET c = flags(fCurWin)
@@ -4331,11 +4336,11 @@ condactCENTRE:
   GOTO NextCondact
 ' =============================================================================
 condactEXIT:
-'If value is 0 then will return directly to the operating system. 
-'Any value other than 0 will restart the whole game. Note that unlike RESTART 
-'which only restarts processing, this will clear and reset windows etc. The 
-'non zero numbers actually specify a part number to jump to on AUTOLOAD 
-'versions. Only the PCW supports this feature at the moment. It will probably 
+'If value is 0 then will return directly to the operating system.
+'Any value other than 0 will restart the whole game. Note that unlike RESTART
+'which only restarts processing, this will clear and reset windows etc. The
+'non zero numbers actually specify a part number to jump to on AUTOLOAD
+'versions. Only the PCW supports this feature at the moment. It will probably
 'be added to PC as part of the HYPERCARD work. So if you intend using it as a
 'reset ensure you use your PART number as the non zero value! */
 #ifndef DISABLE_EXIT
@@ -4347,8 +4352,8 @@ condactEXIT:
   GOTO NextCondact
 ' =============================================================================
 condactINKEY:
-' Is a condition which will be satisfied if the player is pressing a key. 
-' In 16Bit machines Flags Key1 and Key2 (60 & 61) will be a standard IBM ASCII 
+' Is a condition which will be satisfied if the player is pressing a key.
+' In 16Bit machines Flags Key1 and Key2 (60 & 61) will be a standard IBM ASCII
 ' code pair.
 ' On 8 bit only Key1 will be valid, and the code will be machine specific
 #ifndef DISABLE_INKEY
@@ -4396,7 +4401,7 @@ condactISNDONE:
   GOTO NextCondact
 ' =============================================================================
 condactSKIP:
-'  Skip a distance of -128 to 128, or to the specified label. Will move the 
+'  Skip a distance of -128 to 128, or to the specified label. Will move the
 '  current entry in a table back or fore. 0 means next entry (so is meaningless).
 '  -1 means restart current entry (Dangerous).
 #ifndef DISABLE_SKIP
@@ -4420,7 +4425,7 @@ condactTAB:
   GOTO NextCondact
 ' =============================================================================
 condactCOPYOF:
-'The position of Object objno. is copied into Flag flagno. This could be used 
+'The position of Object objno. is copied into Flag flagno. This could be used
 'to examine the location of an object in a comparison with another flag value.
 #ifndef DISABLE_COPYOF
   LET objno = PEEK(objLocation + getValueOrIndirection())
@@ -4429,7 +4434,7 @@ condactCOPYOF:
   GOTO NextCondact
 ' =============================================================================
 condactCOPYOO:
-'The position of Object objno2 is set to be the same as the position of 
+'The position of Object objno2 is set to be the same as the position of
 'Object Objno1. The currently referenced object is set to be Object objno2
 #ifndef DISABLE_COPYOO
   LET objno = getValueOrIndirection()
@@ -4440,9 +4445,9 @@ condactCOPYOO:
   GOTO NextCondact
 ' =============================================================================
 condactCOPYFO:
-'The position of Object objno. is set to be the contents of Flag flagno. An 
-'attempt to copy from a flag containing 255 will result in a run time error. 
-'Setting an object to an invalid location will still be accepted as it 
+'The position of Object objno. is set to be the contents of Flag flagno. An
+'attempt to copy from a flag containing 255 will result in a run time error.
+'Setting an object to an invalid location will still be accepted as it
 'presents no danger to the operation of PAW.
 #ifndef DISABLE_COPYFO
   LET flagno = getValueOrIndirection()
@@ -4463,7 +4468,7 @@ condactCOPYFF:
   GOTO NextCondact
 ' =============================================================================
 condactCOPYBF:
-' Same as COPYFF but the source and destination are reversed, so that 
+' Same as COPYFF but the source and destination are reversed, so that
 'indirection can be used.
 #ifndef DISABLE_COPYBF
   LET flagno = getValueOrIndirection()
@@ -4473,9 +4478,9 @@ condactCOPYBF:
   GOTO NextCondact
 ' =============================================================================
 condactRESET:
-'This Action bears no resemblance to the one with the same name in PAW. It has 
-'the pure function of placing all objects at the position given in the Object 
-'start table. It also sets the relevant flags dealing with no of objects 
+'This Action bears no resemblance to the one with the same name in PAW. It has
+'the pure function of placing all objects at the position given in the Object
+'start table. It also sets the relevant flags dealing with no of objects
 'carried etc.
 #ifndef DISABLE_RESET
   PRIVATEDoRESET()

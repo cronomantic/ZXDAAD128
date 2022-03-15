@@ -74,7 +74,7 @@ PROC
     JR C, endOpen
     INC A         ;ErrorNo + 1
     LD (IX-2), A  ;Return value
-endOpen:   
+endOpen:
 ENDP
 END ASM
 
@@ -125,7 +125,7 @@ FUNCTION Plus3DOSRead(fileNumber AS uByte, nBank AS uByte, _
   'IF fileNumber > 15 THEN RETURN size
   LET b = SetRAMBank(7)
 ASM
-PROC    
+PROC
     LOCAL endRead
 
     LD B, (IX+5)    ;Filenumber

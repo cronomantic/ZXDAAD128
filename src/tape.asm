@@ -140,7 +140,7 @@ LD_LOOK_H:
     ; a default startpoint.
 
     ld a, (ix + 0)          ; compare loaded type
-    cp 3		            ; with expected bytes header
+    cp 3                    ; with expected bytes header
     jr nz, LD_TYPE          ; forward to LD-TYPE with mis-match.
 
     ld c, -10               ; set C to minus ten - will count characters

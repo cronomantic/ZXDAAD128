@@ -26,8 +26,8 @@ REM Avoid recursive / multiple inclusion
 #define F_WRITE     (FSYS_BASE+6)
 #define F_SEEK      (FSYS_BASE+7)
 #define F_GETPOS    (FSYS_BASE+8)
-#define F_OPENDIR	(FSYS_BASE+11)
-#define F_READDIR	(FSYS_BASE+12)
+#define F_OPENDIR   (FSYS_BASE+11)
+#define F_READDIR   (FSYS_BASE+12)
 #define F_TELLDIR   (FSYS_BASE+13)
 #define F_SEEKDIR   (FSYS_BASE+14)
 #define F_REWINDDIR (FSYS_BASE+15)
@@ -65,7 +65,7 @@ REM Avoid recursive / multiple inclusion
 '
 ' Returns:
 '     File stream ID (ubyte)
-'     it can be -1 on error (variable ERR_NR will contain 
+'     it can be -1 on error (variable ERR_NR will contain
 '     another value with extra information)
 ' ----------------------------------------------------------------
 Function ESXDosOpen(ByVal fname as uInteger, ByVal mode as Ubyte) as Byte
@@ -118,7 +118,7 @@ End Sub
 
 ' ----------------------------------------------------------------
 ' Function ESXDosWrite
-' 
+'
 ' Parameters:
 '    handle: file handle (returned by ESXDOSOpen
 '    buffer: memory address for the buffer

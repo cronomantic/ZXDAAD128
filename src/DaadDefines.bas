@@ -138,6 +138,7 @@
 #define NUM_PROCS 10
 #define NO_LASTPICTURE $FFFF
 
-#define LAST_PROPER_NOUN 50
+#define LAST_PROPER_NOUN      50
+#define LAST_CONVERTIBLE_NOUN 20
 
 #endif
