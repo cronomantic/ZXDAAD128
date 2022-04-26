@@ -1,7 +1,7 @@
 @echo off
 title Build Test
 set InitialPath=%PATH%
-PATH = %~dp0\..\zxbasic;%~dp0\..\usr\local\wbin;%~dp0\..\tap_tools\bin\Release;%~dp0\..\bin;%~dp0\..\zxbasic\python;%~dp0\..\PHP;%~dp0\..\FPC\3.2.2\bin\i386-win32;%PATH%
+PATH = %~dp0\..\zxbasic;%PATH%
 color 0B
 echo --------------------------------
 

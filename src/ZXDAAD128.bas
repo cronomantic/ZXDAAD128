@@ -427,33 +427,32 @@ FUNCTION loadXPicture(idx AS uByte) AS uByte
 
   DIM scrSize AS uInteger AT SCR_BUFF_ADDR
   DIM attSize AS uInteger AT SCR_BUFF_ADDR + 2
-  DIM size, name AS uInteger
+  DIM size AS uInteger
   DIM b, h AS uByte
   DIM c AS Byte
 
+  IF lastPicId = CAST(uInteger, idx) THEN RETURN TRUE
+
   'Get the name of the file
-  LET name = memAlloc(8)
   LET b = idx
   FOR c = 2 TO 0 STEP -1
-    POKE (name + c), (b MOD 10)
+    POKE (@XpictureFilename + c), ((b MOD 10) + $30)
     LET b = b / 10
-  NEXT c
-  FOR c = 0 TO 4
-    POKE (name + c + 3), (PEEK(@XpictureExtension + c))
   NEXT c
 
   LET b = SetRAMBank(SCR_BUFF_BANK bOR ROM48KBASIC)
 #ifdef PLUS3
+XpicturePlus3:
   LET h = 1
-  IF Plus3DOSOpen(name, h, 1, 2, 0) <> 0 THEN GOTO ErrorloadXpicture2
+  IF Plus3DOSOpen(@XpictureFilename, h, 3, 2, 0) <> 0 THEN GOTO ErrorloadXpicture2
   LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR, 4)
-  IF size <> 4 THEN GOTO ErrorloadXpicture
+  IF size <> 0 THEN GOTO ErrorloadXpicture
   LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR + 4, scrSize + attSize)
   Plus3DOSClose(h)
-  IF size <> (scrSize + attSize) THEN GOTO ErrorloadXpicture2
+  IF size <> 0 THEN GOTO ErrorloadXpicture2
 #else
 #ifdef ESXDOS
-  LET h = ESXDosOpen(name, EDOS_FMODE_OPEN_EX bOR EDOS_FMODE_READ)
+  LET h = ESXDosOpen(@XpictureFilename, EDOS_FMODE_OPEN_EX bOR EDOS_FMODE_READ)
   IF h < 0 THEN GOTO ErrorloadXpicture2
   LET size = ESXDosRead(h, SCR_BUFF_ADDR, 4)
   IF size <> 4 THEN GOTO ErrorloadXpicture
@@ -467,7 +466,6 @@ FUNCTION loadXPicture(idx AS uByte) AS uByte
   LET lastPicId = CAST(uInteger, idx) bOR 256
   LET lastPicLocation = SCR_BUFF_ADDR
   LET lastPicBank = SCR_BUFF_BANK
-  deallocate(name)
   RETURN TRUE
 
 ErrorloadXpicture:
@@ -480,16 +478,16 @@ ErrorloadXpicture:
 #endif
 ErrorloadXpicture2:
   SetRAMBank(b)
-  deallocate(name)
+  lastPicId = NO_LASTPICTURE
   RETURN FALSE
 
-XpictureExtension:
+XpictureFilename:
 ASM
 #ifdef PLUS3
-  DEFB $2E, $41, $44, $50, $FF
+  DEFB $30, $30, $30, $2E, $44, $43, $50, $FF
 #else
 #ifdef ESXDOS
-  DEFB $2E, $41, $44, $50, $00
+  DEFB $30, $30, $30, $2E, $44, $43, $50, $00
 #endif
 #endif
 END ASM
@@ -3638,7 +3636,7 @@ condactLISTOBJ:
 condactEXTERN:
 #ifndef DISABLE_EXTERN
   'Maluva emulation
-  LET c = getCondOrValueAndInc() 'parameter 1
+  LET c = getValueOrIndirection() 'parameter 1
   LET flagno = getCondOrValueAndInc() 'operation
   LET flagno2 = TRUE
   LET locno = flags(fMALUVA)

@@ -1077,7 +1077,7 @@ function generateProcesses($adventure, &$currentAddress, $subtarget)
                 $entry = $process->entries[$entryID];
                 for($condactID=0;$condactID<sizeof($entry->condacts); $condactID++)
                 {
-                    if ($entry->HasJumps) $hash =''; else $hash = getCondactsHash($adventure,$entry->condacts, $condactID);
+                    $hash = getCondactsHash($adventure,$entry->condacts, $condactID);
                     if (($hash!='') && (!array_key_exists("$hash", $condactsHash)))
                     {
                         $hashInfo = new StdClass();
@@ -1103,7 +1103,7 @@ function generateProcesses($adventure, &$currentAddress, $subtarget)
             $entry = $process->entries[$entryID];
             if (!$adventure->classicMode)
             {
-                if ($entry->HasJumps) $hash = ''; else $hash = getCondactsHash($adventure,$entry->condacts, 0);
+                $hash = getCondactsHash($adventure,$entry->condacts, 0);
                 if ($hash!='')
                 {
                     if ($condactsHash["$hash"]->offset != -1)
@@ -1158,7 +1158,7 @@ function generateProcesses($adventure, &$currentAddress, $subtarget)
                 if ((!$adventure->classicMode))
                     //if (($currentAddress%2 == 0) || (!isPaddingPlatform($target))) // We can only partially re-use an entry if its word aligned or the platform does not require word alignment
                     //{
-                        if ($entry->HasJumps) $hash = ''; else $hash = getCondactsHash($adventure,$entry->condacts, $condactID);
+                        $hash = getCondactsHash($adventure,$entry->condacts, $condactID);
                         if ($hash!='')
                             if ($condactsHash["$hash"]->offset == -1) $condactsHash["$hash"]->offset = $currentAddress;
                     //}
@@ -1194,7 +1194,7 @@ function generateProcesses($adventure, &$currentAddress, $subtarget)
                     }
                 }
                 $currentAddress+= $condact->NumParams;
-                if ((!$adventure->classicMode) && (!$entry->HasJumps) && (in_array($opcode, $terminatorOpcodes))) 
+                if ((!$adventure->classicMode) && (in_array($opcode, $terminatorOpcodes))) 
                 {
                     $terminatorFound = true;
                     if ($adventure->verbose)
