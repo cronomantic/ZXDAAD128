@@ -175,7 +175,7 @@ This is a binary file with `.ZDI` extension.
 If you are not compiling a custom interpreter, you can make use of the ones already available on the `/bin` directory of the repository.
 The following is the list of the capabilities of each one:
 
-|      **Interpreter**     | **Chars.** **per** **line** | **Language** | **Disk support** | **Banks** **not** **avaliable** | **XPICTURE** **support** |
+|      **Interpreter**     | **Chars.** **per** **line** | **Language** | **Disk support** | **Banks** **not** **available** | **XPICTURE** **support** |
 |--------------------------|:------------------------:|:------------:|:----------------:|:----------------:|:----------------:|
 | ZXD128_TAPE_EN_C42.ZDI   |  42  |    English   |       None       |   None   | No |
 | ZXD128_TAPE_ES_C42.ZDI   |  42  |    Spanish   |       None       |   None   | No |

@@ -2039,6 +2039,11 @@ for($i=0;$i<13;$i++)
 if ($adventure->verbose) summary($adventure);
 if ($textSavings>0) echo "Text compression saving: $textSavings bytes.\n";
 
+foreach($bankSizeAvailable as $currBank => $bankSize)
+{
+    echo "Bank $currBank: $bankSize bytes available.\n";
+}
+
 foreach (array_keys($buffer) as $currBank)
 {
     $currBuffer = $currBank;
