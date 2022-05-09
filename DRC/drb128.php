@@ -1412,6 +1412,9 @@ function mmlToBeep($note, &$values, $subtarget)
     }
     return $condact;
 }
+//********************************************** Palette **************************************************************** */
+
+$defaultPalette = array(0, 7, 2, 3, 4, 5, 6, 1, 16+0, 16+7, 16+2, 16+3, 16+4, 16+5, 16+6, 16+1);
 
 
 //********************************************** MAIN **************************************************************** */
@@ -1551,6 +1554,8 @@ if (sizeof($screenFileNames) > 255) Error("Too many image files");
 
 if ($adventure->verbose) echo ("Verbose mode on\n");
 
+$palette = $defaultPalette;
+
 // Create the vectors for extens and USRPTR
 $adventure->extvec = array();
 for ($i=0;$i<13;$i++) $adventure->extvec[$i] = 0;
@@ -1653,8 +1658,8 @@ $numberOfProcesses = sizeof($adventure->processes);
 writeByte($numberOfProcesses);
 
 // Fill the rest of the header with zeros, as we don't know yet the offset values. Will comeupdate them later.
-writeBlock((0x42-0x08) + (2*13));
-$bankCurrentAddress[$currBank]+= (0x42 + (2*13));
+writeBlock((0x38-0x08) + 16 + (2*13));
+$bankCurrentAddress[$currBank]+= (0x38 + 16 + (2*13));
 
 $compressedTextOffset = 0;
 $processListOffset = 0;
@@ -2031,6 +2036,9 @@ writeByte($charsetLookupBank);
 writeByte($imageIdxLookupBank);
 //Code of the character used as a cursor.
 writeByte($cursorCode);
+
+for($i=0;$i<16;$i++)
+    writeByte($palette[$i]);
 
 for($i=0;$i<13;$i++)
     writeWord($adventure->extvec[$i],$GLOBALS['isBigEndian']);

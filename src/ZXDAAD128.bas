@@ -122,21 +122,24 @@ DIM DdbXmes2Pos   AS uInteger  ' 0x24 | 2 bytes | Position of Extra messages (fi
 DIM DdbXmes3Pos   AS uInteger  ' 0x26 | 2 bytes | Position of Extra messages (file 3)
 
 DIM DdbXmes0Bnk   AS uByte     ' 0x28 | 1 byte  | Number of bank of extra messages (file 0)
-DIM DdbXmes1Bnk   AS uByte     ' 0x2A | 1 byte  | Number of bank of extra messages (file 1)
-DIM DdbXmes2Bnk   AS uByte     ' 0x2C | 1 byte  | Number of bank of extra messages (file 2)
-DIM DdbXmes3Bnk   AS uByte     ' 0x2E | 1 byte  | Number of bank of extra messages (file 3)
+DIM DdbXmes1Bnk   AS uByte     ' 0x29 | 1 byte  | Number of bank of extra messages (file 1)
+DIM DdbXmes2Bnk   AS uByte     ' 0x2A | 1 byte  | Number of bank of extra messages (file 2)
+DIM DdbXmes3Bnk   AS uByte     ' 0x2B | 1 byte  | Number of bank of extra messages (file 3)
 
-DIM DdbFntPos     AS uInteger  ' 0x30 | 2 bytes | Position of the font
-DIM DdbImgIdxPos  AS uInteger  ' 0x32 | 2 bytes | Position of the image index
-DIM DdbNumImgs    AS uByte     ' 0x34 | 1 byte  | Number of images
-DIM DdbBnkObjDsc  AS uByte     ' 0x35 | 1 byte  | Number of bank of object descriptions
-DIM DdbBnkLocDsc  AS uByte     ' 0x36 | 1 byte  | Number of bank of location descriptions
-DIM DdbBnkUsrMsg  AS uByte     ' 0x37 | 1 byte  | Number of bank of user messages
-DIM DdbBnkSysMsg  AS uByte     ' 0x38 | 1 byte  | Number of bank of system messages
-DIM DdbBnkFnt     AS uByte     ' 0x39 | 1 byte  | Number of bank of the Character set
-DIM DdbBnkImgIdx  AS uByte     ' 0x40 | 1 byte  | Number of bank of the image index
-DIM DdbCursor     AS uByte     ' 0x41 | 1 byte  | Code of the character used as cursor
+DIM DdbFntPos     AS uInteger  ' 0x2C | 2 bytes | Position of the font
+DIM DdbImgIdxPos  AS uInteger  ' 0x2E | 2 bytes | Position of the image index
+DIM DdbNumImgs    AS uByte     ' 0x30 | 1 byte  | Number of images
+DIM DdbBnkObjDsc  AS uByte     ' 0x31 | 1 byte  | Number of bank of object descriptions
+DIM DdbBnkLocDsc  AS uByte     ' 0x32 | 1 byte  | Number of bank of location descriptions
+DIM DdbBnkUsrMsg  AS uByte     ' 0x33 | 1 byte  | Number of bank of user messages
+DIM DdbBnkSysMsg  AS uByte     ' 0x34 | 1 byte  | Number of bank of system messages
+DIM DdbBnkFnt     AS uByte     ' 0x35 | 1 byte  | Number of bank of the Character set
+DIM DdbBnkImgIdx  AS uByte     ' 0x36 | 1 byte  | Number of bank of the image index
+DIM DdbCursor     AS uByte     ' 0x37 | 1 byte  | Code of the character used as cursor
 'Until here...
+
+#define SIZE_HEADER    $38
+#define PALETTE_OFFSET SIZE_HEADER
 '---------------------------------------------------------------------
 
 DIM DdbTarget     AS uByte
@@ -2747,6 +2750,17 @@ SUB PRIVATEDoBEEP()
 
 END SUB
 
+FUNCTION PRIVATEGetColor() AS uByte
+
+  DIM c AS uByte
+
+  LET c = getValueOrIndirection() bAND %1111
+  LET c = PEEK(tmpTok + PALETTE_OFFSET + c) bAND %11111
+  IF (c bAND %01000) THEN BRIGHT 1 ELSE BRIGHT 0
+  IF (c bAND %10000) THEN FLASH 1 ELSE FLASH 0
+  RETURN (c bAND %111)
+
+END FUNCTION
 '==============================================================================
 SUB initFlags()
 
@@ -2814,7 +2828,7 @@ END ASM
 
 IF (PEEK(DDBHeaderAddress) <> 3) OR (PEEK(DDBHeaderAddress + 2) <> 95) THEN resetSys()
 LET DdbTarget = PEEK(DDBHeaderAddress + 1)
-MemCopy(DDBHeaderAddress + 3, @DdbNumObjDsc, $42 - $3) 'Moving header data to variables
+MemCopy(DDBHeaderAddress + 3, @DdbNumObjDsc, SIZE_HEADER - $3) 'Moving header data to variables
 
 #undef DDBHeaderAddress
 
@@ -3719,18 +3733,16 @@ condactBEEP:
 condactPAPER:
 ' Set paper colour acording to the lookup table given in the graphics editors
 #ifndef DISABLE_PAPER
-  LET c = getValueOrIndirection() bAND %1111
-  IF (c bAND %1000) THEN BRIGHT 1 ELSE BRIGHT 0
-  PAPER (c bAND %111)
+  LET c = PRIVATEGetColor()
+  PAPER c
 #endif
   GOTO NextCondact
 ' =============================================================================
 condactINK:
 ' Set text colour acording to the lookup table given in the graphics editors
 #ifndef DISABLE_INK
-  LET c = getValueOrIndirection() bAND %1111
-  IF (c bAND %1000) THEN BRIGHT 1 ELSE BRIGHT 0
-  INK (c bAND %111)
+  LET c = PRIVATEGetColor()
+  INK c
 #endif
   GOTO NextCondact
 ' =============================================================================
