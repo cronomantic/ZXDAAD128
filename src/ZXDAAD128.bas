@@ -3238,9 +3238,9 @@ condactAUTOG:
     PRIVATEDoGET(objno)
   ELSE
     PRIVATEAutoEND(26, 8) 'OK:"There isn't one of those here." KO:"I can't do that"
+    clearLogicalSentences()
+    PRIVATEDoDONE()
   END IF
-  clearLogicalSentences()
-  PRIVATEDoDONE()
 #endif
   GOTO NextCondact
 '=============================================================================
