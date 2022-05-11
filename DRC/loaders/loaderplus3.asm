@@ -105,7 +105,7 @@ END_LOAD:
     JP INIT_ADDR
 
 FILENAME:
-    DB "BIN.BIN", $ff
+    DB "DAAD.BIN", $ff
 
 ;en C se indica la pagina de ram
 SETRAM:

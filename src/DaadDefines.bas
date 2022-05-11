@@ -1,4 +1,4 @@
-#ifndef _DAAD_DEFINES_
+﻿#ifndef _DAAD_DEFINES_
 #define _DAAD_DEFINES_
 
 

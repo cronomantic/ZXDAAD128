@@ -1,4 +1,4 @@
-#ifndef __ZXBDAAD__
+﻿#ifndef __ZXBDAAD__
 #define __ZXBDAAD__
 
 '
@@ -128,24 +128,26 @@ DIM DdbXmes3Bnk   AS uByte     ' 0x2B | 1 byte  | Number of bank of extra messag
 
 DIM DdbFntPos     AS uInteger  ' 0x2C | 2 bytes | Position of the font
 DIM DdbImgIdxPos  AS uInteger  ' 0x2E | 2 bytes | Position of the image index
-DIM DdbNumImgs    AS uByte     ' 0x30 | 1 byte  | Number of images
-DIM DdbBnkObjDsc  AS uByte     ' 0x31 | 1 byte  | Number of bank of object descriptions
-DIM DdbBnkLocDsc  AS uByte     ' 0x32 | 1 byte  | Number of bank of location descriptions
-DIM DdbBnkUsrMsg  AS uByte     ' 0x33 | 1 byte  | Number of bank of user messages
-DIM DdbBnkSysMsg  AS uByte     ' 0x34 | 1 byte  | Number of bank of system messages
-DIM DdbBnkFnt     AS uByte     ' 0x35 | 1 byte  | Number of bank of the Character set
-DIM DdbBnkImgIdx  AS uByte     ' 0x36 | 1 byte  | Number of bank of the image index
-DIM DdbCursor     AS uByte     ' 0x37 | 1 byte  | Code of the character used as cursor
+DIM DdbObjBuffer  AS uInteger  ' 0x30 | 2 bytes | Object buffer
+DIM DdbNumImgs    AS uByte     ' 0x32 | 1 byte  | Number of images
+DIM DdbBnkObjDsc  AS uByte     ' 0x33 | 1 byte  | Number of bank of object descriptions
+DIM DdbBnkLocDsc  AS uByte     ' 0x34 | 1 byte  | Number of bank of location descriptions
+DIM DdbBnkUsrMsg  AS uByte     ' 0x35 | 1 byte  | Number of bank of user messages
+DIM DdbBnkSysMsg  AS uByte     ' 0x36 | 1 byte  | Number of bank of system messages
+DIM DdbBnkFnt     AS uByte     ' 0x37 | 1 byte  | Number of bank of the Character set
+DIM DdbBnkImgIdx  AS uByte     ' 0x38 | 1 byte  | Number of bank of the image index
+DIM DdbCursor     AS uByte     ' 0x39 | 1 byte  | Code of the character used as cursor
 'Until here...
 
-#define SIZE_HEADER    $38
-#define PALETTE_OFFSET SIZE_HEADER
+#define SIZE_HEADER          $40
+#define PALETTE_OFFSET       SIZE_HEADER
+#define VECTOR_OFFSET        PALETTE_OFFSET+16
 '---------------------------------------------------------------------
 
 DIM DdbTarget     AS uByte
 '-----------------------------------------------------------------------------
 
-DIM flags(0 TO 255) AS uByte
+DIM flags(0 TO 511) AS uByte
 
 DIM cwinX AS uByte
 DIM cwinY AS uByte
@@ -336,7 +338,7 @@ FUNCTION strcmp(str1 AS uInteger, str2 AS uInteger, count AS uByte) AS Byte
 
 END FUNCTION
 
-FUNCTION strchr (s AS uInteger, c AS uByte) AS uInteger
+FUNCTION strchr(s AS uInteger, c AS uByte) AS uInteger
 
   DIM p AS uByte
 
@@ -424,6 +426,7 @@ EndPreparePicture:
   RETURN res
 
 END FUNCTION
+
 
 #ifndef TAPE
 FUNCTION loadXPicture(idx AS uByte) AS uByte
@@ -1364,7 +1367,21 @@ FUNCTION skipSpaces(ini AS uInteger) AS uInteger
     IF c <> 32 THEN EXIT DO
     LET ini = ini + 1
   LOOP
+  RETURN ini
 
+END FUNCTION
+
+FUNCTION findEndOfWord(ini AS uInteger) AS uInteger
+
+  DIM c AS uByte
+
+  DO
+    LET c = PEEK ini
+    IF c = 0 THEN EXIT DO
+    IF c = 32 THEN EXIT DO
+    IF c = 13 THEN EXIT DO
+    LET ini = ini + 1
+  LOOP
   RETURN ini
 
 END FUNCTION
@@ -1426,15 +1443,7 @@ SUB printObjectMsgModif(num AS uByte, modif AS uByte)
   getMessage(num, FALSE, DdbBnkObjDsc, DdbObjLstPos)
 
   LET ptr = skipSpaces(tmpMsg)
-
-  DO
-    LET c = PEEK ptr
-    IF c = 0 THEN EXIT DO
-    IF c = 32 THEN EXIT DO
-    IF c = 13 THEN EXIT DO
-    LET ptr = ptr + 1
-  LOOP
-
+  LET ptr = findEndOfWord(ptr)
   LET ptr = skipSpaces(ptr)
 
   cutMsgUntilPoint(ptr)
@@ -1450,11 +1459,11 @@ SUB printObjectMsg(num AS uByte, cut AS uByte)
   IF num > DdbNumObjDsc THEN errorCode(0)
   getMessage(num, FALSE, DdbBnkObjDsc, DdbObjLstPos)
 
+  LET p = tmpMsg
   IF cut THEN
     LET p = skipSpaces(tmpMsg)
+    POKE p, (ToLower(PEEK(p)))
     cutMsgUntilPoint(p)
-  ELSE
-    LET p = tmpMsg
   END IF
 
   printOutMsg(p)
@@ -2529,12 +2538,12 @@ SUB PRIVATEDoDONE()
 END SUB
 
 /'
--Si es en LISTAT continuo: el objeto no cambiar (ES) ni recorta (EN) artículos, pero corta a partir del punto
+-Si es en LISTAT continuo: el objeto no cambiar (ES) ni recorta (EN) artÃ­culos, pero corta a partir del punto
 -Si es en LISTAT normal: el objeto  se lista tal cual, no cambia nada
-- SI es en un símbolo "_" o "@" el objeto se muestra solo hasta el punto, reemplazando (ES) o recortando (EN) el artículo
+- SI es en un sÃ­mbolo "_" o "@" el objeto se muestra solo hasta el punto, reemplazando (ES) o recortando (EN) el artÃ­culo
 
-En ES cambia la primera palabra solo si es un, una, unos, unas (por el , la, los , las). 
-En inglés borra la primera palabra, da igual cual sea
+En ES cambia la primera palabra solo si es un, una, unos, unas (por el , la, los , las).
+En inglÃ©s borra la primera palabra, da igual cual sea
 '/
 
 SUB PRIVATEDoLISTAT(loc AS uByte, listobj AS uByte)
@@ -2859,6 +2868,76 @@ SUB initFlags()
 
 END SUB
 
+'==============================================================================
+'Interrupt routine
+SUB FASTCALL ISR()
+
+ASM
+PROC
+    LOCAL jumpIsr
+
+    PUSH HL
+    PUSH IX
+    PUSH IY
+    PUSH AF
+
+    ;Interrupt vector
+    LD IX, (FlagsPtr)
+    LD HL, (IntVectorPtr)
+    LD (jumpIsr+1), HL
+    LD A, H
+    OR L
+jumpIsr:
+    CALL NZ, 0
+
+    POP AF
+    POP IY
+    POP IX
+    POP HL
+    JP $38   ;Default IM1 address
+ENDP
+END ASM
+END SUB
+
+SUB FASTCALL doCALL(addr AS uInteger)
+ASM
+    JP (HL)
+END ASM
+END SUB
+
+SUB FASTCALL setupIM(flagsAddr AS uInteger, vectorIntAddr AS uInteger)
+ASM
+PROC
+    ;Set vectors
+    LD (FlagsPtr), HL
+    POP HL
+    EX (SP), HL
+    LD (IntVectorPtr), HL
+
+    ;Setup interrupt
+    DI
+    LD HL,IMvect
+    LD DE,IMvect+1
+    LD BC,257
+    LD A,H
+    LD I,A
+    LD (HL),A
+    LDIR
+    LD H,A
+    LD L,A
+    LD A,$C3
+    LD (HL),A
+    INC HL
+    LD DE,._ISR
+    LD (HL),E
+    INC HL
+    LD (HL),D
+    IM 2
+    EI
+ENDP
+END ASM
+END SUB
+
 '===============================================================================
 'Main loop
 
@@ -2876,6 +2955,7 @@ ASM
 END ASM
   SetRAMBank(ROM48KBASIC)
 #endif
+
 '-------------------------------------------------------------------------------
 'Initialization
 '0x00 | 1 byte  | DAAD version number (1 for Aventura Original and Jabato, 1989, 2 for the rest, 3 for ZX128 format)
@@ -2897,12 +2977,12 @@ LET DdbTokensPos = DdbTokensPos + 1 'Skip first token
 LET ramSave = memAlloc(512) '256 bytes for Flags + 256 bytes for Objects location
 
 'Get memory for objects
-LET objLocation  = memAlloc(DdbNumObjDsc)
-LET objAttr  = memAlloc(DdbNumObjDsc)
-LET objExtAttr2  = memAlloc(DdbNumObjDsc)
-LET objExtAttr1  = memAlloc(DdbNumObjDsc)
-LET objNounId  = memAlloc(DdbNumObjDsc)
-LET objAdjetiveId  = memAlloc(DdbNumObjDsc)
+LET objLocation = @flags(256)
+LET objAttr = DdbObjBuffer
+LET objExtAttr2  = objAttr + DdbNumObjDsc
+LET objExtAttr1  = objExtAttr2 + DdbNumObjDsc
+LET objNounId  = objExtAttr1 + DdbNumObjDsc
+LET objAdjetiveId  = objNounId + DdbNumObjDsc
 
 'Get memory for tmpTok & tmpMsg
 LET tmpMsg = memAlloc(TEXT_BUFFER_LEN)
@@ -2926,6 +3006,9 @@ MemSet(@entryDOALLProc(0), 0, NUM_PROCS * 2)
 MemSet(@condactDOALLProc(0), 0, NUM_PROCS * 2)
 MemSet(@continueEntryProc(0), 0, NUM_PROCS)
 LET currProc = $FF
+'-------------------------------------------------------------------------------
+'Setting interrupt routine
+setupIM(@flags(0), PEEK(uInteger, tmpTok + VECTOR_OFFSET + 4))
 '-------------------------------------------------------------------------------
 'Process 0 first to execute...
 pushPROC(0)
@@ -3730,8 +3813,12 @@ condactEXTERN:
   ELSEIF flagno = 10 THEN 'XSPEED
 
 '/
-#ifndef TAPE
   ELSEIF flagno = 0 THEN 'XPICTURE
+#ifdef TAPE
+    LET flagno2 = preparePicture(c)
+    IF flagno2 THEN showBufferedPicture()
+#endif
+#ifndef TAPE
     LET flagno2 = loadXPicture(c)
     IF flagno2 THEN showBufferedPicture()
 #endif
@@ -4013,7 +4100,14 @@ condactPICTURE:
 'is executed.
 #ifndef DISABLE_PICTURE
   LET flagno = getValueOrIndirection()
+
+#ifdef TAPE
   LET continueEntryProc(currProc) = preparePicture(flagno)
+#endif
+#ifndef TAPE
+  LET continueEntryProc(currProc) = loadXPicture(flagno)
+#endif
+
 #endif
   GOTO NextCondact
 ' =============================================================================
@@ -4247,8 +4341,12 @@ condactWHATO:
   GOTO NextCondact
 ' =============================================================================
 condactCALL:
-  'TODO
-  GOTO condactNOT_USED
+#ifndef DISABLE_CALL
+  LET objno = getCondOrValueAndInc()
+  LET total = (CAST(uInteger, getCondOrValueAndInc()) << 8) bOR objno
+  doCALL(total)
+#endif
+  GOTO NextCondact
 ' =============================================================================
 condactPUTO:
 'The position of the currently referenced object (i.e. that object whose
@@ -4564,6 +4662,19 @@ condactRESET:
 condactNOT_USED:
   errorCode(5)
 '===============================================================================
+
+ASM
+    ALIGN 256
+IMvect:
+    DEFS 257-2,$AD  ;Substracting to eat up the following useless ISR call
+END ASM
+ISR()     ' call to ensure ISR doesn't get optimized!
+ASM
+FlagsPtr:
+    DEFW 0
+IntVectorPtr:
+    DEFW 0
+END ASM
 
 #pragma pop(case_insensitive)
 #endif
