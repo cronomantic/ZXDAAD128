@@ -1295,13 +1295,6 @@ SUB printLocationMsg(num AS uByte)
 
 END SUB
 
-SUB printObjectMsg(num AS uByte)
-
-  IF num > DdbNumObjDsc THEN errorCode(0)
-  getMessage(num, TRUE, DdbBnkObjDsc, DdbObjLstPos)
-
-END SUB
-
 FUNCTION printMaluvaExtraMsg(lsb AS uByte, msb AS uByte) AS uByte
 
   DIM ptr, dest, s AS uInteger
@@ -1344,6 +1337,39 @@ FUNCTION printMaluvaExtraMsg(lsb AS uByte, msb AS uByte) AS uByte
 
 END FUNCTION
 
+
+SUB cutMsgUntilPoint(ini AS uInteger)
+
+  DIM c AS uByte
+
+  LET c = PEEK ini
+  DO WHILE c
+    IF c = 46 OR c = 10 THEN 'Found a dot or EOL
+      POKE ini, 0
+      EXIT DO
+    ELSE
+      LET ini = ini + 1
+      LET c = PEEK ini
+    END IF
+  LOOP
+
+END SUB
+
+FUNCTION skipSpaces(ini AS uInteger) AS uInteger
+
+  DIM c AS uByte
+
+  DO
+    LET c = PEEK ini
+    IF c <> 32 THEN EXIT DO
+    LET ini = ini + 1
+  LOOP
+
+  RETURN ini
+
+END FUNCTION
+
+
 ' -------------------------------
 ' Extract object message, change the article and print it:
 ' "Un palo" -> "El palo"
@@ -1354,52 +1380,28 @@ END FUNCTION
 ' @param modif      Modifier for uppercase.
 ' @return           none.
 ' -------------------------------
+#ifdef LANG_ES
 SUB printObjectMsgModif(num AS uByte, modif AS uByte)
 
   DIM ini AS uInteger
-#ifdef LANG_ES
-  DIM p AS uInteger
-#endif
   DIM c AS uByte
-
-  LET ini = tmpMsg
-#ifdef LANG_ES
-  LET p = tmpMsg
-#endif
 
   IF num >= DdbNumObjDsc THEN RETURN
   getMessage(num, FALSE, DdbBnkObjDsc, DdbObjLstPos)
 
-#ifdef LANG_ES
-  IF NOT strnicmp(@MsgModifStrings + 0, tmpMsg, 3) '"Un " -> "El "
+  LET ini = skipSpaces(tmpMsg)
+
+  IF NOT strnicmp(@MsgModifStrings + 0, ini, 3) '"Un " -> "El "
     IF modif = 64 THEN LET c = 69 ELSE LET c = 101 ''@'?'E':'e'
-    POKE tmpMsg + 0, c    'e'
-    POKE tmpMsg + 1, 108  'l'
-  ELSEIF NOT strnicmp(@MsgModifStrings + 4, tmpMsg, 3) '"una" -> " La"
+    POKE ini + 0, c    'e'
+    POKE ini + 1, 108  'l'
+  ELSEIF NOT strnicmp(@MsgModifStrings + 4, ini, 3) '"una" -> " La"
     IF modif = 64 THEN LET c = 76 ELSE LET c = 108 ''@'?'L':'l'
     LET ini = ini + 1
-    POKE tmpMsg + 1, c 'l'
+    POKE ini, c 'l'
   END IF
-  LET c = PEEK p
-  DO WHILE c
-    IF c = 46 OR c = 10 THEN 'Found a dot or EOL
-      POKE p, 0
-      EXIT DO
-    ELSE
-      LET p = p + 1
-      LET c = PEEK p
-    END IF
-  LOOP
-#endif
 
-#ifdef LANG_EN
-  IF NOT strnicmp(@MsgModifStrings + 12, tmpMsg, 2) '"a "
-    LET ini = ini + 2
-  ELSEIF NOT strnicmp(@MsgModifStrings + 8, tmpMsg, 3) '"an "
-    LET ini = ini + 3
-  END IF
-#endif
-
+  cutMsgUntilPoint(ini)
   printOutMsg(ini)
 
   GOTO ENDMsgModifStrings:
@@ -1408,13 +1410,58 @@ MsgModifStrings:
 ASM
   DEFB 117, 110, 32, 0 ;"un "
   DEFB 117, 110, 97, 0 ;"una"
-  DEFB 97, 110, 32, 0 ;"an "
-  DEFB 97, 32, 0;"a "
 END ASM
 
 ENDMsgModifStrings:
 END SUB
+#endif
 
+#ifdef LANG_EN
+SUB printObjectMsgModif(num AS uByte, modif AS uByte)
+
+  DIM ptr AS uInteger
+  DIM c AS uByte
+
+  IF num >= DdbNumObjDsc THEN RETURN
+  getMessage(num, FALSE, DdbBnkObjDsc, DdbObjLstPos)
+
+  LET ptr = skipSpaces(tmpMsg)
+
+  DO
+    LET c = PEEK ptr
+    IF c = 0 THEN EXIT DO
+    IF c = 32 THEN EXIT DO
+    IF c = 13 THEN EXIT DO
+    LET ptr = ptr + 1
+  LOOP
+
+  LET ptr = skipSpaces(ptr)
+
+  cutMsgUntilPoint(ptr)
+  printOutMsg(ptr)
+
+END SUB
+#endif
+
+SUB printObjectMsg(num AS uByte, cut AS uByte)
+
+  DIM p AS uInteger
+
+  IF num > DdbNumObjDsc THEN errorCode(0)
+  getMessage(num, FALSE, DdbBnkObjDsc, DdbObjLstPos)
+
+  IF cut THEN
+    LET p = skipSpaces(tmpMsg)
+    cutMsgUntilPoint(p)
+  ELSE
+    LET p = tmpMsg
+  END IF
+
+  printOutMsg(p)
+
+END SUB
+
+'-----------------------------------------------------------------------
 SUB printBase10(value AS uInteger)
 
   IF value < 10 THEN
@@ -2205,11 +2252,7 @@ ENDP
 END ASM
 END SUB
 
-FUNCTION PRIVATESaveOption() AS uByte
-
-  DIM c AS uByte
-
-  LET c = getValueOrIndirection()
+FUNCTION PRIVATESaveOption(c AS uByte) AS uByte
 
 #ifdef TAPE
 
@@ -2292,13 +2335,13 @@ END ASM
 END FUNCTION
 
 
-SUB PRIVATEDoSAVE()
+SUB PRIVATEDoSAVE(opt AS uByte)
 
   DIM sav, size, buff, buff2 AS uInteger
-  DIM opt, ioerr AS uByte
+  DIM ioerr AS uByte
   DIM h AS Byte
 
-  LET opt = PRIVATESaveOption()
+  LET opt = PRIVATESaveOption(opt)
   IF opt = 0 THEN RETURN
 
   LET ioerr = FALSE
@@ -2348,16 +2391,17 @@ SUB PRIVATEDoSAVE()
     WaitForKey()
   END IF
 
+  LET continueEntryProc(currProc) = NOT ioerr
+
 END SUB
 
-SUB PRIVATEDoLOAD()
+SUB PRIVATEDoLOAD(opt AS uByte)
 
   DIM sav, size, buff, buff2 AS uInteger
-  DIM opt, ioerr AS uByte
+  DIM ioerr AS uByte
   DIM h AS Byte
 
-
-  LET opt = PRIVATESaveOption()
+  LET opt = PRIVATESaveOption(opt)
   IF opt = 0 THEN RETURN
 
   LET ioerr = FALSE
@@ -2427,7 +2471,6 @@ SUB PRIVATEDoEND()
   DIM c AS uByte
 
   printSystemMsg(13)
-  printChar(13) 'NEWLINE
   clearLogicalSentences()
   prompt(FALSE)
   LET c = PEEK(tmpMsg)
@@ -2485,27 +2528,40 @@ SUB PRIVATEDoDONE()
   END IF
 END SUB
 
+/'
+-Si es en LISTAT continuo: el objeto no cambiar (ES) ni recorta (EN) artículos, pero corta a partir del punto
+-Si es en LISTAT normal: el objeto  se lista tal cual, no cambia nada
+- SI es en un símbolo "_" o "@" el objeto se muestra solo hasta el punto, reemplazando (ES) o recortando (EN) el artículo
+
+En ES cambia la primera palabra solo si es un, una, unos, unas (por el , la, los , las). 
+En inglés borra la primera palabra, da igual cual sea
+'/
+
 SUB PRIVATEDoLISTAT(loc AS uByte, listobj AS uByte)
 
   DIM i AS uInteger
-  DIM flag AS uByte
+  DIM flag, cont AS uByte
   DIM lastFound AS uByte = NULLWORD
 
   LET flag = (F53_LISTED bXOR $FF) bAND flags(fOFlags)
+  LET cont = (flag bAND F53_CONT)
+
   FOR i = 0 TO DdbNumObjDsc
     IF i = DdbNumObjDsc OR PEEK(objLocation + i) = loc THEN
       IF lastFound <> NULLWORD THEN
         IF listobj AND NOT (flag bAND F53_LISTED) THEN
-          printSystemMsg(1)
+          printSystemMsg(1) '"Also can see:"
+          IF NOT cont THEN printChar(13)
         END IF
-        IF (flag bAND F53_LISTED) THEN
+        IF (flag bAND F53_LISTED) AND cont THEN
           IF i < DdbNumObjDsc THEN
             printSystemMsg(46)'", "
           ELSE
             printSystemMsg(47)'" y "
           END IF
         END IF
-        printObjectMsg(lastFound)
+        printObjectMsg(lastFound, cont)
+        IF NOT cont THEN printChar(13)
         LET flag = F53_LISTED bOR flag
       END IF
       LET lastFound = i
@@ -2667,18 +2723,18 @@ SUB PRIVATEDoTAKEOUT(objno AS uByte, locno AS uByte)
   LET carr = flags(fNOCarr)
   LET fp = flags(fPlayer)
   LET loc = PEEK(objLocation + objno)
-  IF loc = LOC_WORN OR loc =LOC_CARRIED THEN
+  IF loc = LOC_WORN OR loc = LOC_CARRIED THEN
     printSystemMsg(25)
   ELSEIF loc = fp THEN
     printSystemMsg(45)
     printChar(32)
-    printObjectMsg(locno)
+    printObjectMsg(locno, FALSE)
     printChar(32)
     printSystemMsg(51)
   ELSEIF loc <> fp AND loc <> locno THEN
     printSystemMsg(52)
     printChar(32)
-    printObjectMsg(locno)
+    printObjectMsg(locno, FALSE)
     printChar(32)
     printSystemMsg(51)
   ELSEIF loc <> LOC_WORN AND loc <> LOC_CARRIED AND _
@@ -2753,11 +2809,14 @@ END SUB
 FUNCTION PRIVATEGetColor() AS uByte
 
   DIM c AS uByte
+  DIM b AS uByte = 0
+  DIM f AS uByte = 0
 
   LET c = getValueOrIndirection() bAND %1111
   LET c = PEEK(tmpTok + PALETTE_OFFSET + c) bAND %11111
-  IF (c bAND %01000) THEN BRIGHT 1 ELSE BRIGHT 0
-  IF (c bAND %10000) THEN FLASH 1 ELSE FLASH 0
+  IF (c bAND %01000) THEN LET b = 1
+  IF (c bAND %10000) THEN LET f = 1
+  BRIGHT b : FLASH f
   RETURN (c bAND %111)
 
 END FUNCTION
@@ -3106,13 +3165,11 @@ condactQUIT:
 'discarded is carried out.
 #ifndef DISABLE_QUIT
   printSystemMsg(12)
-  printChar(13) 'NEWLINE
   clearLogicalSentences()
   prompt(FALSE)
   LET c = PEEK(tmpMsg)
   getSystemMsg(30)
-  IF PEEK(tmpMsg) = c THEN PRIVATEDoEND()
-  LET continueEntryProc(currProc) = FALSE
+  LET continueEntryProc(currProc) = (PEEK(tmpMsg) = c)
 #endif
   GOTO NextCondact
 '=============================================================================
@@ -3163,7 +3220,7 @@ condactSAVE:
 'error.") is printed - this is not checked on 8 bit machines, the file name
 'is MADE acceptable!
 #ifndef DISABLE_SAVE
-  PRIVATEDoSAVE()
+  PRIVATEDoSAVE(getValueOrIndirection())
 #endif
   GOTO NextCondact
 '=============================================================================
@@ -3174,7 +3231,7 @@ condactLOAD:
 'next action is carried out only if the load is successful. Otherwise a system
 'clear, GOTO 0, RESTART is carried out.
 #ifndef DISABLE_LOAD
-  PRIVATEDoLOAD()
+  PRIVATEDoLOAD(getValueOrIndirection())
 #endif
   GOTO NextCondact
 '=============================================================================
@@ -3641,8 +3698,11 @@ condactLISTOBJ:
 'If there are no objects then nothing is printed.
 #ifndef DISABLE_LISTOBJ
   PRIVATEDoLISTAT(flags(fPlayer), TRUE)
-  IF (flags(fOFlags) bAND F53_LISTED) THEN
-    printSystemMsg(48)'".\n"
+  LET flagno = flags(fOFlags)
+  IF (flagno bAND F53_LISTED) THEN
+    IF (flagno bAND F53_CONT) THEN
+      printSystemMsg(48)'".\n"
+    END IF
   END IF
 #endif
   GOTO NextCondact
@@ -3676,11 +3736,14 @@ condactEXTERN:
     IF flagno2 THEN showBufferedPicture()
 #endif
   ELSEIF flagno = 1 THEN 'XSAVE
-    PRIVATEDoSAVE()
+    PRIVATEDoSAVE(c)
+    GOTO NextCondact
   ELSEIF flagno = 2 THEN 'XLOAD
-    PRIVATEDoLOAD()
+    PRIVATEDoLOAD(c)
+    GOTO NextCondact
   ELSEIF flagno = 7 THEN 'XUNDONE
     LET isDone = FALSE
+    GOTO NextCondact
   END IF
 
   IF flagno2 THEN
@@ -3689,7 +3752,7 @@ condactEXTERN:
     LET locno = locno bOR %10000000
   END IF
 
-  IF (locno bAND 1) AND (flagno <> 7) THEN LET isDone = flagno2
+  IF (locno bAND 1) THEN LET isDone = flagno2
 
   LET flags(fMALUVA) = locno
 
@@ -3733,16 +3796,14 @@ condactBEEP:
 condactPAPER:
 ' Set paper colour acording to the lookup table given in the graphics editors
 #ifndef DISABLE_PAPER
-  LET c = PRIVATEGetColor()
-  PAPER c
+  PAPER(PRIVATEGetColor())
 #endif
   GOTO NextCondact
 ' =============================================================================
 condactINK:
 ' Set text colour acording to the lookup table given in the graphics editors
 #ifndef DISABLE_INK
-  LET c = PRIVATEGetColor()
-  INK c
+  INK(PRIVATEGetColor())
 #endif
   GOTO NextCondact
 ' =============================================================================
@@ -3827,8 +3888,11 @@ condactLISTAT:
 'message along the lines of "In the bag is:" etc.
 #ifndef DISABLE_LISTAT
   PRIVATEDoLISTAT(getValueOrIndirection(), FALSE)
-  IF (flags(fOFlags) bAND F53_LISTED) THEN
-    printSystemMsg(51)'".\n"
+  LET flagno = flags(fOFlags)
+  IF (flagno bAND F53_LISTED) THEN
+    IF (flagno bAND F53_CONT) THEN
+      printSystemMsg(51)'".\n"
+    END IF
   ELSE
     printSystemMsg(53)'"Nada.\n"
   END IF
@@ -4273,7 +4337,7 @@ condactAUTOT:
     LET objno = getObjectId(ccNoun, ccAdjc, LOC_HERE)
     IF objno <> NULLWORD OR ccNoun = NULLWORD THEN
       printSystemMsg(52)                 '' "There isn't one of those in the"
-      printObjectMsg(locno)              '' Print locno object description
+      printObjectMsg(locno, FALSE)       '' Print locno object description
       printSystemMsg(51)                 '' "."
     ELSE
       printSystemMsg(8)                  '' "I can't do that"

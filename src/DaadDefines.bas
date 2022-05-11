@@ -86,6 +86,7 @@
 #define F57_WAREABLE    128   ' (fCOWR) Bitmask: Current object is wearable
 #define F56_CONTAINER   128   ' (fCOCon) Bitmask: Current object is a container
 #define F53_LISTED      128   ' (fOFlags) Bitmask: If objects listed by LISTOBJ
+#define F53_CONT        64    ' (fOFlags) Bitmask: Continuous object listing mode
 #define F29_MOUSE       1     ' (fGFlags) Bitmask: Mouse available
 #define F29_GMODE       128   ' (fGFlags) Bitmask: Graphics available
 
