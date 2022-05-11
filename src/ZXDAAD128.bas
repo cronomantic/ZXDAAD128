@@ -36,14 +36,8 @@
 CONST ROM48KBASIC AS uByte = %00010000
 
 #ifndef PLUS3
-  #ifndef ESXDOS
-    #ifndef TAPE
-      #define TAPE
-    #endif
-  #else
-    #include once "esxdos.bas"
-    #define SCR_BUFF_ADDR $E4FC
-    #define SCR_BUFF_BANK 7
+  #ifndef TAPE
+    #define TAPE
   #endif
 #else
   #include once "plus3dos.bas"
@@ -447,7 +441,7 @@ FUNCTION loadXPicture(idx AS uByte) AS uByte
   NEXT c
 
   LET b = SetRAMBank(SCR_BUFF_BANK bOR ROM48KBASIC)
-#ifdef PLUS3
+
 XpicturePlus3:
   LET h = 1
   IF Plus3DOSOpen(@XpictureFilename, h, 3, 2, 0) <> 0 THEN GOTO ErrorloadXpicture2
@@ -456,17 +450,6 @@ XpicturePlus3:
   LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR + 4, scrSize + attSize)
   Plus3DOSClose(h)
   IF size <> 0 THEN GOTO ErrorloadXpicture2
-#else
-#ifdef ESXDOS
-  LET h = ESXDosOpen(@XpictureFilename, EDOS_FMODE_OPEN_EX bOR EDOS_FMODE_READ)
-  IF h < 0 THEN GOTO ErrorloadXpicture2
-  LET size = ESXDosRead(h, SCR_BUFF_ADDR, 4)
-  IF size <> 4 THEN GOTO ErrorloadXpicture
-  LET size = ESXDosRead(h, SCR_BUFF_ADDR + 4, scrSize + attSize)
-  ESXDosClose(h)
-  IF size <> (scrSize + attSize) THEN GOTO ErrorloadXpicture2
-#endif
-#endif
 
   SetRAMBank(b)
   LET lastPicId = CAST(uInteger, idx) bOR 256
@@ -475,13 +458,8 @@ XpicturePlus3:
   RETURN TRUE
 
 ErrorloadXpicture:
-#ifdef PLUS3
   Plus3DOSClose(h)
-#else
-#ifdef ESXDOS
-  ESXDosClose(h)
-#endif
-#endif
+
 ErrorloadXpicture2:
   SetRAMBank(b)
   lastPicId = NO_LASTPICTURE
@@ -489,13 +467,7 @@ ErrorloadXpicture2:
 
 XpictureFilename:
 ASM
-#ifdef PLUS3
   DEFB $30, $30, $30, $2E, $44, $43, $50, $FF
-#else
-#ifdef ESXDOS
-  DEFB $30, $30, $30, $2E, $44, $43, $50, $00
-#endif
-#endif
 END ASM
 
 END FUNCTION
@@ -2356,8 +2328,7 @@ SUB PRIVATEDoSAVE(opt AS uByte)
   LET ioerr = FALSE
   LET size = 256 + DdbNumObjDsc
   LET sav = memAlloc(512)
-  MemCopy(@flags(0), sav, 256)
-  MemCopy(objLocation, sav + 256, CAST(uInteger, DdbNumObjDsc))
+  MemCopy(@flags(0), sav, size)
 
   LET buff = PRIVATEGetFilename()
 
@@ -2379,18 +2350,7 @@ SUB PRIVATEDoSAVE(opt AS uByte)
     END IF
     deallocate(buff)
 #else
-#ifdef ESXDOS
-    LET buff2 = PRIVATEPrepareDiscFilename(buff)
-    LET h = ESXDosOpen(buff2, EDOS_FMODE_WRITE bOR EDOS_FMODE_OPEN_AL bOR EDOS_FMODE_CREATE_AL)
-    IF h < 0 THEN
-      LET ioerr = TRUE
-    ELSE
-      LET buff2 = ESXDosWrite(h, sav, size)
-      ESXDosClose(h)
-      LET ioerr = (buff2 <> size)
-    END IF
-    deallocate(buff)
-#endif
+    LET ioerr = TRUE
 #endif
   END IF
   deallocate(sav)
@@ -2438,18 +2398,7 @@ SUB PRIVATEDoLOAD(opt AS uByte)
     END IF
     deallocate(buff)
 #else
-#ifdef ESXDOS
-    LET buff2 = PRIVATEPrepareDiscFilename(buff)
-    LET h = ESXDosOpen(buff2, EDOS_FMODE_READ bOR EDOS_FMODE_OPEN_EX)
-    IF h < 0 THEN
-      LET ioerr = TRUE
-    ELSE
-      LET buff2 = ESXDosRead(h, sav, size)
-      ESXDosClose(h)
-      LET ioerr = (buff2 <> size)
-    END IF
-    deallocate(buff)
-#endif
+    LET ioerr = TRUE
 #endif
   END IF
 
@@ -2458,8 +2407,7 @@ SUB PRIVATEDoLOAD(opt AS uByte)
     flags(fPlayer) = 0
     PRIVATEDoRESTART()
   ELSE
-    MemCopy(sav, @flags(0), 256)
-    MemCopy(sav + 256, objLocation, CAST(uInteger, DdbNumObjDsc))
+    MemCopy(sav, @flags(0), size)
   END IF
   deallocate(sav)
 
@@ -3853,8 +3801,7 @@ condactRAMSAVE:
 'which should be made clear to the player. The next action is always carried
 'out.
 #ifndef DISABLE_RAMSAVE
-  MemCopy(@flags(0), ramSave, 256)
-  MemCopy(objLocation, ramSave + 256, DdbNumObjDsc)
+  MemCopy(@flags(0), ramSave, 256 + DdbNumObjDsc)
 #endif
   GOTO NextCondact
 ' =============================================================================
@@ -3871,8 +3818,7 @@ condactRAMLOAD:
 'the game state is restored to an identical position.
 #ifndef DISABLE_RAMLOAD
   LET pPROC = CAST(uInteger, getValueOrIndirection()) + 1
-  MemCopy(ramSave, @flags(0), pPROC)
-  MemCopy(ramSave + 256, objLocation, DdbNumObjDsc)
+  MemCopy(ramSave, @flags(0), pPROC + DdbNumObjDsc)
 #endif
   GOTO NextCondact
 ' =============================================================================
