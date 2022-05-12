@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // (C) Cronomantic 2022 - This code is released under the GPL v3 license
 
 

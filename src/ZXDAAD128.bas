@@ -1,4 +1,4 @@
-﻿#ifndef __ZXBDAAD__
+#ifndef __ZXBDAAD__
 #define __ZXBDAAD__
 
 '
@@ -2304,11 +2304,7 @@ endStr:
     LDIR
     JR EndF
 Extension:
-#ifdef PLUS3
     DEFB $2E, $53, $41, $56, $FF ; ".SAV"
-#else
-    DEFB $2E, $53, $41, $56, $00 ; ".SAV"
-#endif
 EndF:
     POP HL
 ENDP
@@ -2817,42 +2813,41 @@ SUB initFlags()
 END SUB
 
 '==============================================================================
-'Interrupt routine
-SUB FASTCALL ISR()
-
+'Makes a call to an address, but the content of the registers must be supplied:
+'   A  - Value of first parameter (may be indirected, in which case you will get the contents 
+'        of the flag in A.)
+'   HL - Points at the Flag given by the first parameter (or the flag given by the 
+'        contents of the flag if ind
+'   DE - Points at the Object location given by the first parameter.
+'   IX - Address of Flag 0, 256 bytes after this are the objects.
+'   BC - points at the second parameter of the call, you can advance this pointer and leave it 
+'        pointing at the last inline parameter if you wish.
+SUB FASTCALL doCALL(a AS uByte, hl AS uInteger, de AS uInteger,_
+                    bc AS uInteger, callAddr AS uInteger)
 ASM
 PROC
     LOCAL jumpIsr
-
-    PUSH HL
-    PUSH IX
-    PUSH IY
-    PUSH AF
-
-    ;Interrupt vector
-    LD IX, (FlagsPtr)
-    LD HL, (IntVectorPtr)
-    LD (jumpIsr+1), HL
-    LD A, H
-    OR L
-jumpIsr:
-    CALL NZ, 0
-
-    POP AF
-    POP IY
-    POP IX
+    
     POP HL
-    JP $38   ;Default IM1 address
+    EX (SP), HL
+    LD (jumpIsr+1), HL    ;Call Address
+    POP HL                ;Return Address
+    POP BC                ;Value of BC
+    POP DE                ;Value of DE
+    EX (SP), HL           ;Exchange return address with HL
+
+    PUSH IY
+    PUSH IX
+    LD IX, (FlagsPtr)     ;Gets pointer to 
+jumpIsr:
+    CALL 0                ;Calling address
+    POP IX
+    POP IY
 ENDP
 END ASM
 END SUB
 
-SUB FASTCALL doCALL(addr AS uInteger)
-ASM
-    JP (HL)
-END ASM
-END SUB
-
+' Sets the interrupt vector and sets the custom interrupt rountine.
 SUB FASTCALL setupIM(flagsAddr AS uInteger, vectorIntAddr AS uInteger)
 ASM
 PROC
@@ -2876,7 +2871,7 @@ PROC
     LD A,$C3
     LD (HL),A
     INC HL
-    LD DE,._ISR
+    LD DE,ISR
     LD (HL),E
     INC HL
     LD (HL),D
@@ -2963,7 +2958,7 @@ pushPROC(0)
 '-------------------------------------------------------------------------------
 'Process execution
 DIM ePROC AS uInteger
-DIM pPROC, total AS uInteger
+DIM pPROC, total, addr AS uInteger
 DIM ccVerb, ccNoun, ccAdjc AS uByte
 DIM objno, locno, flagno, flagno2 AS uByte
 DIM currCondact, cVerb, cNoun AS uByte
@@ -3180,8 +3175,14 @@ condactADVERB:
   GOTO NextCondact
 '=============================================================================
 condactSFX:
-  'TODO
-  GOTO condactNOT_USED
+#ifndef DISABLE_SFX
+  LET c = getCondOrValueAndInc()
+  LET total = condactProc(currProc)
+  LET condactProc(currProc) = total + 1
+  LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 2)
+  IF addr <> 0 THEN doCALL(c, @flags(c), (objLocation + c), total, addr)
+#endif
+  GOTO NextCondact
 '=============================================================================
 condactDESC:
 'Prints the text for location locno. without a NEWLINE.
@@ -3749,18 +3750,6 @@ condactEXTERN:
   IF flagno = 3 THEN 'XMESSAGE
     LET objno = getCondOrValueAndInc() 'parameter 2 (MSB)
     LET flagno2 = printMaluvaExtraMsg(c, objno)
-/'
-  ELSEIF flagno = 4 THEN 'XPART
-
-  ELSEIF flagno = 6 THEN 'XSPLITSCR
-
-  ELSEIF flagno = 8 THEN 'XNEXTCLS
-
-  ELSEIF flagno = 9 THEN 'XNEXTRST
-
-  ELSEIF flagno = 10 THEN 'XSPEED
-
-'/
   ELSEIF flagno = 0 THEN 'XPICTURE
 #ifdef TAPE
     LET flagno2 = preparePicture(c)
@@ -3778,6 +3767,25 @@ condactEXTERN:
     GOTO NextCondact
   ELSEIF flagno = 7 THEN 'XUNDONE
     LET isDone = FALSE
+    GOTO NextCondact
+  /'
+  ELSEIF flagno = 4 THEN 'XPART
+
+  ELSEIF flagno = 6 THEN 'XSPLITSCR
+
+  ELSEIF flagno = 8 THEN 'XNEXTCLS
+
+  ELSEIF flagno = 9 THEN 'XNEXTRST
+
+  ELSEIF flagno = 10 THEN 'XSPEED
+'/
+  ELSE 
+    IF flagno > 10 THEN 'Unknown command, call to extern
+      LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 0)
+      IF addr <> 0 THEN 
+        doCALL(c, @flags(c), (objLocation + c), condactProc(currProc)-1, addr)
+      END IF
+    END IF
     GOTO NextCondact
   END IF
 
@@ -4289,8 +4297,8 @@ condactWHATO:
 condactCALL:
 #ifndef DISABLE_CALL
   LET objno = getCondOrValueAndInc()
-  LET total = (CAST(uInteger, getCondOrValueAndInc()) << 8) bOR objno
-  doCALL(total)
+  LET addr = (CAST(uInteger, getCondOrValueAndInc()) << 8) bOR objno
+  doCALL(0, 0, 0, condactProc(currProc), addr)
 #endif
   GOTO NextCondact
 ' =============================================================================
@@ -4608,19 +4616,63 @@ condactRESET:
 condactNOT_USED:
   errorCode(5)
 '===============================================================================
-
+'==============================================================================
+'Interrupt routine
 ASM
+
+FlagsPtr:
+    DEFW 0          ;Pointer to flags
+
+IntVectorPtr:       ;Value of INT vector on DDB
+    DEFW 0
+
+ISR:
+PROC
+    LOCAL jumpIsr, setBank
+
+    PUSH HL
+    PUSH BC
+    PUSH DE
+    PUSH IX
+    PUSH IY
+    PUSH AF                       ; Saving context
+
+    LD A,($5b5c)                  ; Previous value of the port
+    PUSH AF                       ; Saving in stack
+    AND %11101000                 ; Change only bank bits
+    OR %00010000                  ; Sets Bank 0
+    CALL setBank                  ; Change bank
+
+    ;Interrupt vector
+    LD IX, (FlagsPtr)
+    LD HL, (IntVectorPtr)
+    LD (jumpIsr+1), HL
+    LD A, H
+    OR L
+jumpIsr:
+    CALL NZ, 0           ; Calling INT routine, on HL is the routine address
+
+    POP AF               ; Recover bank from stack
+    CALL setBank         ; Restore current bank
+
+    POP AF               ; Restoring context
+    POP IY
+    POP IX
+    POP DE
+    POP BC
+    POP HL
+    JP $38               ;Default IM1 address
+
+setBank:
+    LD BC,$7ffd
+    OUT (C),A                ;update port
+    RET
+ENDP
+
     ALIGN 256
 IMvect:
-    DEFS 257-2,$AD  ;Substracting to eat up the following useless ISR call
+    DEFS 258,$AD    ;Interrupt vector
 END ASM
-ISR()     ' call to ensure ISR doesn't get optimized!
-ASM
-FlagsPtr:
-    DEFW 0
-IntVectorPtr:
-    DEFW 0
-END ASM
-
+'==============================================================================
 #pragma pop(case_insensitive)
 #endif
