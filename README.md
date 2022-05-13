@@ -35,16 +35,17 @@ You can see the classic interpreters [here](https://github.com/daad-adventure-wr
 **ZXDAAD128** requires to use the frontend of [**DAAD Reborn Compiler**](https://github.com/daad-adventure-writer/DRC/wiki) with a specific backend supplied with this project in order to distribute parts of the database around other banks. The Messages (**MTX**), System Messages (**STX**), Location Descriptions (**LTX**), Object Descriptions (**OTX**) and the character set will be allocated on other banks if they do not fit on the space available on bank 0. All the other database data will always be on Bank 0.
 
 **ZXDAAD128** supports compressed bitmap graphics with the **DCP** tool, instead of the traditional vector graphics.  
-The tool uses the **ZX0** compressor by Einar Saukas to compress full SCR files and the images will also be allocated on the banks of RAM by the compiler backend.  
-The CondAct `PICTURE` will prepare an image for loading and the condAct `DISPLAY` will show it on the screen, as described on the original DAAD documentation.  
-However, the image will be shown always on full screen, there is no provision of clipping and positioning the image according to the active window.
+The tool uses the **ZX0** compressor by Einar Saukas to compress full SCR files and the images will also be allocated on the banks of RAM by the compiler backend on the `TAPE` subtarget. On `PLUS3`, they will be loaded from disk.
+In order to show pictures, first you must use the CondAct `PICTURE` to prepare the image for showing. On `PLUS3` subtarget, it will load the image on buffer and on the `TAPE` subtarget it will simply check that it exists on RAM. Please, refer to the original DAAD documentation, since the interpreter imitates its behabiour.
+Then you must use the condAct `DISPLAY` to show the buffered image on screen, also described on the original DAAD documentation.  
+Be aware that the image will be shown always on full screen, there is no provision of clipping and positioning the image according to the active window.
 
 Supports loading and saving on tape or disk with +3DOS and 42 or 32 characters per line.
 
 **ZXDAAD128**  also emulates, to some extent, [**Maluva DAAD extension**](https://github.com/Utodev/MALUVA/wiki) which adds new functionalities to the classic interpreters. These are the extended condActs currently supported:
 
-- `XPICTURE`: Load compressed DCP bitmap images from disk instead of RAM. This function does not support the standard Maluva's SC2DAAD format.
-- `XMESSAGE`: Use of extra texts. The maximum size allowed is 64Kb, divided into 4 blocks of 16Kb maximum, which will also be distributed around the memory banks by the compiler's backend.
+- `XPICTURE`: Loads and shows a compressed DCP bitmap image. This function does not support the standard Maluva's SC2DAAD format. Instead, it will execute the `PICTURE` and `DISPLAY` condacts on sequence and report error with the standard Maluva method of error reporting, please refer to its wiki for more information.
+- `XMESSAGE`: Use of extra texts. The maximum size allowed is 64Kb, divided into 4 blocks of 16Kb maximum, which will also be distributed around the memory banks by the compiler's backend on both targets.
 - `XUNDONE`: To cancel the status "done".
 - `XLOAD`/`XSAVE`: To load/save your gameplay. They work like the traditional `LOAD`/`SAVE` condActs on this interpreter.
 
@@ -107,7 +108,6 @@ After you have the `DSF` file of your adventure, you must compile it with the fr
 ```
     drf zx mygame.dsf
     drf zx plus3 mygame.dsf
-    drf zx esxdos mygame.dsf
 ```
 
 However, instead of generating the `DDB` file with the standard `drb` program, you must use the program `drb128` located on the `/DRC` directory of this distribution.
@@ -145,7 +145,7 @@ And these are the optional parameters:
 - **-p** : Forced padding
 - **-b**  : use best fit algorithm when assigning the memory banks (first fit by default).
 - **-o [outputfile]** : (optional) path & file name of the output files. If absent, same path & file name of json file would be used.
-- **-i [image path]** : (optional) the path for the images to include. If not defined, no images will be loaded. Only for TAPE target.
+- **-i [image path]** : (optional) the path for the images to include. If not defined, no images will be loaded on RAM. Only for TAPE target, since on PLUS3, they will be loaded from disk.
 - **-k [char. id]** : (optional) the number of the character which will be used as a cursor. By default, the character "_" will be used (code 95).
 
 The character set file must be a 2048 bytes file, 8 bytes per character, 256 characters. Please take in mind that if you are using a 42 lines interpreter, the character set must be 6x8, so despite each of your characters has 8 bits per scanline to define, make sure you don't use the two rightmost ones (and even the third rightmost one if you want to have some space between characters).  
@@ -165,9 +165,9 @@ However, if there are too much blocks (i.e. images), it becomes inefficient. On 
 The backend compiler includes the tokens included in the default databases for both English and Spanish, in order to compress the texts.
 If you need to get the better tokens for a given title you can use [DRT](https://github.com/daad-adventure-writer/DRT) by Jose Manuel Ferrer, a nice tokenizer for DAAD texts which will get the best compression. In order to use them, you must put the tokens file on the same path and with the same name of the input file, but with extension `.TOK` instead.
 
-If you want images on memory, you must provide a path to a directory with the image files with the option `-i`. The program will scan the directory for files with name like `012.DCP`, a three digit number from 0 to 255 (included) as the filename and with DCP extension.
-To show this image you should do a call to the condAct `PICTURE` with the number of the file as parameter (i.e. `PICTURE 12` for image of file `012.DCP`) to preload it, and then use `DISPLAY` to show it on screen. Please refer to those two condActs on the original DAAD manual. The CondAct `XPICTURE` will do both of the previous operations, while behaving like the Maluva equivalent.
-This only is available for the TAPE target, on +3DOS it will load the image files from the disk.
+If you want images on memory for the `TAPE` subtarget, you must provide a path to a directory with the image files with the option `-i`. The program will scan the directory for files with name like `012.DCP`, a three digit number from 0 to 255 (included) as the filename and with DCP extension.
+On `PLUS3`, the interpreter will load the image files from the disk instead, so the compressed image files must be present on the disk. 
+To show an image, you should do a call to the condAct `PICTURE` with the number of the file as parameter (i.e. `PICTURE 12` for image of file `012.DCP`) to preload it, and then use `DISPLAY` to show it on screen. Please refer to those two condActs on the original DAAD manual. The CondAct `XPICTURE` will do both of operations, while behaving like the Maluva equivalent on the error reporting mechanism.
 
 ### **The interpreters**
 
@@ -234,7 +234,8 @@ Also, you have the following options:
 - **-s** **[SCR file]**  : SCR file which will be used as loading screen.
 
 This program will generate two files: a `bin.bin` file (the binary data to load) and a `disk` file (the loader).
-After that, you can create a disk image file with those two files included. For that, you can use the program `MKP3FS` from taptools. You can find compiled versions [here](http://www.seasip.info/ZX/unix.html).
+After that, you can create a disk image file with those two files, including also the compressed image files needed on the adventure.
+For that, you can use the program `MKP3FS` from taptools. You can find compiled versions [here](http://www.seasip.info/ZX/unix.html).
 
 ***
 
