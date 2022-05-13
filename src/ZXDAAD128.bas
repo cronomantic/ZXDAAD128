@@ -1,4 +1,4 @@
-﻿#ifndef __ZXBDAAD__
+#ifndef __ZXBDAAD__
 #define __ZXBDAAD__
 
 '
@@ -1500,22 +1500,26 @@ END FUNCTION
 'if objno is NULLWORD.
 '
 'objno          Object ID or NULLWORD.
-'isCarriedWorn  Check carried/worn objects if True.
+'
 'Returns the weight of one or a sum of objects.
 '
-FUNCTION getObjectWeight(objno AS uByte, isCarriedWorn AS uByte) AS uByte
+FUNCTION getObjectWeight(objno AS uByte) AS uByte
 
-  DIM i AS uInteger
   DIM weight AS uInteger = 0
+  DIM i, j AS uByte
   DIM loc, att AS uByte
 
+  IF DdbNumObjDsc = 0 THEN RETURN 0
   FOR i = 0 TO DdbNumObjDsc-1
     IF objno = NULLWORD OR objno = i THEN
       LET loc = PEEK(objLocation + i)
       LET att = PEEK(objAttr + i)
-      IF NOT isCarriedWorn OR loc = LOC_CARRIED OR loc = LOC_WORN THEN
+      IF (objno <> NULLWORD OR _
+         (objno = NULLWORD AND ((loc = LOC_CARRIED) OR (loc = LOC_WORN)))) THEN
         IF (att bAND OBJ_IS_CONTAINER_MASK) AND ((att bAND OBJ_WEIGHT_MASK) <> 0) THEN
-          LET weight = getObjectWeight(CAST(uByte, i), FALSE) + weight
+          FOR j = 0 TO DdbNumObjDsc-1
+            IF PEEK(objLocation + j) = i THEN LET weight = weight + getObjectWeight(j)
+          NEXT j
         END IF
         LET weight = (att bAND OBJ_WEIGHT_MASK) + weight
       END IF
@@ -2600,7 +2604,7 @@ SUB PRIVATEDoGET(objno AS uByte)
     printSystemMsg(25)
   ELSEIF loc <> flags(fPlayer) THEN
     printSystemMsg(26)
-  ELSEIF ((getObjectWeight(NULLWORD, TRUE) + getObjectWeight(objno, FALSE)) > flags(fStrength)) THEN
+  ELSEIF ((getObjectWeight(NULLWORD) + getObjectWeight(objno)) > flags(fStrength)) THEN
     printSystemMsg(43)
   ELSEIF (carr >= flags(fMaxCarr)) THEN
     printSystemMsg(27)
@@ -2691,7 +2695,7 @@ SUB PRIVATEDoTAKEOUT(objno AS uByte, locno AS uByte)
     printChar(32)
     printSystemMsg(51)
   ELSEIF loc <> LOC_WORN AND loc <> LOC_CARRIED AND _
-    ((getObjectWeight(NULLWORD, TRUE) + getObjectWeight(objno, FALSE)) > flags(fStrength)) THEN
+    ((getObjectWeight(NULLWORD) + getObjectWeight(objno)) > flags(fStrength)) THEN
     printSystemMsg(43)
   ELSEIF carr >= flags(fMaxCarr) THEN
     printSystemMsg(27)
@@ -2728,8 +2732,10 @@ FUNCTION PRIVATEcheckLocCARRWORNHERE() AS uByte
   LET adjc = flags(fAdject1)
   LET objno = getObjectId(noun, adjc, LOC_CARRIED)   'CARRIED
   IF objno = NULLWORD THEN
+    BORDER 1
     LET objno = getObjectId(noun, adjc, LOC_WORN)   'WORN
     IF objno = NULLWORD THEN
+      BORDER 2
       LET objno = getObjectId(noun, adjc, flags(fPlayer)) 'HERE
     END IF
   END IF
@@ -4129,7 +4135,7 @@ condactWEIGH:
 #ifndef DISABLE_WEIGH
   LET objno = getValueOrIndirection()
   LET flagno2 = getCondOrValueAndInc()
-  LET c = getObjectWeight(objno, FALSE)
+  LET c = getObjectWeight(objno)
   LET flags(flagno2) = c
 #endif
   GOTO NextCondact
@@ -4224,7 +4230,7 @@ condactWEIGHT:
 'to cross a bridge without it collapsing etc.
 #ifndef DISABLE_WEIGHT
   LET flagno = getValueOrIndirection()
-  LET flags(flagno) = getObjectWeight(NULLWORD, TRUE)
+  LET flags(flagno) = getObjectWeight(NULLWORD)
 #endif
   GOTO NextCondact
 ' =============================================================================
@@ -4350,7 +4356,7 @@ condactAUTOP:
 'NEWTEXT & DONE are performed
 #ifndef DISABLE_AUTOP
   LET objno = PRIVATEcheckLocCARRWORNHERE()
-  IF objno = NULLWORD THEN
+  IF objno <> NULLWORD THEN
     PRIVATEDoPUTIN(objno, getValueOrIndirection())
   ELSE
     PRIVATEAutoEND(28, 8)'OK:"I don't have one of these" KO:"I can't do that")
@@ -4385,7 +4391,7 @@ condactAUTOT:
       END IF
     END IF
   END IF
-  IF objno = NULLWORD THEN
+  IF objno <> NULLWORD THEN
     PRIVATEDoTAKEOUT(objno, locno)
   ELSE
     LET objno = getObjectId(ccNoun, ccAdjc, LOC_HERE)

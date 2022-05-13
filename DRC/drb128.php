@@ -163,7 +163,7 @@ function string2intArr($string)
     $r = array();
     for($i = 0; $i < $l; $i++)
     {
-      $r[] = ord($string{$i});
+      $r[] = ord($string[$i]);
     }
     return $r;
 }
@@ -1415,21 +1415,25 @@ function mmlToBeep($note, &$values, $subtarget)
 
 $defaultPalette = array(0, 7, 2, 3, 4, 5, 6, 1, 16+0, 16+7, 16+2, 16+3, 16+4, 16+5, 16+6, 16+1);
 
+function parsePaletteData($paletteData, &$palette)
+{
+
+}
 
 //********************************************** MAIN **************************************************************** */
 function Syntax()
 {
     echo("SYNTAX: php drb128.php [options] <target> <language> <inputfile> <interpreter> <charsetfile>\n\n");
     echo("+ [options]: one or more of the following:\n");
-    echo ("              -v  : verbose output\n");
-    echo ("              -3  : Prepend +3 header to ADx files (3h stands for 'Three header')\n");
-    echo ("              -c  : Forced classic mode\n");
-    echo ("              -d  : Forced debug mode\n");
-    echo ("              -p  : Forced padding\n");
-    echo ("              -b  : use best fit algorithm when assigning the memory banks (first fit by default)\n");
-    echo ("  -o [outputfile] : (optional) path & file name of output files. If absent, same name of json file would be used.\n");
-    echo ("  -i [image path] : (optional) the path to search for images. If not defined, no images will be loaded. Only for TAPE target.\n");
-    echo ("  -k [char. id]   : (optional) character code for the cursor.\n");
+    echo ("              -v    :  verbose output\n");
+    echo ("              -3    : Prepend +3 header to ADx files (3h stands for 'Three header')\n");
+    echo ("              -d    : Forced debug mode\n");
+    echo ("              -c    : Forced classic mode\n");
+    echo ("              -b    : use best fit algorithm when assigning the memory banks (first fit by default)\n");
+    echo ("  -o [output file]  : (optional) path & file name of output files. If absent, same name of json file would be used.\n");
+    echo ("  -i [image path]   : (optional) the path to search for images. Only for TAPE target.\n");
+    echo ("  -p [palette file] : (optional) path & file name of palette definition JSON file.\n");
+    echo ("  -k [char. id]     : (optional) character code for the cursor.\n");
     echo "\n";
     echo("+ <target>: The machine objetive. Valid values: TAPE and PLUS3.\n");
     echo("+ <language>: game language, should be 'EN', 'ES', 'DE', 'FR' or 'PT' (English, Spanish, German, French or Portuguese).\n");
@@ -1441,7 +1445,7 @@ function Syntax()
     echo "Examples:\n";
     echo "php drb128 tape es game.json zxd128_ES.ZDI charset.chr\n";
     echo "php drb128 -cd tape en game.json zxd128_EN.ZDI charset.chr\n";
-    echo "php drb128 -3cv -o mygame.ad0 plus3 en game.json zxd128_PLUS3_EN.ZDI  charset.chr\n";
+    echo "php drb128 -3v -o mygame.ad0 plus3 en game.json zxd128_PLUS3_EN.ZDI  charset.chr\n";
     echo "\n";
     echo "Text compression will use the built in tokens for each language. In case you want to provide your own tokens just place a file with same name as the JSON file but with .TOK extension in the same folder. To know about the TOK file content format look for the default tokens array in DRB source code.\n";
     echo "\n";
@@ -1455,7 +1459,7 @@ echo "DAAD Reborn Compiler Backend for ZX Spectrum 128 ".VERSION_HI.".".VERSION_
 if (!function_exists ('utf8_encode')) Error('This software requires php-xml package, please use yum or apt-get to install it.');
 
 $rest_index = null;
-$opts = getopt('3vcpdbo:i:k:', [], $rest_index);
+$opts = getopt('3vcdbo:i:k:p:', [], $rest_index);
 $posArgs = array_slice($argv, $rest_index);
 
 if (sizeof($posArgs) < 5) Syntax();
@@ -1513,7 +1517,7 @@ $adventure->prependPlus3Header = array_key_exists('3', $opts);
 $adventure->verbose = array_key_exists('v', $opts);
 $adventure->forcedClassicMode = array_key_exists('c', $opts);
 $adventure->forcedDebugMode = array_key_exists('d', $opts);
-$adventure->forcedPadding = array_key_exists('p', $opts);
+$adventure->forcedPadding = false;
 $adventure->useBestFit = array_key_exists('b', $opts);
 
 $cursorCode = 0x5f;
@@ -1558,10 +1562,32 @@ if ($screenFilesPath != '')
 }
 if (sizeof($screenFileNames) > 255) Error("Too many image files");
 
+$palette = $defaultPalette;
+if (array_key_exists('p', $opts))
+{
+    $paletteFileName = $opts['p'];
+    if (!file_exists($paletteFileName)) Error('File not found');
+    $json = file_get_contents($paletteFileName);
+    $paletteData = json_decode(utf8_encode($json));
+    if (!$paletteData)
+    {
+        $error = 'Invalid palette json file: ';
+        switch (json_last_error())
+        {
+        case JSON_ERROR_DEPTH: $error.= 'Maximum stack depth exceeded'; break;
+        case JSON_ERROR_STATE_MISMATCH: $error.= 'Underflow or the modes mismatch'; break;
+        case JSON_ERROR_CTRL_CHAR: $error.= ' - Unexpected control character found'; break;
+        case JSON_ERROR_SYNTAX: $error.= ' - Syntax error, malformed JSON'; break;
+        case JSON_ERROR_UTF8: $error.= ' - Malformed UTF-8 characters, possibly incorrectly encoded'; break;
+        default: $error.= 'Unknown error';
+        break;
+        }
+        Error($error);
+    }
+    parsePaletteData($paletteData, $palette);
+}
 
 if ($adventure->verbose) echo ("Verbose mode on\n");
-
-$palette = $defaultPalette;
 
 // Create the vectors for extens and USRPTR
 $adventure->extvec = array();
