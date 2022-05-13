@@ -1,4 +1,4 @@
-#ifndef __ZXBDAAD__
+﻿#ifndef __ZXBDAAD__
 #define __ZXBDAAD__
 
 '
@@ -2546,7 +2546,7 @@ SUB PRIVATEDoWEAR(objno AS uByte)
     printSystemMsg(49)
   ELSEIF loc = LOC_WORN THEN
     printSystemMsg(29)
-  ELSEIF loc = LOC_CARRIED THEN
+  ELSEIF loc <> LOC_CARRIED THEN
     printSystemMsg(28)
   ELSEIF NOT (att bAND OBJ_IS_WORN_MASK) THEN
     printSystemMsg(40)
@@ -2822,8 +2822,8 @@ END SUB
 '   IX - Address of Flag 0, 256 bytes after this are the objects.
 '   BC - points at the second parameter of the call, you can advance this pointer and leave it 
 '        pointing at the last inline parameter if you wish.
-SUB FASTCALL doCALL(a AS uByte, hl AS uInteger, de AS uInteger,_
-                    bc AS uInteger, callAddr AS uInteger)
+FUNCTION FASTCALL doCALL(a AS uByte, hl AS uInteger, de AS uInteger,_
+                    bc AS uInteger, callAddr AS uInteger) AS uInteger
 ASM
 PROC
     LOCAL jumpIsr
@@ -2843,9 +2843,11 @@ jumpIsr:
     CALL 0                ;Calling address
     POP IX
     POP IY
+    LD L, C
+    LD H, B
 ENDP
 END ASM
-END SUB
+END FUNCTION
 
 ' Sets the interrupt vector and sets the custom interrupt rountine.
 SUB FASTCALL setupIM(flagsAddr AS uInteger, vectorIntAddr AS uInteger)

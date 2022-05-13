@@ -300,6 +300,6 @@ $outputFileHandler = fopen($outputFileName, "wb");
 if (!$outputFileHandler) Error("Couldn't create file '$outputFileName'.\n");
 flushBuffer($loader, $outputFileHandler);
 fclose($outputFileHandler);
-echo "\nFile $outputFileName created.\n";
+echo "File $outputFileName created.\n";
 
 exit(0);
