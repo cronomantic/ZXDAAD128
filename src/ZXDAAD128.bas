@@ -158,7 +158,6 @@ DIM winH(0 TO WINDOWS_NUM-1) AS uByte
 DIM cursorX(0 TO WINDOWS_NUM-1) AS uByte
 DIM cursorY(0 TO WINDOWS_NUM-1) AS uByte
 DIM winMode(0 TO WINDOWS_NUM-1) AS uByte
-DIM winAttr(0 TO WINDOWS_NUM-1) AS uByte
 
 DIM lastPicId AS uInteger
 DIM lastPicLocation AS uInteger
@@ -832,7 +831,6 @@ SUB popCurrentWindow(w AS uByte)
   LET ccursorX = cursorX(w)
   LET ccursorY = cursorY(w)
   LET cwinMode = winMode(w)
-  LET AttrD = winAttr(w)
 
 END SUB
 
@@ -845,7 +843,6 @@ SUB pushCurrentWindow(w AS uByte)
   LET cursorX(w) = ccursorX
   LET cursorY(w) = ccursorY
   LET winMode(w) = cwinMode
-  LET winAttr(w) = AttrD
 
 END SUB
 '==============================================================================
@@ -2793,7 +2790,6 @@ SUB initFlags()
   MemSet(@winW(0), MAX_COLUMNS, WINDOWS_NUM)
   MemSet(@winH(0), MAX_LINES, WINDOWS_NUM)
   MemSet(@winMode(0), 0, WINDOWS_NUM)
-  MemSet(@winAttr(0), AttrD, WINDOWS_NUM)
 
   LET lastPicId = NO_LASTPICTURE
 
@@ -4676,7 +4672,7 @@ setBank:
     OUT (C),A                ;update port
     RET
 ENDP
-
+EndISR:
     ALIGN 256
 IMvect:
     DEFS 258,$AD    ;Interrupt vector

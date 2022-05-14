@@ -138,15 +138,15 @@ The meaning of these parameters are the following:
 
 And these are the optional parameters:
 
-- **-v** : verbose output
+- **-v** : Verbose output
 - **-3** : Prepend +3 header to the resulting files
 - **-c** : Forced classic mode
 - **-d** : Forced debug mode
-- **-p** : Forced padding
-- **-b**  : use best fit algorithm when assigning the memory banks (first fit by default).
-- **-o [outputfile]** : (optional) path & file name of the output files. If absent, same path & file name of json file would be used.
-- **-i [image path]** : (optional) the path for the images to include. If not defined, no images will be loaded on RAM. Only for TAPE target, since on PLUS3, they will be loaded from disk.
-- **-k [char. id]** : (optional) the number of the character which will be used as a cursor. By default, the character "_" will be used (code 95).
+- **-b**  : Use best fit algorithm when assigning the memory banks (first fit by default).
+- **-o [output file]** : Path & file name of the output files. If absent, same path & file name of json input file would be used.
+- **-i [image path]** : the path for the images to load on RAM. If not defined, no images will be loaded. Only for TAPE target, since on PLUS3, they will be loaded from disk.
+- **-k [char. id]** : the ASCII code of the character which will be used as a cursor. By default, the character "_" will be used (code 95).
+- **-p [palette file]** : path to a JSON file which define the colors of the 16 values used on the interpreter. Please refer to the file `DRC/palette.json` for a sample.
 
 The character set file must be a 2048 bytes file, 8 bytes per character, 256 characters. Please take in mind that if you are using a 42 lines interpreter, the character set must be 6x8, so despite each of your characters has 8 bits per scanline to define, make sure you don't use the two rightmost ones (and even the third rightmost one if you want to have some space between characters).  
 Two character sets, `AD8x8.CHR` and `AD6x8.CHR`, are included for your own use.
