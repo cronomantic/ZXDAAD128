@@ -2662,7 +2662,6 @@ SUB PRIVATEDoPUTIN(objno AS uByte, locno AS uByte)
     printSystemMsg(44)
     printChar(32)
     printObjectMsgModif(flags(fO2Num), 95) '"_"
-    printChar(32)
     printSystemMsg(51)
     RETURN
   END IF
@@ -2683,13 +2682,11 @@ SUB PRIVATEDoTAKEOUT(objno AS uByte, locno AS uByte)
     printSystemMsg(45)
     printChar(32)
     printObjectMsg(locno, FALSE)
-    printChar(32)
     printSystemMsg(51)
   ELSEIF loc <> fp AND loc <> locno THEN
     printSystemMsg(52)
     printChar(32)
     printObjectMsg(locno, FALSE)
-    printChar(32)
     printSystemMsg(51)
   ELSEIF loc <> LOC_WORN AND loc <> LOC_CARRIED AND _
     ((getObjectWeight(NULLWORD) + getObjectWeight(objno)) > flags(fStrength)) THEN
