@@ -39,7 +39,7 @@ pause
 exit /b %errorlevel%
 
 :create_start_file
-  set header_size=0x40
+  set header_size=0x3A
   set offset=(13*2) + 16
   set size=%~z1
   set /a addr="%size% + %start_addr% + %offset% + %header_size%"

@@ -133,7 +133,7 @@ DIM DdbBnkImgIdx  AS uByte     ' 0x38 | 1 byte  | Number of bank of the image in
 DIM DdbCursor     AS uByte     ' 0x39 | 1 byte  | Code of the character used as cursor
 'Until here...
 
-#define SIZE_HEADER          $40
+#define SIZE_HEADER          $3A
 #define PALETTE_OFFSET       SIZE_HEADER
 #define VECTOR_OFFSET        PALETTE_OFFSET+16
 '---------------------------------------------------------------------
@@ -3184,7 +3184,7 @@ condactADVERB:
 '=============================================================================
 condactSFX:
 #ifndef DISABLE_SFX
-  LET c = getCondOrValueAndInc()
+  LET c = getValueOrIndirection()
   LET total = condactProc(currProc)
   LET condactProc(currProc) = total + 1
   LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 2)

@@ -1417,7 +1417,28 @@ $defaultPalette = array(0, 7, 2, 3, 4, 5, 6, 1, 16+0, 16+7, 16+2, 16+3, 16+4, 16
 
 function parsePaletteData($paletteData, &$palette)
 {
-
+    if (!array_key_exists("colors", $paletteData)) return false;
+    if(sizeof($paletteData->colors)!=16) return false;
+    for($i=0;$i<16;$i++)
+    {
+        if (!array_key_exists("color", $paletteData->colors[$i])) return false;
+        $value = $paletteData->colors[$i]->color;
+        if (!is_numeric($value)) return false;
+        $value = intval($value);
+        if($value < 0 || $value > 7) return false;
+        if (array_key_exists("bright", $paletteData->colors[$i]))
+        {
+            if(!is_bool($paletteData->colors[$i]->bright)) return false;
+            if($paletteData->colors[$i]->bright) $value+=8;
+        }
+        if (array_key_exists("flash", $paletteData->colors[$i]))
+        {
+            if(!is_bool($paletteData->colors[$i]->flash)) return false;
+            if($paletteData->colors[$i]->flash) $value+=16;
+        }
+        $palette[$i] = $value;
+    }
+    return true;
 }
 
 //********************************************** MAIN **************************************************************** */
@@ -1566,7 +1587,7 @@ $palette = $defaultPalette;
 if (array_key_exists('p', $opts))
 {
     $paletteFileName = $opts['p'];
-    if (!file_exists($paletteFileName)) Error('File not found');
+    if (!file_exists($paletteFileName)) Error('Palette file not found');
     $json = file_get_contents($paletteFileName);
     $paletteData = json_decode(utf8_encode($json));
     if (!$paletteData)
@@ -1584,7 +1605,7 @@ if (array_key_exists('p', $opts))
         }
         Error($error);
     }
-    parsePaletteData($paletteData, $palette);
+    if (!parsePaletteData($paletteData, $palette)) Error("Error in palette JSON");
 }
 
 if ($adventure->verbose) echo ("Verbose mode on\n");
@@ -1691,8 +1712,8 @@ $numberOfProcesses = sizeof($adventure->processes);
 writeByte($numberOfProcesses);
 
 // Fill the rest of the header with zeros, as we don't know yet the offset values. Will comeupdate them later.
-writeBlock((0x40-0x08) + 16 + (2*13));
-$bankCurrentAddress[$currBank]+= (0x40 + 16 + (2*13));
+writeBlock((0x3A-0x08) + 16 + (2*13));
+$bankCurrentAddress[$currBank]+= (0x3A + 16 + (2*13));
 
 $compressedTextOffset = 0;
 $processListOffset = 0;
