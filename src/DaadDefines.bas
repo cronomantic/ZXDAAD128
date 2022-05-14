@@ -70,7 +70,6 @@
 #define LOC_WORN          253
 #define LOC_CARRIED       254
 #define LOC_HERE          255
-#define LOC_CONTAINER     256   ' Fake location to indicate the object location is a container. See getObjectId()
 
 ' Vocabulary constant
 #define NULLWORD      255

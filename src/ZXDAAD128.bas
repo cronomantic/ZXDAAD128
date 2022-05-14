@@ -353,8 +353,18 @@ PROC
 
     PUSH IX
     PUSH HL
+    ;To hide the decompression, we set all the attributes
+    ;with the same color of ink and paper
+    LD A, (23693)      ;Get ATTR
+    AND %11111000      ;Mask INK
+    LD B, A            ;Saving on b
+    RRCA
+    RRCA
+    RRCA               ;Move PAPER to the left
+    AND %00000111      ;Mask new INK
+    OR B               ;Set new INK the same as PAPER
     LD HL, $5800
-    LD (HL), $00
+    LD (HL), A         ;Sets the color on ATTRMEM
     LD DE, $5801
     LD BC, $2FF
     LDIR               ;Put the screen on black
@@ -1456,12 +1466,14 @@ END SUB
 ' Return the object ID by Noun+Adjc ID.
 ' noun      Noun ID.
 ' adjc      Adjective ID, or NULLWORD to disable adjective filter.
-' location      Location where the object must be, LOC_HERE to disable location filter, or (LOC_CONTAINER bOR numLocation) if location is a container.
+' location      Location where the object must be, LOC_HERE to disable location filter
 ' returns the Object ID if found or NULLWORD.
-FUNCTION getObjectId(noun AS uByte, adjc AS uByte, location AS uInteger) AS uByte
+FUNCTION getObjectId(noun AS uByte, adjc AS uByte, location AS uByte) AS uByte
 
-  DIM i AS uInteger
+  DIM i AS uByte
   DIM loc AS uByte
+
+  IF DdbNumObjDsc = 0 THEN RETURN NULLWORD
 
   LET loc = CAST(uByte, location) 'Gets the location on LSB
 
@@ -1477,11 +1489,6 @@ FUNCTION getObjectId(noun AS uByte, adjc AS uByte, location AS uInteger) AS uByt
       'Its placed in 'location'
       IF PEEK(objLocation + i) = loc THEN
         RETURN i
-      END IF
-
-      '...or if it's in a container
-      IF location >= LOC_CONTAINER THEN
-        IF loc < DdbNumObjDsc AND (PEEK(objAttr + loc) bAND OBJ_IS_CONTAINER_MASK) THEN RETURN i
       END IF
 
     END IF
@@ -1780,13 +1787,8 @@ FUNCTION populateLogicalSentence() AS uByte
       LET flags(fVerb) = id
     ELSEIF type = PRONOUN AND flags(fNoun1) = NULLWORD AND NOT pron THEN 'Pronoun
       LET pron = TRUE
-    ELSEIF type = NOUN AND flags(fNoun1) = NULLWORD THEN 'NOUN1
-      ' word that works like noun and verb
-      IF (id < LAST_CONVERTIBLE_NOUN) AND (flags(fVerb) = NULLWORD) THEN
-        LET flags(fVerb) = id
-      ELSE 'works only like noun
-        LET flags(fNoun1) = id
-      END IF
+    ELSEIF type = NOUN AND flags(fNoun1) = NULLWORD AND NOT pron THEN 'NOUN1
+      LET flags(fNoun1) = id
     ELSEIF type = NOUN AND flags(fNoun2) = NULLWORD THEN 'NOUN2
       LET flags(fNoun2) = id
       LET adj = fAdject2
@@ -1805,6 +1807,14 @@ FUNCTION populateLogicalSentence() AS uByte
 
   LET v = flags(fVerb)
   LET n = flags(fNoun1)
+
+  ' word that works like noun and verb
+  IF v = NULLWORD AND n <> NULLWORD AND (n < LAST_CONVERTIBLE_NOUN) THEN
+    LET v = n
+    LET n = NULLWORD
+    LET flags(fVerb) = v
+    LET flags(fNoun1) = n 
+  END IF
 
   ' Missing verb but present noun, replace with previous verb
   IF v = NULLWORD AND n <> NULLWORD AND previousVerb <> NULLWORD THEN
@@ -2726,10 +2736,8 @@ FUNCTION PRIVATEcheckLocCARRWORNHERE() AS uByte
   LET adjc = flags(fAdject1)
   LET objno = getObjectId(noun, adjc, LOC_CARRIED)   'CARRIED
   IF objno = NULLWORD THEN
-    BORDER 1
     LET objno = getObjectId(noun, adjc, LOC_WORN)   'WORN
     IF objno = NULLWORD THEN
-      BORDER 2
       LET objno = getObjectId(noun, adjc, flags(fPlayer)) 'HERE
     END IF
   END IF
@@ -4374,7 +4382,7 @@ condactAUTOT:
   LET locno = getValueOrIndirection()
   LET ccNoun = flags(fNoun1)
   LET ccAdjc = flags(fAdject1)
-  LET objno = getObjectId(ccNoun, ccAdjc, LOC_CONTAINER bOR CAST(uInteger, locno)) ' CONTAINER TODO Check if this is correct
+  LET objno = getObjectId(ccNoun, ccAdjc, locno) 'On Location
   IF objno = NULLWORD THEN
     LET objno = getObjectId(ccNoun, ccAdjc, LOC_CARRIED) ' CARRIED
     IF objno = NULLWORD THEN
