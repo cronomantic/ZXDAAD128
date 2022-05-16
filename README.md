@@ -18,6 +18,7 @@
     - [**DCP**](#dcp)
     - [**DAADMaker128**](#daadmaker128)
     - [**DAADMakerPlus3**](#daadmakerplus3)
+    - [**DAAD Ready**](#daad-ready)
   - [**How to compile**](#how-to-compile)
     - [**Compiling the interpreter**](#compiling-the-interpreter)
     - [**Compiling DCP**](#compiling-dcp)
@@ -49,6 +50,8 @@ Supports loading and saving on tape or disk with +3DOS and 42 or 32 characters p
 - `XUNDONE`: To cancel the status "done".
 - `XLOAD`/`XSAVE`: To load/save your gameplay. They work like the traditional `LOAD`/`SAVE` condActs on this interpreter.
 
+It also has a preliminary support for EXTERNs.
+
 ***
 
 ## **Shortcomings**
@@ -57,8 +60,7 @@ Supports loading and saving on tape or disk with +3DOS and 42 or 32 characters p
 - The images are always full screen. They do not ajust themselves to the dimensions and position of the active window, which is the standard behaviour.
 - CondActs `GFX` & `SFX` not implemented.
 - Maluva's condActs `XPART`, `XBEEP`. `XSPLITSCR`, `XNEXTCLS`, `XNEXTRST` & `XSPEED` not supported.
-- No support for Externs.
-  
+
 ***
 
 ## **Supported languages**
@@ -100,6 +102,13 @@ To learn more about **how to create your own adventure**, your can:
 
 - Read the excellent [**Wiki pages**](https://github.com/nataliapc/msx2daad/wiki) of Natalia's [**Msx2Daad**](https://github.com/nataliapc/msx2daad) project, to know more about **DAAD**.
 - Also you can follow this great [**DAAD Tutorial for beginners**](https://medium.com/@uto_dev/a-daad-tutorial-for-beginners-1-b2568ec4df05) writted by the author of the [**DRC**](https://github.com/daad-adventure-writer/DRC/wiki) compiler.
+
+From now on, you have to paths to follow:
+
+- Use [**DAAD Ready**](https://www.ngpaws.com/daadready/), please refer to the relevant [**section**](#DAAD-Ready).
+- Doing it yourself manually with the instructions detailed on the next sections.
+
+DAAD Ready will avoid you all the hassle of setting up a build framework from the ground up, but it is recommended to skim a bit the following sections in order to know some useful options of the intepreter to customize your adventure.
 
 ### **Executing the frontend**
 
@@ -233,9 +242,16 @@ Also, you have the following options:
 - **-d** **[path]**      : Destination of the loader and data filer to include on a disk image.
 - **-s** **[SCR file]**  : SCR file which will be used as loading screen.
 
-This program will generate two files: a `bin.bin` file (the binary data to load) and a `disk` file (the loader).
+This program will generate two files: a `daad.bin` file (the binary data to load) and a `disk` file (the loader).
 After that, you can create a disk image file with those two files, including also the compressed image files needed on the adventure.
 For that, you can use the program `MKP3FS` from taptools. You can find compiled versions [here](http://www.seasip.info/ZX/unix.html).
+
+### **DAAD Ready**
+
+ZXDAAD128 is already included on [**DAAD Ready**](https://www.ngpaws.com/daadready/).  
+However, it may have an older version and the 32 characters per line interpreters are not included in it.  
+If you want to use the bleeding edge version of the interpreter, a patch is included on the `\DAAD-Ready` directory of this project.
+Just copy the contents of this directory onto your DAAD Ready directory to overwrite the older files and you are ready to go!
 
 ***
 

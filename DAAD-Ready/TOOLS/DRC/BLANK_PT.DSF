@@ -1,0 +1,625 @@
+;--------------------------------------------------------------------------------------------------
+;ÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑ
+;ÑÑÑÑÑ                                                                                        ÑÑÑÑÑ
+;ÑÑÑÑÑ Este é o arquivo de início rápido para o Compilador DAAD Reborn Compiler em português  ÑÑÑÑÑ
+;ÑÑÑÑÑ                                                                                        ÑÑÑÑÑ
+;ÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑ
+
+; Por favor, não remova os Enes no quadro acima. Eles estão aí para que seja possível perceber
+; facilmente se o arquivo for aberto com uma codificação que não é a correta (ISO-8859 ou Win1252) 
+
+; --- Por favor, não remova o código abaixo, pois é importante para controlar o suporte das plataformas 
+#ifdef "SPLIT"
+#define hasSplitMode 1
+#endif
+
+#ifndef "tape"
+#ifndef "st"
+#ifndef "amiga"
+#ifndef "zx128"
+#extern "MALUVA"
+#endif
+#endif
+#endif
+#endif
+
+
+
+#ifdef "pcw"
+#define nativeraster 1
+#endif
+#ifdef "amiga"
+#define nativeraster 1
+#endif
+#ifdef "pc"
+#define nativeraster 1
+#endif
+#ifdef "st"
+#define nativeraster 1
+#endif
+#ifdef "nativeraster"
+#echo  "A máquina de destino suporta gráficos raster de forma nativa"
+#endif
+
+#ifdef "uno"
+#int "MLV_UNO_INT.BIN"
+#define canBoostSpeed 1
+#endif
+
+#ifdef "next"
+#define canBoostSpeed 1
+#endif
+
+#ifdef "cpc"
+#int "MLV_CPC_INT.BIN"
+#endif
+
+#ifdef "hasSplitMode"
+#echo "A máquina destino usará a tela dividida (split mode)"
+#endif
+
+#ifdef "canBoostSpeed"
+#echo "A máquina destino tem modo turbo"
+#endif
+
+#ifdef "tape"
+#define noretryImage 1
+#endif
+
+#ifdef "nativeraster"
+#define noretryImage 1
+#endif
+; --- Por favor, não remova o código acima, pois é importante para controlar o suporte das plataformas 
+
+
+; Flags do sistema 0-63
+#define fDark               0
+#define fObjectsCarried     1
+
+#define fDarkF              28
+#define fGFlags             29      ; Isto é melhor testado usando HASAT GMODE
+#define fScore              30
+#define fTurns              31      ; 2 bytes
+#define fTurnsHi            32
+
+#define fVerb               33
+#define fNoun               34
+#define fAdject1            35
+#define fAdverb             36
+#define fMaxCarr            37
+#define fPlayer             38
+#define fPrep               43
+#define fNoun2              44
+#define fAdject2            45
+#define fCPronounNoun       46
+#define fCPronounAdject     47
+#define fTimeout            48
+#define fTimeoutFlags       49
+#define fDoallObjNo         50
+#define fRefObject          51
+#define fStrength           52
+#define fObjFlags           53
+#define fRefObjLoc          54
+#define fRefObjWeight       55
+#define fRefObjIsContainer  56
+#define fRefObjisWearable   57
+#define fRefObjAttr1        58
+#define fRefObjAttr2        59
+#define fInkeyKey1          60
+#define fInkeyKey2          61
+#define fScreenMode         62     ; 2=Texto, 4=CGA, 13=EGA, 141=VGA
+#define fCurrentWindow      63     ; Qual janela está ativa no momento
+
+; Attr flags for HASAT/HASNAT
+#define WEARABLE  23            ;Current object is wearable
+#define CONTAINER 31            ;Current object is a container
+#define LISTED    55            ;Objects - listed by LISTOBJ etc
+#define OA_CLIST  54            ; - continous list
+#define OO_CLIST  64
+#define TIMEOUT   87            ;If Timeout last frame
+#define IA_RBUF   85            ;Input - recall buffer
+#define IO_RBUF   32
+#define IA_PINP   84            ; - reprint in stream
+#define IO_PINP   16
+#define IA_CSTR   83            ; - clear stream
+#define IO_CSTR   8
+#define IA_TAKEY  82            ; - timeout on any key
+#define IO_TAKEY  4
+#define IA_TMORE  81            ; - timeout on More...
+#define IO_TMORE  2
+#define IA_TSTAR  80            ; - timeout at start of input
+#define IO_TSTAR  1
+#define GMODE     247           ;Graphics - available
+#define GA_MDRW   246           ; - Invisible draw (drawstring)
+#define GO_MDRW   64
+#define GA_POFF   245           ; - Pictures OFF (drawstring)
+#define GO_POFF   32
+#define GA_WKEY   244           ; - Wait after drawing (drawstring)
+#define GO_WKEY   16
+#define GA_CBOR   243           ; - Change BORDER (drawstring)
+#define GO_CBOR   8
+#define MOUSE     240           ;mouse available (!DRAW only)
+
+
+
+
+/CTL    ; Seção de Controle
+_
+
+;------------------------------------------------------------------------------
+/VOC    ; Vocabulário
+;                       Movimento: verbos e nomes < 14
+N       2       noun
+NORTE   2       noun
+S       3       noun
+SUL     3       noun
+L       4       noun
+LESTE   4       noun
+O       5       noun
+OESTE   5       noun
+NE      6       noun
+NORDE   6       noun
+NO      7       noun
+NOROE   7       noun
+SE      8       noun
+SUDES   8       noun
+SO      9       noun
+SUDOE   9       noun
+SU      10      noun
+SUBA    10      noun
+SUBIR   10      noun
+D       10      noun
+DESCA   11      noun
+DESCE   11      noun
+ABAIX	11	    noun
+
+;                       Nomes <20 indica que podem ser usados como verbos
+;                             <50 indica nome próprio (não admite -o, -a...)
+
+T       14      noun
+TEMOS   14      noun
+INVEN   14      noun
+TUDO    20      noun
+TODOS   20      noun
+TODAS   20      noun
+
+;
+LANTER  100     noun    ; Nome que descreve o objeto - lanterna
+
+;                       Verbos
+PEGUE   20      verb
+PEGAR   20      verb
+DEIXE   20      verb
+DEIXA   20      verb
+SOLTE   20      verb
+SOLTA   20      verb
+TIRE    22      verb
+TIRAR   22      verb
+RETIR   22      verb
+COLOQ   23      verb
+COLOC   23      verb
+VISTA   23      verb
+VEST    23      verb
+R       24      verb
+REDES   24      verb
+DESCR   24      verb
+OLHE    24      verb
+OLHAR   24      verb
+F       25      verb
+FIM     25      verb
+GRA     26      verb
+GRAVE   26      verb    ; SAVE
+GRAVAR  26      verb
+CAR     27      verb
+CARREG  27      verb    ; LOAD
+GRAM    28      verb    ; RAMSA
+CRAM    29      verb    ; RAMLO
+X       30      verb
+EX      30      verb
+EXAMI   30      verb
+DIGA    31      verb
+DIZER   31      verb
+PERGU   31      verb
+FALE    31      verb
+FALAR   31      verb 
+JOGAR   32      verb
+
+;                            Adjetivos
+PEQUE   2       adjective
+GRANDE  3       adjective
+VELHO   4       adjective
+VELHA   4       adjective
+NOVO    5       adjective
+NOVA    5       adjective
+DURO    6       adjective
+DURA    6       adjective
+SUAVE   7       adjective
+BRAND   7       adjective
+BAIXO   8       adjective
+BAIXA   8       adjective
+CURTO   8       adjective
+CURTA   8       adjective
+COMPR   9       adjective
+LARGO   9       adjective
+LARGA   9       adjective
+;                               Adverbios
+RAPID   2       adverb              ; Rapidamente
+LENTA   3       adverb              ; Lentamente
+CUIDA   5       adverb              ; Cuidadosamente
+;                               Prepositions
+A       2       preposition
+DE      3       preposition
+EM      4       preposition
+POR     5       preposition
+ATRAV   5       preposition
+ATE     6       preposition
+ANTE    7       preposition
+APOS    8       preposition
+ENTRE   9       preposition
+SOB     10      preposition
+SOBRE   11      preposition
+
+;                               Pronomes
+;                               Conjunções
+E       2       conjugation
+ENTAO   2       conjugation
+LOGO    2       conjugation
+
+
+;------------------------------------------------------------------------------
+/STX    ;Mensajes del sistema
+/0 "Está muito escuro e não consigo ver nada."
+/1 "Também posso ver:"
+/2 "#n"
+/3 "#n"
+/4 "#n"
+/5 "#n"
+/6 "Não entendi nada."
+/7 "Não posso ir nessa direção."
+/8 "Não posso fazer isso."
+/9 "Carrego:#n"
+/10 "Eu visto:"
+/11 "";*Livre
+/12 "Tem certeza?"
+/13 "Deseja tentar novamente?"
+/14 ""  ;*Livre
+/15 "Vale."
+/16 "Aperte uma tecla para continuar."
+/17 "" ;*Você jogou
+/18 "" ;*\sturno
+/19 "" ;*s
+/20 "" ; *.
+/21 "" ; *Você marcou
+/22 "" ; *%
+/23 "Não estou usando isso."
+/24 "Não posso. Eu coloquei _."
+/25 "Já tenho _."
+/26 "Aqui não tem nada disso."
+/27 "Não posso levar mais nada."
+/28 "Não tenho isso.#n"
+/29 "Já estou vestindo _.#n"
+/30 "S" ;Um único caractere maiúsculo. Abreviatura de Sim
+/31 "N" ;Um único caractere maiúsculo. Abreviatura de Não
+/32 "Tem mais..."
+/33 ">"
+/34 "" ;*Libre
+/35 "#nO tempo passa..."
+/36 "Peguei _."
+/37 "Vesti _."
+/38 "Tirei _."
+/39 "Deixei _."
+/40 "Não posso usar _."
+/41 "Não posso tirar _."
+/42 "Não posso tirar _.  Não consigo carregar mais nada."
+/43 "@ pesa muito para mim."
+/44 "@ está em"
+/45 "@ não está em"
+/46 ", "
+/47 " e "
+/48 ".#n"
+/49 "Não tenho _."
+/50 "Não estou vestindo _."
+/51 ".#n"
+/52 "Não trago nada disso comigo."
+/53 "Nada."
+/54 "F" ; Inicial de Fita
+/55 "D" ; Disco
+/56 "Unidade não preparada. Aperte uma tecla para tentar novamente."
+/57 "Erro de leitura/gravação."
+/58 "O disco ou o diretório pode estar cheio."
+/59 "Nome de arquivo inválido."
+/60 "Nome do arquivo:"
+/61 "Ponha o leitor/gravador cassete para funcionar."
+/62 "Fita ou Disco?"
+;------------------------------------------------------------------------------
+/MTX    ;Mensagens
+
+;------------------------------------------------------------------------------
+/OTX    ;Descrições dos Objetos
+/0 "Uma lanterna. (acesa)"
+;------------------------------------------------------------------------------
+/LTX    ;Location Texts
+/0 "BASE DE DADOS VAZIA - DAAD V2."
+/1 "Você entrou na masmorra, vários perigos esperam por você, mas também grandes conquistas e enormes tesouros."
+/2 "Você está em uma gruta escura."
+;------------------------------------------------------------------------------
+/CON    ;Conexiones
+/0
+/1 N 2
+/2 S 1
+;------------------------------------------------------------------------------
+/OBJ    ;Objetos
+;num  local    peso    c v  5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0    nome   adjetivo
+;obj  inicial
+/0      _      1       _ _  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _    LANTER  _
+;------------------------------------------------------------------------------
+/PRO 0       ; Laço principal dos locais
+
+
+> _       _     AT      0                   ; Iniciando o jogo
+                #ifdef "canBoostSpeed"
+                XSPEED  1                   ; Se a plataforma possuir boost, acelerar a velocidade da CPU para 7Mhz
+                #endif
+                #ifdef "hasSplitMode"       ; Se a plataforma possuir o recurso de divisão de tela, executar a divisão
+                XSPLITSCR 1                 ; Comando do Maluva para dividir a tela
+                #endif
+                PROCESS 6                   ; Processo de inicialização
+                
+                
+
+> _       _     WINDOW  0                   ; Janela de gráficos
+                CLEAR   fDarkF              ; Assume que o local está iluminado
+                NOTZERO 0
+                ABSENT  0
+                SET     fDarkF              ; Escuro
+
+#ifndef "zx128"
+> _       _     CLEAR 20
+#ifndef "tape"
+                XPICTURE @fPlayer           ; Se existir uma imagem, carrega
+                #ifndef "nativeraster"
+                GT 20 127
+                #endif
+#endif
+#ifdef "nativeraster"
+                DISPLAY @fDarkF             ; Faz o DISPLAY se não estiver escuro, senão CLS
+#endif       
+#ifdef "next"
+                GT  20 127                  ; Se estiver escuro
+                XNEXTCLS                    ; desabilitar adn clear Layer2
+#endif       
+
+#ifndef "noretryImage"
+> _        _    GT 20 127
+                XPICTURE 255                ; Se o XPICTURE falhar, tentar mostrar a imagem 255 (filler)
+#endif                
+
+
+#ifndef "hasSplitMode"
+> _        _    GT 20 127                   ; XPICTURE falhou na leitura da tela
+                CLS
+                WINDOW 1
+                WINAT 0 0
+                WINSIZE 25 127              ; Maximum window
+                CLS
+                SKIP 1
+#endif
+
+> _        _    WINDOW 1
+                WINAT 0 0
+                #ifndef "tape"
+                WINAT 14 0
+                #endif
+
+#else
+;ZX 128
+> _       _     PICTURE @fPlayer        ; Se houver imagem, ele a carrega
+                DISPLAY @fDarkF         ; Mostre se não estiver escuro, senão faça um CLS
+                SKIP    2               ; Pular para janela no texto na borda inferior
+
+> _        _    PICTURE 255             ; Na falha da imagem, carrega a imagem num. 255
+                DISPLAY @fDarkF
+                SKIP    1               ; Pular para janela no texto na borda inferior
+
+> _        _    CLS                     ; Fallback sem imagem encontrada
+                WINDOW  1
+                WINAT   0 0
+                WINSIZE 24      42      ; Toda a tela para texto
+                CLS
+                SKIP    1               ; Skip.
+
+> _        _    WINDOW 1                ; Ventana na parte inferior
+                WINAT  14 0
+#endif
+
+> _       _     NOTZERO fDarkF              ; Escuro
+                SYSMESS 0
+
+> _       _     ZERO    fDarkF
+                DESC   @fPlayer        ; DESC No sale del bucle ahora
+
+> _       _     PROCESS 3
+
+; Agora usamos o processo 1 como o laço principal do jogo. Sair dele
+; significa fim de jogo
+
+> _       _     PROCESS 1
+
+;------------------------------------------------------------------------------
+/PRO 1
+
+> _       _     PROCESS 4               ; O processo 4 era equivalente ao processo 2 no PAW (Professional Adventure Writer)
+
+> _       _     PARSE   0               ; Pegue a sentença lógica do buffer
+                PROCESS 2               ; Sentença não é válida ou timeout
+                REDO
+
+> _       _     EQ      fTurns   255     ; Valor máximo de um byte
+                PLUS    fTurnsHi   1     ; Quando fTurns atingir o máximo (255), incrementar fTurnsHi
+                CLEAR   fTurns
+                SKIP    1
+
+> _       _     PLUS    fTurns   1
+
+> _       _     PROCESS 5               ; A antiga tabela de respostas do PAW 
+                ISDONE                  ; Fez alguma coisa?
+                REDO                    ; Sim­: processa o próximo comando do jogador
+
+> _       _     MOVE    fPlayer         ; Não: tentamos mover o jogador
+                CLS
+                RESTART                 ; Jogador foi movido: salta para o início do PRO 0
+
+> _       _     NEWTEXT
+                LT      fVerb    14
+                SYSMESS 7
+                REDO
+
+> _       _     SYSMESS 8
+                REDO
+
+
+;------------------------------------------------------------------------------
+/PRO 2
+> _       _     HASAT TIMEOUT
+                SYSMESS 35
+                DONE
+
+> _       _     SYSMESS 6               ; Não entendi nada
+
+;------------------------------------------------------------------------------
+/PRO 3 ; Antigo processo 1 do PAW (Note que tanto a tabela de resposta como os
+; antigos processos 1 e 2 do PAW agora podem estar em qualquer lugar; ou mesmo 
+; não existirem, já que não há nada automático e tudo pode ser implementado 
+; na própria linguagem do DAAD)
+
+> _       _     NEWLINE
+                ZERO    fDarkF            ; Não está escuro
+                LISTOBJ
+
+
+;------------------------------------------------------------------------------
+/PRO 4 ; Antigo processo 2 do PAW
+
+/PRO 5 ; Interpretamos os comandos como na antiga tabela de respostas
+
+; Comando T - TEMOS: lista os objetos em posse do jogador 
+> T       _     SYSMESS 9
+                LISTAT  CARRIED
+                SYSMESS 10
+                LISTAT  WORN
+                DONE
+
+> PEGUE   TUDO  DOALL   HERE                
+> PEGUE   _     AUTOG
+                DONE
+
+> SOLTE   TUDO  DOALL   CARRIED
+> SOLTE   _     AUTOD
+                DONE
+
+> TIRE    TUDO  DOALL   WORN
+> TIRE    _     AUTOR
+                DONE
+
+> VISTA   TUDO  DOALL   CARRIED
+> VISTA   _     AUTOW
+                DONE
+
+> R       _     CLS
+                RESTART
+
+> FIM     _     QUIT
+                END
+
+> FIM     _     DONE                    
+
+> GRAVE   _     #ifndef "tape"
+                XSAVE 0                     ; idem
+                #endif
+                #ifdef "tape"
+                SAVE 0
+                #endif
+                CLS
+                RESTART
+
+> CARREG  _     #ifndef "tape"
+                XLOAD  0
+                #endif
+                #ifdef "tape"
+                LOAD   0
+                #endif
+                CLS
+                RESTART
+
+> GRAM    _     RAMSAVE
+                CLS
+                RESTART
+
+> CRAM    _     RAMLOAD 255                 ; Recarregar todos os flags
+                CLS
+                RESTART
+
+> OLHE    _     CLS
+                RESTART
+
+/PRO 6 ; Inicialização
+
+#ifndef "zx128"
+> _       _     WINDOW  1               ; Inicializamos as janelas
+                #ifdef "pc"
+                PAPER 0
+                INK 15
+                #endif
+                #ifndef "tape"
+                WINAT   14       0
+                #endif
+                #ifdef "tape"
+                WINAT   0       0
+                #endif
+                WINSIZE 25      127     ; Tamanho máximo
+                CLS
+                DESC    0               ; Introdução
+#ifndef "tape"
+                XPICTURE 0
+                #ifdef "nativeraster"
+                DISPLAY 0
+                #endif
+                #endif                
+
+> _       _     
+                ANYKEY
+                CLS
+                SET   255             
+#else
+;ZX 128
+> _       _     WINDOW  1               ; Inicializamos as janelas
+                WINAT   14       0
+                WINSIZE 25      127     ; Tamanho máximo
+                CLS
+                PICTURE 0
+                DISPLAY 0
+                SKIP    1
+
+> _       _     WINAT   0       0
+                CLS
+
+> _       _     DESC    0               ; Introdução
+                ANYKEY
+                CLS
+                SET   255
+#endif
+
+> _       _     MINUS  255 1            ; Reinicia todos os flags
+                NOTEQ   255  fGFlags    ; Menos o GFlags!!!
+                CLEAR   @255
+
+> _       _     NOTZERO 255             
+                SKIP    -2              
+
+> _       _     RESET                   ; Objetos em seu local inicial / Flag 1
+                LET     fStrength 10    ; Capacidade do jogador (peso)
+                LET     fMaxCarr  4     ; Número máximo de objetos que consegue carregar
+                SET     fCPronounNoun
+                SET     fCPronounAdject
+                GOTO    1               ; Primeiro local do jogo
+/END
