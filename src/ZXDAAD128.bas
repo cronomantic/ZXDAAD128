@@ -1277,7 +1277,7 @@ SUB printLocationMsg(num AS uByte)
 
 END SUB
 
-FUNCTION printMaluvaExtraMsg(lsb AS uByte, msb AS uByte) AS uByte
+FUNCTION printMaluvaExtraMsg(lsb AS uByte, msb AS uByte, doPrint AS uByte) AS uByte
 
   DIM ptr, dest, s AS uInteger
   DIM b, ba AS uByte
@@ -1312,7 +1312,7 @@ FUNCTION printMaluvaExtraMsg(lsb AS uByte, msb AS uByte) AS uByte
   MemCopy(ptr, dest, s)
   SetRAMBank(ba)
 
-  printMsg(dest, TRUE)
+  printMsg(dest, doPrint)
   deallocate(dest)
 
   RETURN TRUE
@@ -3758,7 +3758,7 @@ condactEXTERN:
 
   IF flagno = 3 THEN 'XMESSAGE
     LET objno = getCondOrValueAndInc() 'parameter 2 (MSB)
-    LET flagno2 = printMaluvaExtraMsg(c, objno)
+    LET flagno2 = printMaluvaExtraMsg(c, objno, TRUE)
   ELSEIF flagno = 0 THEN 'XPICTURE
 #ifdef TAPE
     LET flagno2 = preparePicture(c)

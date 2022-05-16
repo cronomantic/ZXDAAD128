@@ -23,6 +23,10 @@ zxbc -o ..\bin\ZXD128_PLUS3_EN_C32.ZDI --mmap ZXD128_PLUS3_EN_C32.map --optimize
 call :create_start_file "..\bin\ZXD128_PLUS3_EN_C32.ZDI" "ZXD128_PLUS3_EN_C32.map"
 zxbc -o ..\bin\ZXD128_PLUS3_ES_C32.ZDI --mmap ZXD128_PLUS3_ES_C32.map --optimize 4 --org %start_addr%  -H 2048 --explicit --strict -D LANG_ES -D PLUS3 -D FONT32 ZXDAAD128.bas  || goto :error
 call :create_start_file "..\bin\ZXD128_PLUS3_ES_C32.ZDI" "ZXD128_PLUS3_ES_C32.map"
+COPY /Y "..\bin\*.ZDI" "..\DAAD-Ready\ASSETS\ZX128\"
+COPY /Y %~dp0\..\DRC\drb128.php  %~dp0\..\DAAD-Ready\TOOLS\ZXDAAD128  || goto :error
+COPY /Y %~dp0\..\DRC\DAADMaker128.php  %~dp0\..\DAAD-Ready\TOOLS\ZXDAAD128  || goto :error
+COPY /Y %~dp0\..\DRC\DAADMakerPlus3.php  %~dp0\..\DAAD-Ready\TOOLS\ZXDAAD128  || goto :error
 
 echo --------------------------------
 echo Hecho

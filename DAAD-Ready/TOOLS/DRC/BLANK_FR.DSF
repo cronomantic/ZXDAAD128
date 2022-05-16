@@ -1,0 +1,627 @@
+; BLANK.SCE base de données vide pour DAAD V2
+;
+; Cette base de données aide à adapter des sources PAW & DAAD v1 en DAAD v2. 
+; Notez que les flags qui étaient automatiquement décrémentés ne le sont plus.
+;
+; Basé sur les templates anglais et espagnols, Carlos Sanchez et Stefan Vogt.
+
+;------------------------------------------------------------------------------
+;
+; 'Tout est possible dans cette vie (mais tout coûte du temps et de l'argent!)'
+;                                                              Tim Gilberts
+;
+;                                      'Et TOUT LE MONDE doit y travailler'
+;                                                            Andrés Samudio
+;
+;                                                                   [8-6-89]
+;
+;------------------------------------------------------------------------------
+
+
+; --- Ne pas enlever ce code, qui s'assure que le jeu marche bien pour toutes les plateformes ciblées
+#ifdef "SPLIT"
+#define hasSplitMode 1
+#endif
+
+#ifndef "tape"
+#ifndef "st"
+#ifndef "amiga"
+#ifndef "zx128"
+#extern "MALUVA"
+#endif
+#endif
+#endif
+#endif
+
+
+
+#ifdef "pcw"
+#define nativeraster 1
+#endif
+#ifdef "amiga"
+#define nativeraster 1
+#endif
+#ifdef "pc"
+#define nativeraster 1
+#endif
+#ifdef "st"
+#define nativeraster 1
+#endif
+#ifdef "nativeraster"
+#echo  "Target supports native raster graphics"
+#endif
+
+#ifdef "uno"
+#int "MLV_UNO_INT.BIN"
+#define canBoostSpeed 1
+#endif
+
+#ifdef "next"
+#define canBoostSpeed 1
+#endif
+
+#ifdef "cpc"
+#int "MLV_CPC_INT.BIN"
+#endif
+
+#ifdef "hasSplitMode"
+#echo "Target will make use of split mode"
+#endif
+
+#ifdef "canBoostSpeed"
+#echo "Target has turbo mode"
+#endif
+
+#ifdef "tape"
+#define noretryImage 1
+#endif
+
+#ifdef "nativeraster"
+#define noretryImage 1
+#endif
+
+; --- Ne pas enlever le code ci-dessus, qui s'assure que le jeu marche bien pour toutes les plateformes ciblées
+
+
+
+; Flags du système 0-63
+#define fDark               0
+#define fObjectsCarried     1
+#define fDarkF              28
+#define fGFlags             29     ; Le mieux pour le tester est HASAT GMODE
+#define fScore              30
+#define fTurns              31    ; 2 octets
+#define fTurnsHi            32
+
+#define fVerb               33
+#define fNoun               34
+#define fAdject1            35
+#define fAdverb             36
+#define fMaxCarr            37
+#define fPlayer             38
+#define fPrep               43
+#define fNoun2              44
+#define fAdject2            45
+#define fCPronounNoun       46
+#define fCPronounAdject     47
+#define fTimeout            48
+#define fTimeoutFlags       49
+#define fDoallObjNo         50
+#define fRefObject          51
+#define fStrength           52
+#define fObjFlags           53
+#define fRefObjLoc          54
+#define fRefObjWeight       55
+#define fRefObjIsContainer  56
+#define fRefObjisWearable   57
+#define fRefObjAttr1        58
+#define fRefObjAttr2        59
+#define fInkeyKey1          60
+#define fInkeyKey2          61
+#define fScreenMode         62     ; 2=Text, 4=CGA, 13=EGA, 141=VGA
+#define fCurrentWindow      63     ; Quelle fenêtre est active en ce moment
+
+; Flags d'attributs pour HASAT/HASNAT
+#define WEARABLE  23            ;Cet objet est portable / vêtement
+#define CONTAINER 31            ;Cet objet peut contenir des choses
+#define LISTED    55            ;Objets - listables par LISTOBJ etc
+#define OA_CLIST  54            ; - liste continue
+#define OO_CLIST  64
+#define TIMEOUT   87            ;Si la dernière fois ça a fait Timeout
+#define IA_RBUF   85            ;Input - garde buffer
+#define IO_RBUF   32
+#define IA_PINP   84            ; - réafficher dans la fenêtre
+#define IO_PINP   16
+#define IA_CSTR   83            ; - vider la fenêtre
+#define IO_CSTR   8
+#define IA_TAKEY  82            ; - timeout quand on demande d'appuyer sur une touche
+#define IO_TAKEY  4
+#define IA_TMORE  81            ; - timeout sur "Continuer..."
+#define IO_TMORE  2
+#define IA_TSTAR  80            ; - timeout au début de l'input
+#define IO_TSTAR  1
+#define GMODE     247           ;Graphiques - disponible
+#define GA_MDRW   246           ; - Dessin invisible de (nom dessin)
+#define GO_MDRW   64
+#define GA_POFF   245           ; - Images OFF (nom dessin)
+#define GO_POFF   32
+#define GA_WKEY   244           ; - Attendre après avoir dessiné (nom dessin)
+#define GO_WKEY   16
+#define GA_CBOR   243           ; - Change bordure (nom dessin)
+#define GO_CBOR   8
+#define MOUSE     240           ;souris disponible (!DRAW seulement)
+
+
+/CTL    ;Section de contrôle (le caractère nul est un '_')
+_       
+
+
+;------------------------------------------------------------------------------
+/VOC    ;Vocabulaire
+
+;                       Mouvements (verbes et noms < 14)
+N       2       noun
+NORD    2       noun
+S       3       noun
+SUD     3       noun
+E       4       noun
+EST     4       noun
+O       5       noun
+OUEST   5       noun
+NE      6       noun
+NO      7       noun
+SE      8       noun
+SO      9       noun
+H       10      noun
+HAUT    10      noun
+MONTE   10      verb
+B       11      noun
+BAS     11      noun
+DESCE   11      verb
+
+;                       Noms    <20 signifie qu'ils peuvent être utilisés comme verbes
+;                               <50 pour les noms propres (pas le, la)
+I       14      noun
+INVEN   14      noun
+TOUT    20      noun
+
+;
+LAMPE   100     noun
+TORCH   100     noun
+
+;                       Verbs
+PREND   20      verb
+RAMAS   20      verb
+POSER   21      verb
+DEPOS   21      verb
+ENLEV   22      verb
+PORTE   23      verb
+ENFIL   23      verb
+R       24      verb
+REGAR   24      verb
+QUITT   25      verb
+Q       25      verb
+STOP    25      verb
+SAUVE   26      verb
+CHARG   27      verb
+; sauver et charger en RAM
+RAMSA   28      verb
+RAMCH   29      verb
+EXAMI   30      verb
+DIRE    31      verb
+DEMAND  31      verb
+PARLE   31      verb
+
+;                               Adjectifs
+PETIT   2       adjective
+GRAND   3       adjective
+GROS    3       adjective
+VIEUX   4       adjective
+NOUVE   5       adjective
+DUR     6       adjective
+MOU     7       adjective
+DOUX    7       adjective
+COURT   8       adjective
+LONG    9       adjective
+
+;                               Adverbes
+RAPID   2       adverb
+VITE    2       adverb
+LENTE   3       adverb
+SILEN   4       adverb
+BRUYA   5       adverb
+DOUCE   6       adverb
+
+;                               Prépositions
+DE      3       preposition
+DANS    4       preposition
+DEHOR   5       preposition
+HORS    5       preposition
+TRAVE   6       preposition
+SUR     7       preposition
+SOUS    8       preposition
+VERS    9       preposition
+ALLUM   10      preposition
+ETEIN   11      preposition
+A       12      preposition
+SAUF    13      preposition
+
+;                               Pronoms
+LE      2       pronoun
+LA      2       pronoun
+LES     2       pronoun
+LUI     2       pronoun
+
+;                               Conjonctions
+ET      2       conjugation
+PUIS    2       conjugation
+
+
+
+;------------------------------------------------------------------------------
+/STX    ;System Message Texts
+/0 "Il fait trop noir pour y voir."
+/1 "Je vois aussi : "
+/2 "#nEt maintenant ?"
+/3 "#nEt ensuite ?"
+/4 "#nQue faire maintenant ?"
+/5 "#nQue faire ensuite ?"
+/6 "#nJe n'ai rien compris de cela. Merci de reformuler."
+/7 "#nJe ne peux pas aller dans cette direction."
+/8 "Je ne peux pas faire ça.#n"
+/9 "J'ai avec moi :#n"
+/10 "Je porte sur moi :#n"
+/11 "";*Spare
+/12 "Veuillez confirmer: "
+/13 "Voulez vous réessayer ? "
+/14 "";*Spare
+/15 "OK.#n"
+/16 "Appuyez sur une touche pour continuer.#n"
+/17 "";*You have taken
+/18 "";*\sturn
+/19 "";*s
+/20 "";*.[CR]
+/21 "";*You have scored
+/22 "";*%[CR]
+/23 "Je ne porte pas cela.#n"
+/24 "Impossible. Je porte déjà _."
+/25 "J'ai déjà _."
+/26 "Il n'y a rien de cela ici."
+/27 "Je ne peux pas porter plus de choses."
+/28 "Je n'ai rien de cela."
+/29 "Je porte déjà _."
+/30 "O"    ;One upper case character only
+/31 "N"    ;One upper case character only
+/32 "Continuer..."
+/33 "#n>"
+/34 "";*Spare
+/35 "#nLe temps passe...#n"
+/36 "J'ai maintenant _.#n"
+/37 "Je porte maintenant _.#n"
+/38 "J'ai enlevé _.#n"
+/39 "J'ai posé _.#n"
+/40 "Je ne peux pas porter _.#n"
+/41 "Je ne peux pas enlever _.#n"
+/42 "Je ne peux pas enlever _. Mes mains sont pleines.#n"
+/43 "@ pèse trop lourd pour moi.#n"
+/44 "#n@ est dans "
+/45 "@ n'est pas dans "
+/46 ", "
+/47 " et "
+/48 ".#n"
+/49 "Je n'ai pas _.#n"
+/50 "Je ne porte pas _.#n"
+/51 ".#n"
+/52 "Il n'y a rien de cela dans "
+/53 "Rien.#n"
+/54 "C" ;Letter for Tape
+/55 "D" ;Disc
+/56 "Lecteur pas prêt - appuyez sur une touche pour réessayer.#n"
+/57 "Erreur de lecture ou d'écriture.#n"
+/58 "Le disque / dossier est peut-être plein."
+/59 "Nom de fichier invalide."
+/60 "Tapez le nom du fichier :"
+/61 "Commencez la cassette.#n"
+/62 "Cassette ou Disque?"
+
+
+;------------------------------------------------------------------------------
+/MTX    ;Message Texts
+;------------------------------------------------------------------------------
+/OTX    ;Object Texts
+/0 "Une lampe de poche. (allumée)"
+
+
+;------------------------------------------------------------------------------
+/LTX    ;Location Texts
+/0 "BASE DE DONNEES VIDE - DAAD V2."
+/1 "Je suis dans le premier lieu. Une route mène au nord."
+/2 "Je suis dans le deuxième lieu. Une route mène au sud."
+
+
+;------------------------------------------------------------------------------
+/CON    ;Connections
+/0
+/1
+N 2
+/2
+S 1
+
+
+
+;------------------------------------------------------------------------------
+/OBJ    ;Object Definitions
+;obj  starts  weight    c w  5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0    noun   adjective
+;num    at
+/0      CARRIED 1       _ _  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _    TORCH  _
+
+
+;------------------------------------------------------------------------------
+/PRO 0       ; Boucle principale pour les lieux
+
+> _       _     AT      0                ; Début du jeu
+                #ifdef "canBoostSpeed"
+                #echo "Target using boosted CPU speed"
+                XSPEED  1                ; Si la plateforme choisie est boostable, augmenter la vitesse du CPU à 7MHz
+                #endif
+                #ifdef "hasSplitMode"    ; Si la plateforme choisie peut avoir un écran séparé en deux, le faire
+                #echo "Target using split mode"
+                XSPLITSCR 1
+                #endif
+                PROCESS 6                ; Maintenant, séquence d'initialisation
+
+> _       _     WINDOW  0                ; Choisir la fenêtre de graphisme
+                CLEAR   fDarkF           ; On part du principe qu'il y a de la lumière
+;               MINUS   2       1       ; Décrémenter le flag 2    (Voir notes)
+                NOTZERO 0
+;               MINUS   3       1       ; & Flag 3 si dans le noir    (Voir notes)
+                ABSENT  0
+;               MINUS   4       1       ; & Flag 4 si pas de lampe (Voir notes)
+                SET     fDarkF           ; Obscurité
+
+#ifndef "zx128"
+> _       _     CLEAR 20
+#ifndef "tape"
+                XPICTURE @fPlayer        ; Si il y a une image, la charger
+#endif
+#ifdef "nativeraster"
+                DISPLAY @fDarkF         ; & Le montrer si pas d'obscurité, sinon effacer l'écran
+#endif
+#ifdef "next"
+                GT  20 127               ; Le montrer si pas d'obscurité ; sinon
+                XNEXTCLS                 ; Désactiver adn clear Layer2
+#endif
+
+#ifndef "noretryImage"
+> _        _    GT 20 127
+                XPICTURE 255            ; Si XPICTURE a échoué, essaie d'afficher l'image 255 (défaut)
+#endif
+
+#ifndef "hasSplitMode"
+> _        _    GT 20 127                ; XPICTURE a échoué
+                CLS
+                WINDOW 1    
+                WINAT 0 0
+                WINSIZE 25      127     ; Taille max de fenêtre
+                CLS
+                SKIP 1
+#endif
+
+> _        _    WINDOW 1
+                #ifndef "tape"
+                WINAT 14 0
+                #endif
+                              
+#else
+;ZX 128
+> _       _     PICTURE @fPlayer        ; S'il y a une image, il la charge
+                DISPLAY @fDarkF         ; Montrez-le s'il n'est pas sombre, sinon faites un CLS
+                SKIP    2               ; Passer à la fenêtre sur le texte sur le bord inférieur
+
+> _        _    PICTURE 255             ; En cas d'échec de l'image, charge l'image numéro. 255
+                DISPLAY @fDarkF
+                SKIP    1               ; Passer à la fenêtre sur le texte sur le bord inférieur
+
+> _        _    CLS                     ; Repli si aucune image n'a été trouvée
+                WINDOW  1
+                WINAT   0 0
+                WINSIZE 24      42     ; Tout l'écran pour le texte
+                CLS
+                SKIP    1              ; Skip.
+
+> _        _    WINDOW 1               ; Fenêtre en bas de l'écran
+                WINAT  14 0
+#endif
+
+> _       _     NOTZERO fDarkF           ; Obscurité
+                SYSMESS 0
+
+> _       _     ZERO    fDarkF
+                DESC    @fPlayer        ; Ne sort pas de la boucle
+
+> _       _     PROCESS 3
+
+; Maintenant on utilise le Process 1 comme boucle de code principale ; si il renvoie
+; quelque chose, c'est la fin du jeu
+
+> _       _     PROCESS 1
+
+;------------------------------------------------------------------------------
+/PRO 1
+> _       _     PROCESS 4                ; À l'époque de PAW c'était le process 2
+
+;> _       _     MINUS   5       1       ; Mets à jour les flags automatiquement
+;                MINUS   6       1       ; Ceci n'est plus supporté car
+;                MINUS   7       1       ; on utilise le début de la table comme une
+;                MINUS   8       1       ; petite pile
+;                NOTZERO 0               ; Mais si il y en a besoin
+;                MINUS   9       1       ; c'est le code de la V1 de DAAD!
+;                ABSENT  0
+;                MINUS   10      1
+
+> _       _     PARSE   0               ; Obtenir la phrase contenue dans le buffer en cours
+                PROCESS 2               ; Si la phrase n'est pas valide ou si timeout
+                REDO
+
+> _       _     EQ      fTurns   255     ; Max pour un octet
+                PLUS    fTurnsHi 1
+                CLEAR   fTurns
+                SKIP    1
+
+> _       _     PLUS    fTurns   1
+
+> _       _     PROCESS 5               ; La vieille table de réponses
+                ISDONE                  ; On a fait quelque chose?
+                REDO                    ; Oui: demandons une autre commande au joueur
+
+> _       _     MOVE    fPlayer          ; Non: tentons de bouger le joueur
+                CLS
+                RESTART                 ; On a bougé : sautons au début du process 0
+
+> _       _     NEWTEXT
+                LT      fVerb    14
+                SYSMESS 7
+                REDO
+
+> _       _     SYSMESS 8
+                REDO
+
+
+;------------------------------------------------------------------------------
+/PRO 2
+> _       _     HASAT TIMEOUT
+                SYSMESS 35
+                DONE
+
+> _       _     SYSMESS 6               ; J'ai pas compris
+
+;------------------------------------------------------------------------------
+/PRO 3 ; Anciennement le process 1 dans PAW. (Notez que la table de réponse et
+; les vieilles tables 1 et 2 de processus de PAW peuvent maintenant être
+; n'importe où, ou absentes ; tout est implémenté dans le langage DAAD.)
+
+; C'est mieux de le faire comme ça
+> _       _     NEWLINE
+                ZERO    fDarkF            ; Pas sombre
+                LISTOBJ
+
+;que dans le vieux système de la V1, qui n'avait pas accès à DarkF
+;> _       _     NEWLINE
+;                ZERO    0               ;Si il fait jour...
+;                ABSENT  0               ;et qu'il n'y a pas la source de lumière...
+;                LISTOBJ                 ;Lister les objets
+
+;> _       _     PRESENT 0               ;Si la source de lumière est là...
+;                LISTOBJ                 ;Lister les objets
+
+;------------------------------------------------------------------------------
+/PRO 4 ; Le vieux processus 2 de PAW
+;------------------------------------------------------------------------------
+/PRO 5 ; Le décodeur de commande comme dans la vieille table de réponses
+
+> I       _     SYSMESS 9
+                LISTAT  CARRIED
+                SYSMESS 10
+                LISTAT  WORN
+                DONE
+
+> PREND   TOUT  DOALL   HERE
+> PREND   _     AUTOG
+                DONE
+
+> POSER   TOUT  DOALL   CARRIED
+> POSER   _     AUTOD
+                DONE
+
+> ENLEVE  TOUT  DOALL   WORN
+> ENLEVE  _     AUTOR
+                DONE
+
+> PORTE   TOUT  DOALL   CARRIED
+> PORTE   _     AUTOW
+                DONE
+
+> R       _     RESTART
+
+> Q       _     QUIT
+                END
+
+> Q       _     DONE                    ; C'est pas comme le QUIT de PAW
+
+> SAUVE   _     #ifndef "tape"
+                XSAVE 0                  ;pareil
+                #endif
+                #ifdef "tape"
+                SAVE 0
+                #endif
+                RESTART
+
+> CHARG   _     #ifndef "tape"
+                XLOAD  0
+                #endif
+                #ifdef "tape"
+                LOAD   0
+                #endif
+                RESTART
+
+> RAMSA   _     RAMSAVE
+                RESTART
+
+> RAMCH   _     RAMLOAD 255             ;Recharge tous les flags
+                RESTART
+
+> REGAR   _     RESTART
+;------------------------------------------------------------------------------
+/PRO 6 ; Initialise le système DAAD
+
+> _       _     WINDOW  1               ; Initialisons les fenêtres
+
+> _       _     #ifndef "tape"
+                WINAT   14       0
+                #endif
+                #ifdef "tape"
+                WINAT   0       0
+                #endif
+                WINSIZE 25      127     ; Fenêtre maximale
+                CLS
+                DESC    0               ; Introduction
+                XPICTURE 0
+> _       _     
+                ANYKEY
+                CLS
+                SET   255             
+#else
+;ZX 128
+> _       _     WINDOW  1               ; Initialisons les fenêtres
+                WINAT   14       0
+                WINSIZE 25      127     ; Fenêtre maximale
+                CLS
+                PICTURE 0
+                DISPLAY 0
+                SKIP    1
+
+> _       _     WINAT   0       0
+                CLS
+
+> _       _     DESC    0               ; Introduction
+                ANYKEY
+                CLS
+                SET   255
+#endif
+
+> _       _     MINUS  255 1          ; Mets tous les flags à 0
+                NOTEQ   255  fGFlags  ; sauf fGFlags!!!
+                CLEAR   @255
+
+> _       _     NOTZERO 255             
+                SKIP    -2              
+
+> _       _     RESET                   ; Objets au lieu initial / Flag 1
+                LET     fStrength 10
+                LET     fMaxCarr  4
+                SET     fCPronounNoun
+                SET     fCPronounAdject
+                GOTO    1               ; Premier lieu du jeu
+
+/END
+
