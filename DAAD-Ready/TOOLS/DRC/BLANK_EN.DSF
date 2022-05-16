@@ -11,7 +11,7 @@
 ;                                                              Tim Gilberts
 ;
 ;                                      'And also WE ALL have to work for it'
-;                                                            Andrï¿½s Samudio
+;                                                            Andrés Samudio
 ;
 ;                                                                   [8-6-89]
 ;
@@ -623,6 +623,7 @@ S 1
                 SKIP    1
 
 > _       _     WINAT   0       0
+                WINSIZE 25 127
                 CLS
 
 > _       _     DESC    0               ; Introduction

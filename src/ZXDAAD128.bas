@@ -533,7 +533,7 @@ LOCAL clearbox_row_skip
     ld      l,a        ; Put it back in L, and we're done. HL=Address.
 
     push HL            ; save address
-    LD A, ($5C8D)      ; attribute
+    LD A, (23693)      ; attribute
     LD DE,32
     LD c,(IX+11)       ; height
 
@@ -856,6 +856,23 @@ SUB pushCurrentWindow(w AS uByte)
 
 END SUB
 '==============================================================================
+
+#ifdef FONT32
+  #define PRINT_GLYPH(x, y, a) putGlyph32(x, y, a)
+#else
+  #define PRINT_GLYPH(x, y, a) putGlyph42(x, y, a)
+#endif
+
+FUNCTION GetCharAddress(c AS uByte) AS uInteger
+
+  DIM add AS uInteger
+
+  LET add = (CAST(uInteger, c) * 8) + DdbFntPos
+  IF (cwinMode bAND MODE_FORCEGCHAR) OR offsetText THEN LET add = add + (128 * 8)
+  RETURN add
+
+END FUNCTION
+
 #ifndef FONT32
 SUB PRIVATEconvertCoords42(ByRef x AS uByte, ByRef w AS uByte)
 
@@ -873,6 +890,42 @@ SUB PRIVATEconvertCoords42(ByRef x AS uByte, ByRef w AS uByte)
 END SUB
 #endif
 
+/'
+SUB clearCurrentLine()
+#ifdef FONT32
+
+  clearBox(cwinX, cwinY, cwinW, 1)
+
+#else
+
+  DIM x, w AS uByte
+
+  LET x = cwinX
+  LET w = cwinW
+  PRIVATEconvertCoords42(x, w)
+  clearBox(x, cwinY, w, 1)
+
+#endif
+END SUB
+'/
+
+SUB clearCurrentLine()
+
+  DIM charAdd AS uInteger
+  DIM px, py, b AS uByte
+
+  LET charAdd = GetCharAddress(32)
+  LET py = ccursorY + cwinY
+  LET px = ccursorX
+
+  LET b = SetRAMBank(DdbBnkFnt bOR ROM48KBASIC)
+  DO UNTIL px >= cwinW
+    PRINT_GLYPH(px + cwinX, py, charAdd)
+    LET px = px + 1
+  LOOP
+  SetRAMBank(b)
+
+END SUB
 
 SUB scrollUp()
 #ifdef FONT32
@@ -887,23 +940,6 @@ SUB scrollUp()
   LET w = cwinW
   PRIVATEconvertCoords42(x, w)
   WinScrollUp(cwinY, x, w, cwinH)
-
-#endif
-END SUB
-
-SUB clearCurrentLine()
-#ifdef FONT32
-
-  clearBox(cwinX, cwinY, cwinW, 1)
-
-#else
-
-  DIM x, w AS uByte
-
-  LET x = cwinX
-  LET w = cwinW
-  PRIVATEconvertCoords42(x, w)
-  clearBox(x, cwinY, w, 1)
 
 #endif
 END SUB
@@ -933,29 +969,14 @@ SUB checkPrintedLines()
     deallocate(tmpMsg)
     LET tmpMsg = oldTmpMsg
     waitForTimeout(TIME_MORE)
-    clearCurrentLine()
     LET printedLines = 0
     LET ccursorX = 0
+    'clearCurrentLine()
   END IF
   LET checkPrintedLinesinUse = FALSE
 
 END SUB
 
-#ifdef FONT32
-  #define PRINT_GLYPH(x, y, a) putGlyph32(x, y, a)
-#else
-  #define PRINT_GLYPH(x, y, a) putGlyph42(x, y, a)
-#endif
-
-FUNCTION GetCharAddress(c AS uByte) AS uInteger
-
-  DIM add AS uInteger
-
-  LET add = (CAST(uInteger, c) * 8) + DdbFntPos
-  IF (cwinMode bAND MODE_FORCEGCHAR) OR offsetText THEN LET add = add + (128 * 8)
-  RETURN add
-
-END FUNCTION
 
 SUB printChar(c AS uByte)
 
@@ -976,6 +997,7 @@ SUB printChar(c AS uByte)
       LET ccursorY = ccursorY + 1
       checkPrintedLines()
     ELSE
+      IF ccursorX = 0 THEN clearCurrentLine()
       LET b = SetRAMBank(DdbBnkFnt bOR ROM48KBASIC)
       PRINT_GLYPH(ccursorX + cwinX, ccursorY + cwinY, GetCharAddress(c))
       SetRAMBank(b)
@@ -2114,6 +2136,7 @@ DIM condactFlagList(0 TO 127) AS uByte => {_
 '#define pPROC condactProc(currProc)
 '-----------------------------------------------------------------------
 SUB doCLS()
+/'
 #ifndef FONT42
 
   clearBox(cwinX, cwinY, cwinW, cwinH)
@@ -2128,6 +2151,8 @@ SUB doCLS()
   clearBox(x, cwinY, w, cwinH)
 
 #endif
+'/
+  clearBox(cwinX, cwinY, cwinW, cwinH)
   LET ccursorX = 0
   LET ccursorY = 0
   LET lastPicId = NO_LASTPICTURE

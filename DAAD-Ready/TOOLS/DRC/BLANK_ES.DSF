@@ -573,6 +573,7 @@ LUEGO   2       conjugation
                 SKIP    1
 
 > _       _     WINAT   0       0
+                WINSIZE 25 127
                 CLS
 
 > _       _     DESC    0               ; Introducción
