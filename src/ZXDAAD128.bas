@@ -81,11 +81,13 @@ CONST FlagsAddress AS uInteger  = 23611
 CONST AttrAddress AS uInteger   = 23693
 CONST FramesAddress AS uInteger = 23672
 CONST ErrNrAddress AS uInteger  = 23609
+CONST CurrBankAddress AS uInteger = $5b5c
 
 DIM LastK AS uByte AT LastKAddress
 DIM AttrD AS uByte AT AttrAddress
 DIM Frames AS uInteger AT FramesAddress
 DIM ErrNr AS uInteger AT ErrNrAddress
+DIM currBank AS uByte AT CurrBankAddress
 
 DIM tmpTok AS uInteger AT $6000 'We reuse the header as the token buffer (32 bytes)
 
@@ -2876,7 +2878,7 @@ jumpIsr:
     POP IX
     POP IY
     LD L, C
-    LD H, B
+    LD H, B               ;Returns BC as pointer to next condact
 ENDP
 END ASM
 END FUNCTION
@@ -3212,9 +3214,13 @@ condactSFX:
 #ifndef DISABLE_SFX
   LET c = getValueOrIndirection()
   LET total = condactProc(currProc)
-  LET condactProc(currProc) = total + 1
   LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 2)
-  IF addr <> 0 THEN doCALL(c, @flags(c), (objLocation + c), total, addr)
+  IF addr <> 0 THEN 
+    LET total = doCALL(c, @flags(c), (objLocation + c), total, addr)
+  ELSE
+    LET total = total + 1
+  END IF
+  condactProc(currProc) = total
 #endif
   GOTO NextCondact
 '=============================================================================
@@ -3817,7 +3823,7 @@ condactEXTERN:
     IF flagno > 10 THEN 'Unknown command, call to extern
       LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 0)
       IF addr <> 0 THEN 
-        doCALL(c, @flags(c), (objLocation + c), condactProc(currProc)-1, addr)
+        LET condactProc(currProc) = doCALL(c, @flags(c), (objLocation + c), condactProc(currProc)-1, addr)
       END IF
     END IF
     GOTO NextCondact
@@ -4332,7 +4338,7 @@ condactCALL:
 #ifndef DISABLE_CALL
   LET objno = getCondOrValueAndInc()
   LET addr = (CAST(uInteger, getCondOrValueAndInc()) << 8) bOR objno
-  doCALL(0, 0, 0, condactProc(currProc), addr)
+  LET condactProc(currProc) = doCALL(0, 0, 0, condactProc(currProc), addr)
 #endif
   GOTO NextCondact
 ' =============================================================================
@@ -4708,5 +4714,40 @@ IMvect:
     DEFS 258,$AD    ;Interrupt vector
 END ASM
 '==============================================================================
+/'
+SUB copyCompressedPicture(bankOrig AS uByte , size AS uInteger, origAddr AS uInteger)
+
+  CONST BuffSize AS uInteger = 512
+   
+  DIM destAddr AS uInteger = $C500  'Decompression buffer
+  DIM buffer, csize AS uInteger
+  DIM b, bankDest AS uByte
+
+  LET buffer = callocate(BuffSize)
+  LET b = currBank
+  LET bankDest = DdbBnkImgIdx bOR ROM48KBASIC
+  LET bankOrig = bankOrig bOR ROM48KBASIC
+
+  DO UNTIL size = 0
+    IF size >= BuffSize THEN
+      LET csize = BuffSize
+    ELSE
+      LET csize = size
+    END IF
+    SetRAMBank(bankOrig)
+    MemCopy(origAddr, buffer, csize)
+    SetRAMBank(bankDest)
+    MemCopy(buffer, destAddr, csize)
+    LET origAddr = origAddr + csize
+    LET destAddr = destAddr + csize
+    LET size = size - csize
+  LOOP
+
+  SetRAMBank(b)
+  deallocate(buffer)
+
+END SUB
+LET DdbImgIdxPos=@copyCompressedPicture
+'/
 #pragma pop(case_insensitive)
 #endif

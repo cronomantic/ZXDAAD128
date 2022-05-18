@@ -1,4 +1,3 @@
-
 <?php
 // (C) Cronomantic 2022 - This code is released under the GPL v3 license
 
@@ -7,7 +6,7 @@ global $isBigEndian;
 $isBigEndian = false;
 
 define('VERSION_HI',0);
-define('VERSION_LO',1);
+define('VERSION_LO',3);
 
 //================================================================= Error ========================================================
 function Error($msg)
@@ -18,14 +17,14 @@ function Error($msg)
 
 function Syntax()
 {
-    echo ("SYNTAX: php daadmaker128.php [options] <bank0.AD0> [bank1.AD1] ...\n\n");
+    echo ("SYNTAX: php daadmakerPlus3.php [options] <bank0.AD0> [bank1.AD1] ...\n\n");
     echo ("+ [options]: one or more of the following:\n");
-    echo ("  -t [TAP file]  : (Optional) Name of the tape file. Otherwise, the name of the first bank file will be used.");
+    echo ("  -d [path]      : (Optional) Destination of the loader and data filer to include on a image.");
     echo ("  -s [SCR file]  : (Optional) SCR file for loading screen.");
-    echo ("  -n Filename    : (Optional) Name of the program for the loader.");
     echo ("\n");
     echo ("The order of the positional arguments determine the order of loading into the banks, ¡Be careful!");
 }
+
 //================================================================= filewrite ========================================================
 function string2intArr($string)
 {
@@ -107,57 +106,10 @@ function getByteArrayFromFile($fileName)
     foreach($bytes as $byte) writeByte($byteArray, $byte);
     return $byteArray;
 }
-
-function CreateTapeBlock($byteArray, $isHeader=false)
-{
-    $buffer = array();
-    $parity = 0;
-    foreach($byteArray as $byte) $parity = $parity^$byte;
-
-    writeWord($buffer, sizeof($byteArray) + 2);
-    if ($isHeader)
-    {
-      writeZero($buffer);
-      $parity = $parity ^ 0;
-    } else {
-      writeFF($buffer);
-      $parity = $parity ^ 0xFF;
-    }
-    appendBuffer($byteArray, $buffer);
-    writeByte($buffer, $parity);
-
-    return $buffer;
-
-}
-
-/*
-The type is 0,1,2 or 3 for a Program, Number array, Character array or Code file.
-A SCREEN$ file is regarded as a Code file with start address 16384 and length 6912 decimal.
-If the file is a Program file, parameter 1 holds the autostart line number (or a number >=32768 if no LINE parameter was given)
-                               and parameter 2 holds the start of the variable area relative to the start of the program.
-If it's a Code file, parameter 1 holds the start of the code block when saved, and parameter 2 holds 32768.
-For data files finally, the byte at position 14 decimal holds the variable name.
-*/
-function AddBasicHeader($filename, $autoStartLineNumber, $byteArrayProgram)
-{
-    $buffer = array();
-    writeZero($buffer); //0 = Program;
-    //Filename 10 bytes (padded with blanks)
-    $filename = str_pad(substr($filename, 0, 10), 10);
-    appendBuffer(string2intArr($filename), $buffer);
-    writeWord($buffer, sizeof($byteArrayProgram) & 0xFFFF); //Length of data block
-    writeWord($buffer, $autoStartLineNumber & 0xFFFF); //Param 1
-    writeWord($buffer, sizeof($byteArrayProgram) & 0xFFFF); //Param 2
-
-    $buffer = CreateTapeBlock($buffer, true);
-    appendBuffer(CreateTapeBlock($byteArrayProgram, false), $buffer);
-
-    return $buffer;
-}
 //================================================================= Loader ========================================================
 
 $loaderBytes = array(
-0x00,0x00,0xd4,0x00,0xea,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xf3,0x31,0xfe,0x5f,0xcd,0x93,0x5d,0xed,0x5b,0xd0,0x5c,0x7a,0xb3,0x28,0x0c,0x3e,0x10,0xdd,0x21,0x00,0x40,0xcd,0x79,0x5d,0xcd,0x84,0x5d,0xed,0x5b,0xd2,0x5c,0x7a,0xb3,0x28,0x0c,0x3e,0x10,0xdd,0x21,0x00,0x60,0xcd,0x79,0x5d,0xcd,0x84,0x5d,0xed,0x5b,0xd4,0x5c,0x7a,0xb3,0x28,0x0c,0x3e,0x11,0xdd,0x21,0x00,0xc0,0xcd,0x79,0x5d,0xcd,0x84,0x5d,0xed,0x5b,0xd6,0x5c,0x7a,0xb3,0x28,0x0c,0x3e,0x13,0xdd,0x21,0x00,0xc0,0xcd,0x79,0x5d,0xcd,0x84,0x5d,0xed,0x5b,0xd8,0x5c,0x7a,0xb3,0x28,0x0c,0x3e,0x14,0xdd,0x21,0x00,0xc0,0xcd,0x79,0x5d,0xcd,0x84,0x5d,0xed,0x5b,0xda,0x5c,0x7a,0xb3,0x28,0x0c,0x3e,0x16,0xdd,0x21,0x00,0xc0,0xcd,0x79,0x5d,0xcd,0x84,0x5d,0xed,0x5b,0xdc,0x5c,0x7a,0xb3,0x28,0x0c,0x3e,0x17,0xdd,0x21,0x00,0xc0,0xcd,0x79,0x5d,0xcd,0x84,0x5d,0x3e,0x10,0xcd,0x79,0x5d,0xc3,0x02,0x60,0xf3,0x01,0xfd,0x7f,0xed,0x79,0x32,0x5c,0x5b,0xfb,0xc9,0x37,0x3e,0xff,0xcd,0x56,0x05,0xd8,0xe1,0xaf,0xcd,0x79,0x5d,0xc3,0x00,0x00,0xaf,0xd3,0xfe,0x21,0x00,0x40,0x11,0x01,0x40,0x01,0x00,0x1b,0x75,0xed,0xb0,0xc9,0x00,0x0a,0x13,0x00,0xfd,0x2e,0x0e,0x00,0x00,0xff,0x5f,0x00,0x3a,0xf2,0xc0,0x2e,0x0e,0x00,0x00,0xde,0x5c,0x00,0x0d
+%$%LOADER_BYTES
 );
 
 //================================================================= Others ========================================================
@@ -168,15 +120,97 @@ function replace_extension($filename, $new_extension) {
         . '.'
         . $new_extension;
 }
+
+//================================================================= other ========================================================
+
+/*
+El primer $00 de la cabecera indica
+que es un programa Basic. El siguiente valor
+($0133) es el tamaño del programa Basic, el
+siguiente valor ($0000) el número de línea de
+autoejecución9
+, y el siguiente valor es el tamaño
+del Basic descontando las variables. En este
+caso el Basic no incluye ninguna variable con
+valor y por ello es el mismo valor que el tamaño
+del Basic.
+*/
+function prependPlus3Header($outputFileName, $type, $startAddress)
+{
+    //0x03; // Bytes
+    //0x00; //BASIC
+    $type = intval($type);
+    if ($type > 0x03) $type = 0x03;
+
+    $fileSize = filesize($outputFileName) + 128; // Final file size wit header
+    $inputHandle = fopen($outputFileName, 'r');
+    $outputHandle = fopen("prepend.tmp", "w");
+
+    $header = array();
+    $header[]= ord('P');
+    $header[]= ord('L');
+    $header[]= ord('U');
+    $header[]= ord('S');
+    $header[]= ord('3');
+    $header[]= ord('D');
+    $header[]= ord('O');
+    $header[]= ord('S');
+    $header[]= 0x1A; // Soft EOF
+    $header[]= 0x01; // Issue
+    $header[]= 0x00; // Version
+    $header[]= $fileSize & 0XFF;  // Four bytes for file size
+    $header[]= ($fileSize & 0xFF00) >> 8;
+    $header[]= ($fileSize & 0xFF0000) >> 16;
+    $header[]= ($fileSize & 0xFF000000) >> 24;
+    $header[]= $type; // Bytes:
+    $fileSize -= 128; // Get original size
+    $header[]= $fileSize & 0x00FF;  // Two bytes for data size
+    $header[]= ($fileSize & 0xFF00) >> 8;
+    $header[]= $startAddress & 0x00FF;  // Two Bytes for load addres
+    $header[]= ($startAddress & 0xFF00) >> 8;
+    $header[]= $fileSize & 0x00FF;  // Two bytes for data size
+    $header[]= ($fileSize & 0xFF00) >> 8;
+    while (sizeof($header)<127) $header[]= 0; // Fillers
+    $checksum = 0;
+    for ($i=0;$i<127;$i++)  $checksum+=$header[$i];
+    $header[]= $checksum & 0xFF; // Checksum
+
+    // Dump header
+    for ($i=0;$i<128;$i++) fputs($outputHandle, chr($header[$i]), 1);
+
+    // Dump original DDB
+    while (!feof($inputHandle))
+    {
+        $c = fgetc($inputHandle);
+        fputs($outputHandle,$c,1);
+    }
+    fclose($inputHandle);
+    fclose($outputHandle);
+    unlink($outputFileName);
+    rename("prepend.tmp" ,$outputFileName);
+}
+
 //================================================================= Main ========================================================
 if (intval(date("Y"))>2018) $extra = '-'.date("Y"); else $extra = '';
-echo "DAADMaker128 ".VERSION_HI.".".VERSION_LO. " (C) Cronomantic 2022$extra\n";
+echo "DAADMakerPlus3 ".VERSION_HI.".".VERSION_LO. " (C) Cronomantic 2022$extra\n";
 
 $rest_index = null;
-$opts = getopt('vt:s:n:', [], $rest_index);
+$opts = getopt('vs:d:', [], $rest_index);
 $posArgs = array_slice($argv, $rest_index);
 
 if (sizeof($posArgs) < 1) Syntax();
+
+$loaderFilename = "disk";
+$dataFilename = "daad.bin";
+
+//Destination path
+if (array_key_exists('d', $opts)) {
+    $destPath = $opts['d'];
+    if (!is_dir($destPath)) Error("Invalid destination path.");
+    $loaderFilename = $destPath . DIRECTORY_SEPARATOR . $loaderFilename;
+    $dataFilename = $destPath . DIRECTORY_SEPARATOR . $dataFilename;
+}
+
 
 //Screen file
 $screenFileName = '';
@@ -187,23 +221,18 @@ if (array_key_exists('s', $opts))
     if (filesize($screenFileName) != 6912) Error("File '$screenFileName' does not have a valid size.");
 }
 
-//Program Name
-$programFileName = 'ZxDAAD128';
-if (array_key_exists('n', $opts)) $programFileName = $opts['n'];
-
-
-$tape = array();
+$fileDisk = array();
 if ($screenFileName != '')
 {
     $bytes = getByteArrayFromFile($screenFileName);
     writeWord($loaderBytes, sizeof($bytes), 5);
-    appendBuffer(CreateTapeBlock($bytes), $tape);
+    appendBuffer($bytes, $fileDisk);
 }
 
 $cont = 1;
 foreach ($posArgs as $idx => $param)
 {
-    if (!file_exists($param)) Error("File '$param' not found");
+    if (!file_exists($param)) Error("File '$param' not found\n");
     switch($idx)
     {
         case 0: //Bank 0
@@ -211,42 +240,42 @@ foreach ($posArgs as $idx => $param)
             if ((filesize($param) == 0)||(filesize($param) > (0x10000 - 0x6000))) Error("File '$param' does not have a valid size.");
             $bytes = getByteArrayFromFile($param);
             writeWord($loaderBytes, sizeof($bytes), (2 * $idx + 7));
-            appendBuffer(CreateTapeBlock($bytes), $tape);
+            appendBuffer($bytes, $fileDisk);
             break;
         case 1: //Bank 1
             if (pathinfo($param, PATHINFO_EXTENSION) != 'AD1') Error("File '$param' not valid");
             if ((filesize($param) == 0)||(filesize($param) > (0x10000 - 0xC000))) Error("File '$param' does not have a valid size.");
             $bytes = getByteArrayFromFile($param);
             writeWord($loaderBytes, sizeof($bytes), (2 * $idx + 7));
-            appendBuffer(CreateTapeBlock($bytes), $tape);
+            appendBuffer($bytes, $fileDisk);
             break;
         case 2: //Bank 3
             if (pathinfo($param, PATHINFO_EXTENSION) != 'AD3') Error("File '$param' not valid");
             if ((filesize($param) == 0)||(filesize($param) > (0x10000 - 0xC000))) Error("File '$param' does not have a valid size.");
             $bytes = getByteArrayFromFile($param);
             writeWord($loaderBytes, sizeof($bytes), (2 * $idx + 7));
-            appendBuffer(CreateTapeBlock($bytes), $tape);
+            appendBuffer($bytes, $fileDisk);
             break;
         case 3:// Bank 4
             if (pathinfo($param, PATHINFO_EXTENSION) != 'AD4') Error("File '$param' not valid");
             if ((filesize($param) == 0)||(filesize($param) > (0x10000 - 0xC000))) Error("File '$param' does not have a valid size.");
             $bytes = getByteArrayFromFile($param);
             writeWord($loaderBytes, sizeof($bytes), (2 * $idx + 7));
-            appendBuffer(CreateTapeBlock($bytes), $tape);
+            appendBuffer($bytes, $fileDisk);
             break;
         case 4: //Bank 6
             if (pathinfo($param, PATHINFO_EXTENSION) != 'AD6') Error("File '$param' not valid");
             if ((filesize($param) == 0)||(filesize($param) > (0x10000 - 0xC000))) Error("File '$param' does not have a valid size.");
             $bytes = getByteArrayFromFile($param);
             writeWord($loaderBytes, sizeof($bytes), (2 * $idx + 7));
-            appendBuffer(CreateTapeBlock($bytes), $tape);
+            appendBuffer($bytes, $fileDisk);
             break;
         case 5: //Bank 7
             if (pathinfo($param, PATHINFO_EXTENSION) != 'AD7') Error("File '$param' not valid");
             if ((filesize($param) == 0)||(filesize($param) > (0x10000 - 0xC000))) Error("File '$param' does not have a valid size.");
             $bytes = getByteArrayFromFile($param);
             writeWord($loaderBytes, sizeof($bytes), (2 * $idx + 7));
-            appendBuffer(CreateTapeBlock($bytes), $tape);
+            appendBuffer($bytes, $fileDisk);
             break;
         default:
             Error("File '$param' not valid");
@@ -257,21 +286,17 @@ foreach ($posArgs as $idx => $param)
     }
 }
 
-$loader = AddBasicHeader($programFileName, 10, $loaderBytes);
-appendBuffer($tape, $loader);
+$outputFileHandlerL = fopen($loaderFilename, "wb");
+if (!$outputFileHandlerL) Error("Couldn't create file '$loaderFilename'.");
 
-//Output TAP file
-$outputFileName = '';
-$inputFileName = $posArgs[0];
-if (array_key_exists('t', $opts)) $outputFileName = $opts['t'];
-if ($outputFileName=='') $outputFileName = $inputFileName;
-$outputFileName = replace_extension($outputFileName, 'TAP');
-if ($outputFileName==$inputFileName) Error('Input and output file name cannot be the same');
+$outputFileHandlerD = fopen($dataFilename, "wb");
+if (!$outputFileHandlerD) Error("Couldn't create file '$dataFilename'.");
 
-$outputFileHandler = fopen($outputFileName, "wb");
-if (!$outputFileHandler) Error("Couldn't create file '$outputFileName'.\n");
-flushBuffer($loader, $outputFileHandler);
-fclose($outputFileHandler);
-echo "File $outputFileName created.\n";
+flushBuffer($loaderBytes, $outputFileHandlerL);
+fclose($outputFileHandlerL);
+prependPlus3Header($loaderFilename, 0, 10);
+echo "File $loaderFilename created.\n";
 
-exit(0);
+flushBuffer($fileDisk, $outputFileHandlerD);
+fclose($outputFileHandlerD);
+echo "File $dataFilename created.\n";
