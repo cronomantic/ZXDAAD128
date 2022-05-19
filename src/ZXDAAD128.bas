@@ -2883,6 +2883,26 @@ ENDP
 END ASM
 END FUNCTION
 
+FUNCTION FASTCALL jumpToBank(bnk AS uByte, value AS uByte) AS uByte
+ASM
+PROC
+    POP HL
+    EX (SP), HL      ;Recover parameter
+    OR %00010000     ;Enable 48krom
+    CALL _SetRAMBank
+    PUSH AF          ;Save old bank
+    LD A, H
+    PUSH IX
+    CALL $C000
+    POP IX
+    LD H, A
+    POP AF
+    CALL _SetRAMBank ;Restore bank
+    LD A, H          ;Save Result
+ENDP
+END ASM
+END FUNCTION
+
 ' Sets the interrupt vector and sets the custom interrupt rountine.
 SUB FASTCALL setupIM(flagsAddr AS uInteger, vectorIntAddr AS uInteger)
 ASM
@@ -3819,12 +3839,14 @@ condactEXTERN:
 
   ELSEIF flagno = 10 THEN 'XSPEED
 '/
-  ELSE 
-    IF flagno > 10 THEN 'Unknown command, call to extern
-      LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 0)
-      IF addr <> 0 THEN 
-        LET condactProc(currProc) = doCALL(c, @flags(c), (objLocation + c), condactProc(currProc)-1, addr)
-      END IF
+  ELSEIF flagno = 11 THEN 'Custom Condact Jump to Bank
+    'Changes to bank n and calls $c000
+    LET objno = getCondOrValueAndInc() 'parameter 2
+    LET flagno2 = jumpToBank(c, objno)
+  ELSE 'Unknown command, call to extern
+    LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 0)
+    IF addr <> 0 THEN 
+      LET condactProc(currProc) = doCALL(c, @flags(c), (objLocation + c), condactProc(currProc)-1, addr)
     END IF
     GOTO NextCondact
   END IF
@@ -4655,7 +4677,7 @@ condactRESET:
 ' =============================================================================
 condactNOT_USED:
   errorCode(5)
-'===============================================================================
+'==============================================================================
 '==============================================================================
 'Interrupt routine
 ASM

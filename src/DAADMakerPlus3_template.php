@@ -6,7 +6,7 @@ global $isBigEndian;
 $isBigEndian = false;
 
 define('VERSION_HI',0);
-define('VERSION_LO',3);
+define('VERSION_LO',2);
 
 //================================================================= Error ========================================================
 function Error($msg)
@@ -108,9 +108,7 @@ function getByteArrayFromFile($fileName)
 }
 //================================================================= Loader ========================================================
 
-$loaderBytes = array(
-%$%LOADER_BYTES
-);
+$loaderBytes = string2intArr(gzuncompress(base64_decode("%$%LOADER_BYTES")));
 
 //================================================================= Others ========================================================
 function replace_extension($filename, $new_extension) {

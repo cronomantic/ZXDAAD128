@@ -36,15 +36,7 @@ echo Language: %LANG% %BASELANG%
 
 REM ----  SET CHARACTERS PER LINE ---- 
 IF  NOT DEFINED CHARSLINE (
-        ECHO.
-        ECHO.
-        setlocal EnableDelayedExpansion
-        CHOICE /C 43 /N /M "--- Please select (4)2, (3)2 character per line"
         SET CHARSLINE=42
-        IF ERRORLEVEL 2 (
-            SET CHARSLINE=32
-        )
-        ECHO SET CHARSLINE=!CHARSLINE!>>CONFIG.BAT
 )
 echo Characters per line: %CHARSLINE%
 
@@ -77,16 +69,9 @@ tools\cecho\cecho {0B}----------------------------------------------------------
 echo.
 tools\cecho\cecho {06}Compiling [Backend]{07}
 echo.
-IF "%CHARSLINE%" == "32" (
-        SET INTERPRETER=ASSETS\ZX128\ZXD128_TAPE_EN_C32.ZDI
-        IF "%BASELANG%" == "ES" SET INTERPRETER=ASSETS\ZX128\ZXD128_TAPE_ES_C32.ZDI
-    ) ELSE (
-        SET INTERPRETER=ASSETS\ZX128\ZXD128_TAPE_EN_C42.ZDI
-        IF "%BASELANG%" == "ES" SET INTERPRETER=ASSETS\ZX128\ZXD128_TAPE_ES_C42.ZDI
-    )
 SET IMAGEOPTION=
 IF exist .\IMAGES\*.DCP SET IMAGEOPTION=-i .\IMAGES 
-PHP\PHP TOOLS\ZXDAAD128\DRB128.PHP %IMAGEOPTION% -o %GAME% TAPE %LANG% %GAME%.json %INTERPRETER% ASSETS\CHARSET\%FONT6%
+PHP\PHP TOOLS\ZXDAAD128\DRB128.PHP %IMAGEOPTION% -o %GAME% TAPE %LANG% %BASELANG% %CHARSLINE% %GAME%.json ASSETS\CHARSET\%FONT6%
 IF ERRORLEVEL 1 GOTO ERROR
 tools\cecho\cecho {02}[OK]{07}
 ECHO.

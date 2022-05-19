@@ -1490,7 +1490,9 @@ function Syntax()
     echo ("  -o [output file]  : (optional) path & file name of output files. If absent, same name of json file would be used.\n");
     echo ("  -i [image path]   : (optional) the path to search for images. Only for TAPE target.\n");
     echo ("  -p [palette file] : (optional) path & file name of palette definition JSON file.\n");
+    echo ("  -t [token path]   : (optional) path & file name to token file for text compression.\n");
     echo ("  -k [char. id]     : (optional) character code for the cursor.\n");
+    echo ("  -x [bank]         : (optional) number of the memory bank to exclude.\n");
     echo "\n";
     echo("+ <target>: The machine objetive. Valid values: TAPE and PLUS3.\n");
     echo("+ <language>: game language, should be 'EN', 'ES', 'DE', 'FR' or 'PT' (English, Spanish, German, French or Portuguese).\n");
@@ -1503,9 +1505,10 @@ function Syntax()
     echo "Examples:\n";
     echo "php drb128 tape es es 42 game.json charset.chr\n";
     echo "php drb128 -cd tape en en 42 game.json charset.chr\n";
-    echo "php drb128 -3v -o mygame.ad0 plus3 en en 32 game.json charset.chr\n";
+    echo "php drb128 -bv -o mygame.ad0 plus3 en en 32 game.json charset.chr\n";
     echo "\n";
-    echo "Text compression will use the built in tokens for each language. In case you want to provide your own tokens just place a file with same name as the JSON file but with .TOK extension in the same folder. To know about the TOK file content format look for the default tokens array in DRB source code.\n";
+    echo "Text compression will use the built in tokens for each language unless an alternative token file is supplied.\n";
+    echo "To know about the TOK file content format look for the default tokens array in DRB source code.\n";
     echo "\n";
     echo "The image files must be SCR compressed with the DCP compressor and with the name like 001.DCP.\n";
     echo "where this image will be the number of the location where it will show.\n";
@@ -1517,7 +1520,7 @@ echo "DAAD Reborn Compiler Backend for ZX Spectrum 128 ".VERSION_HI.".".VERSION_
 if (!function_exists ('utf8_encode')) Error('This software requires php-xml package, please use yum or apt-get to install it.');
 
 $rest_index = null;
-$opts = getopt('3vcdbo:i:k:p:', [], $rest_index);
+$opts = getopt('3vcdbo:i:k:p:t:x:', [], $rest_index);
 $posArgs = array_slice($argv, $rest_index);
 
 if (sizeof($posArgs) < 6) Syntax();
@@ -1533,7 +1536,7 @@ $sublang = strtoupper($posArgs[$nextParam]); $nextParam++;
 if (($sublang!='ES') && ($sublang!='EN')) Error('Invalid interpreter language');
 
 $numchars = strtoupper($posArgs[$nextParam]); $nextParam++;
-if (($numchars!='42') && ($numchars!='32')) Error('Invalid characters per line');
+if (($numchars!='42') && ($numchars!='32')) Error('Invalid number of characters per line');
 
 $inputFileName = $posArgs[$nextParam]; $nextParam++;
 if (!file_exists($inputFileName)) Error('File not found');
@@ -1555,13 +1558,12 @@ if (!$adventure)
     Error($error);
 }
 
-$tokensFilename = replace_extension($inputFileName, 'tok');
-if (!file_exists($tokensFilename)) {
-    if (file_exists(strtolower($tokensFilename))) $tokensFilename = strtolower($tokensFilename);
-    else {
-        $tokensFilename = replace_extension($inputFileName, 'TOK');
-        if (file_exists(strtolower($tokensFilename))) $tokensFilename = strtolower($tokensFilename);
-    }
+// Get token filename
+$tokensFilename = '';
+if (array_key_exists('t', $opts))
+{
+    $tokensFileName = $opts['t'];
+    if (!file_exists($tokensFilename)) Error('Tokens file not found');
 }
 
 // Charset file
@@ -1576,6 +1578,17 @@ $adventure->forcedClassicMode = array_key_exists('c', $opts);
 $adventure->forcedDebugMode = array_key_exists('d', $opts);
 $adventure->forcedPadding = false;
 $adventure->useBestFit = array_key_exists('b', $opts);
+
+$bankReserved=0;
+if (array_key_exists('x', $opts))
+{
+    $bankReserved=$opts['x'];
+    if(!is_numeric($bankReserved)) Error("Reserved bank is not a valid value");
+    $bankReserved=intval($bankReserved);
+    if ($bankReserved < 1 || $bankReserved > 7 ||
+        $bankReserved == 2 || $bankReserved == 5) Error("Invalid bank to reserve");
+    if ($subtarget == 'PLUS3' && $bankReserved >= 6) Error("Bank not available on +3");
+}
 
 $cursorCode = 0x5f;
 if (array_key_exists('k', $opts))
@@ -1705,8 +1718,13 @@ if ($subtarget == 'PLUS3')
 {
     $bankSizeAvailable[6] = $bankSizeAvailable[6] - $diskBufferSize - $screenBufferSize;
     $bankSizeAvailable[7] = 0;
-} elseif ($subtarget != 'TAPE') {
-    $bankSizeAvailable[7] = $bankSizeAvailable[7] - $screenBufferSize;
+}
+
+//Reserving a bank
+if ($bankReserved != 0)
+{
+    $bankSizeAvailable[$bankReserved] = 0;
+    if ($adventure->verbose) echo "Bank $bankReserved reserved.\n";
 }
 
 $currBank = 0;
@@ -1720,6 +1738,7 @@ writeWord(($interpreterSize + $baseAddress + 2), $GLOBALS['isBigEndian']);
 
 $interpreterSize = writeBytes($interpreterFile);
 if (!$interpreterSize) Error('Can\'t copy interpreter');
+if ($adventure->verbose) echo "Interpreter copied: $interpreterSize bytes";
 $interpreterSize += 2;
 //Updating current address
 $bankCurrentAddress[$currBank] += $interpreterSize;
@@ -2158,7 +2177,7 @@ if ($textSavings>0) echo "Text compression saving: $textSavings bytes.\n";
 
 foreach($bankSizeAvailable as $currBank => $bankSize)
 {
-    echo "Bank $currBank: $bankSize bytes free.\n";
+    echo "Bank $currBank: $bankSize bytes available.\n";
 }
 
 foreach (array_keys($buffer) as $currBank)

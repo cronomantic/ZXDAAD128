@@ -7,7 +7,7 @@ global $isBigEndian;
 $isBigEndian = false;
 
 define('VERSION_HI',0);
-define('VERSION_LO',2);
+define('VERSION_LO',1);
 
 //================================================================= Error ========================================================
 function Error($msg)
@@ -156,9 +156,7 @@ function AddBasicHeader($filename, $autoStartLineNumber, $byteArrayProgram)
 }
 //================================================================= Loader ========================================================
 
-$loaderBytes = array(
-%$%LOADER_BYTES
-);
+$loaderBytes = string2intArr(gzuncompress(base64_decode("%$%LOADER_BYTES")));
 
 //================================================================= Others ========================================================
 function replace_extension($filename, $new_extension) {
