@@ -2872,7 +2872,7 @@ PROC
 
     PUSH IY
     PUSH IX
-    LD IX, (FlagsPtr)     ;Gets pointer to 
+    LD IX, (FlagsPtr)     ;Gets pointer to flags
 jumpIsr:
     CALL 0                ;Calling address
     POP IX
@@ -3846,7 +3846,8 @@ condactEXTERN:
   ELSE 'Unknown command, call to extern
     LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 0)
     IF addr <> 0 THEN 
-      LET condactProc(currProc) = doCALL(c, @flags(c), (objLocation + c), condactProc(currProc)-1, addr)
+      LET condactProc(currProc) = 1 + _
+          doCALL(c, @flags(c), (objLocation + c), condactProc(currProc)-1, addr)
     END IF
     GOTO NextCondact
   END IF
@@ -4690,7 +4691,7 @@ IntVectorPtr:       ;Value of INT vector on DDB
 
 ISR:
 PROC
-    LOCAL jumpIsr, setBank
+    LOCAL jumpIsr
 
     PUSH HL
     PUSH BC
@@ -4699,11 +4700,9 @@ PROC
     PUSH IY
     PUSH AF                       ; Saving context
 
-    LD A,($5b5c)                  ; Previous value of the port
-    PUSH AF                       ; Saving in stack
-    AND %11101000                 ; Change only bank bits
-    OR %00010000                  ; Sets Bank 0
-    CALL setBank                  ; Change bank
+    LD A, %00010000               ; Sets Bank 0
+    CALL _SetRAMBank
+    PUSH AF
 
     ;Interrupt vector
     LD IX, (FlagsPtr)
@@ -4715,7 +4714,7 @@ jumpIsr:
     CALL NZ, 0           ; Calling INT routine, on HL is the routine address
 
     POP AF               ; Recover bank from stack
-    CALL setBank         ; Restore current bank
+    CALL _SetRAMBank     ; Restore current bank
 
     POP AF               ; Restoring context
     POP IY
@@ -4725,10 +4724,6 @@ jumpIsr:
     POP HL
     JP $38               ;Default IM1 address
 
-setBank:
-    LD BC,$7ffd
-    OUT (C),A                ;update port
-    RET
 ENDP
 EndISR:
     ALIGN 256
