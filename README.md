@@ -32,7 +32,7 @@
       - [**2 - Interrupt routine**](#2---interrupt-routine)
       - [**3 - CALL address**](#3---call-address)
       - [**4 - Jumping to another bank**](#4---jumping-to-another-bank)
-    - [**Coding your custom code**](#coding-your-custom-code)
+    - [**Odd and ends for coding a extension**](#odd-and-ends-for-coding-a-extension)
   - [**License**](#license)
   - [**Acknowledgments**](#acknowledgments)
 
@@ -446,9 +446,10 @@ The byte `p` included after de CondAct is a parameter value that will be passed 
 This extern command will change the current active bank to `n` and do a `CALL $C000`, so the startup code is expected there.
 On return, a boolean result is expected on the A register, with 0 being the false value. This value will set the result of the CondAct using the Maluva error reporting method.
 
-### **Coding your custom code**
+### **Odd and ends for coding a extension**
 
-On the `/asm` directory, there is a series of ASM files:
+You will need to have knowledge on Z80 assembler to make extensions. With the previous instructions, it should be almost enough to handle this task. 
+However, a handicap of this interpreter is that the database's addresses varies depending of the options of said interpreter. This is intentional in order to have the maximum memory available in each case. This could be cumbersome, so to ease things, on the `/asm` directory, there is a series of ASM files with equates of the labels and addresses for each option:
 
 - ZXD128_TAPE_ES_C42_LABELS.ASM
 - ZXD128_TAPE_EN_C42_LABELS.ASM
