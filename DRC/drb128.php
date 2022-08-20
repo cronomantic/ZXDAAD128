@@ -805,7 +805,13 @@ function generateObjectWeightAndAttr($adventure, &$currentAddress)
     foreach($adventure->object_data as $object)
     {
         $b = $object->Weight & 0x3F;
-        if ($object->Container) $b = $b | 0x40;
+        if ($object->Container)
+        {
+            $b = $b | 0x40;
+            $locno = $object->Value;
+            $text = $adventure->objects[$locno]->Text;
+            if ($adventure->locations[$locno]->Text != '') echo "Warning: object #$locno ($text) is a container. You are supposed to reserve location #$locno to hold the objects in the container, but location #$locno has a description.\n";
+        }
         if ($object->Wearable) $b = $b | 0x80;
         writeByte($b);
         $currentAddress++;
