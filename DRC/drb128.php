@@ -14,7 +14,7 @@ global $maxFileSizeForXMessages;
 $isBigEndian = false;
 
 define('VERSION_HI',0);
-define('VERSION_LO',4);
+define('VERSION_LO',5);
 
 define('FAKE_DEBUG_CONDACT_CODE',220);
 define('FAKE_USERPTR_CONDACT_CODE',256);
@@ -30,7 +30,8 @@ define('XUNDONE_OPCODE',137);
 define('XNEXTCLS_OPCODE',138);
 define('XNEXTRST_OPCODE',139);
 define('XSPEED_OPCODE',140);
-
+define('XDATA_OPCODE',142);
+define('LET_OPCODE',51);
 
 define('SFX_OPCODE',    18);
 define('PAUSE_OPCODE',  35);
@@ -1084,6 +1085,38 @@ function generateProcesses($adventure, &$currentAddress, $subtarget)
                         $condactID --; // As the current condact has been replaced with a sequentia of BEEPs, we move the pointer one step back to make sure the changes made for BEEP in ZX Spectrum applies
                     }
                 }
+                else if ($condact->Opcode == XDATA_OPCODE)
+                {
+                    $lets = array();
+                    $dataString = strtoupper($adventure->other_strings[$condact->Param1]->Text);
+                    $dataArray = explode(',', $dataString);
+
+                    if (sizeof($dataArray)<2) Error('There is not data enough in XDATA condact');               
+
+                    foreach ($dataArray as $i=>$element)
+                    {
+                        $element = trim($dataArray[$i]);
+                        $var = filter_var($element, FILTER_VALIDATE_INT, array());
+                        if (!$var) Error("Non integer value in XDATA condact element #$i '$element'");
+                        if (($element < 0) || ($element > 255)) Error("XDATA values must be in the 0-255 range, element #$i is not ($element)");
+                    }
+
+                    $baseFlagno = $dataArray[0];
+                    for ($i=1;$i<sizeof($dataArray);$i++)
+                    {
+                        if ($baseFlagno>255) Error('XDATA condact went over flag 255');
+                        $element = trim($dataArray[$i]);
+                        $let = dataToLet($baseFlagno, $element);
+                        $lets[]= $let;
+                        $baseFlagno++;
+                    }
+
+                    if (sizeof($lets)) 
+                    {
+                        array_splice($entry->condacts, $condactID, 1, $lets);
+                        $condactID --; // As the current condact has been replaced with a sequentia of LETs, we move the pointer one step back 
+                    }
+                }
                 else if ($condact->Opcode == XSPLITSCR_OPCODE)
                 {
                     $condact->Opcode = EXTERN_OPCODE;
@@ -1350,6 +1383,18 @@ function prependPlus3HeaderToDDB($outputFileName, $startAddress)
     fclose($outputHandle);
     unlink($outputFileName);
     rename("prepend.tmp" ,$outputFileName);
+}
+
+function dataToLet($flagno, $value)
+{
+    $condact = new stdClass();
+    $condact->NumParams = 2;
+    $condact->Indirection1 = 0;
+    $condact->Param1 = $flagno;
+    $condact->Param2 = $value;
+    $condact->Condact ='LET';
+    $condact->Opcode = LET_OPCODE;
+    return $condact;
 }
 
 //********************************************** XPLAY *************************************************************** */
