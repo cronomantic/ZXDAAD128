@@ -93,6 +93,8 @@ DIM tmpTok AS uInteger AT $6000 'We reuse the header as the token buffer (32 byt
 
 '---------------------------------------------------------------------
 'COpy of the header... DO NOT MOVE, MODIFY OR ADD ANOTHER VARIABLE----------
+DIM DdbVersion    AS uByte
+DIM DdbNullChar   AS uByte
 DIM DdbNumObjDsc  AS uByte     ' 0x03 | 1 byte  | Number of object descriptions
 DIM DdbNumLocDsc  AS uByte     ' 0x04 | 1 byte  | Number of location descriptions
 DIM DdbNumUsrMsg  AS uByte     ' 0x05 | 1 byte  | Number of user messages
@@ -2961,17 +2963,18 @@ END ASM
 '0x01 | 1 byte  | High nibble: target machine | Low nibble: target language
 '0x02 | 1 byte  | Always contains CTL value: 95d (ASCII '_')
 
-'Check header data
 #define DDBHeaderAddress tmpTok
-
-IF (PEEK(DDBHeaderAddress) <> 3) OR (PEEK(DDBHeaderAddress + 2) <> 95) THEN resetSys()
+LET DdbVersion = PEEK(DDBHeaderAddress)
 LET DdbTarget = PEEK(DDBHeaderAddress + 1)
+LET DdbNullChar = PEEK(DDBHeaderAddress + 2)
 MemCopy(DDBHeaderAddress + 3, @DdbNumObjDsc, SIZE_HEADER - $3) 'Moving header data to variables
-
 #undef DDBHeaderAddress
 
-LET DdbTokensPos = DdbTokensPos + 1 'Skip first token
+'Check header data
+IF (DdbVersion <> 3) OR (DdbNullChar <> 95) THEN resetSys()
+
 'Apparently, token table starts one byte after the token pointer (Why Tim?, Why?)
+LET DdbTokensPos = DdbTokensPos + 1 'Skip first token
 
 LET ramSave = memAlloc(512) '256 bytes for Flags + 256 bytes for Objects location
 
