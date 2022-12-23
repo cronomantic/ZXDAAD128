@@ -89,12 +89,15 @@ DIM Frames AS uInteger AT FramesAddress
 DIM ErrNr AS uInteger AT ErrNrAddress
 DIM currBank AS uByte AT CurrBankAddress
 
-DIM tmpTok AS uInteger AT $6000 'We reuse the header as the token buffer (32 bytes)
+
+DIM NextCondactPtr AS uInteger AT $6000 'First, pointer to the DDB start
+'Later, it will store a pointer to the end of the end of the GetCurrentCondact routine
+'We reuse the DDB header as the token buffer (32 bytes) later
 
 '---------------------------------------------------------------------
 'COpy of the header... DO NOT MOVE, MODIFY OR ADD ANOTHER VARIABLE----------
-DIM DdbVersion    AS uByte
-DIM DdbNullChar   AS uByte
+DIM DdbVersion    AS uByte     ' 0x00 | 1 byte  | DAAD version number (1 for Aventura Original and Jabato, 1989, 2 for the rest, 3 for ZX128 format)
+DIM DdbCtl        AS uByte     ' 0x02 | 1 byte  | Always contains CTL value: 95d (ASCII '_')
 DIM DdbNumObjDsc  AS uByte     ' 0x03 | 1 byte  | Number of object descriptions
 DIM DdbNumLocDsc  AS uByte     ' 0x04 | 1 byte  | Number of location descriptions
 DIM DdbNumUsrMsg  AS uByte     ' 0x05 | 1 byte  | Number of user messages
@@ -141,8 +144,7 @@ DIM DdbCursor     AS uByte     ' 0x39 | 1 byte  | Code of the character used as 
 #define PALETTE_OFFSET       SIZE_HEADER
 #define VECTOR_OFFSET        PALETTE_OFFSET+16
 '---------------------------------------------------------------------
-
-DIM DdbTarget     AS uByte
+DIM tmpTok AS uInteger  'We reuse the header as the token buffer (32 bytes)
 '-----------------------------------------------------------------------------
 
 DIM flags(0 TO 511) AS uByte
@@ -1777,7 +1779,7 @@ SUB clearLogicalSentences()
 END SUB
 
 ' Set the flags with the current logical sentence.
-FUNCTION populateLogicalSentence() AS uByte
+FUNCTION populateLogicalSentence(parseMode AS uByte) AS uByte
 
   DIM p, c AS uByte
   DIM type, id, adj, obj AS uByte
@@ -1834,12 +1836,12 @@ FUNCTION populateLogicalSentence() AS uByte
   LET v = flags(fVerb)
   LET n = flags(fNoun1)
 
-  ' word that works like noun and verb
-  IF v = NULLWORD AND n <> NULLWORD AND (n < LAST_CONVERTIBLE_NOUN) THEN
-    LET v = n
-    LET n = NULLWORD
-    LET flags(fVerb) = v
-    LET flags(fNoun1) = n 
+  IF parseMode = 0 THEN
+    ' word that works like noun and verb
+    IF v = NULLWORD AND n <> NULLWORD AND (n < LAST_CONVERTIBLE_NOUN) THEN
+      LET v = n
+      LET flags(fVerb) = v
+    END IF
   END IF
 
   ' Missing verb but present noun, replace with previous verb
@@ -1894,15 +1896,6 @@ nextLogicalSentence:
   LET lsBuffer0(c+1) = 0
 
   RETURN (v <> NULLWORD) OR (n <> NULLWORD)
-
-END FUNCTION
-
-'Copy sentence between "..." if any typed. True if any logical sentence found.
-FUNCTION useLiteralSentence() AS uByte
-
-  MemCopy(@lsBuffer1(0), @lsBuffer0(0), LS_BUFFER1_LEN)
-  LET previousVerb = NULLWORD
-  RETURN populateLogicalSentence()
 
 END FUNCTION
 
@@ -2090,7 +2083,18 @@ FUNCTION getLogicalSentence() AS uByte
     parser()
   END IF
 
-  RETURN populateLogicalSentence()
+  RETURN populateLogicalSentence(0)
+
+END FUNCTION
+
+'Copy sentence between "..." if any typed. True if any logical sentence found.
+' --------------------------------
+FUNCTION useLiteralSentence() AS uByte
+
+  MemCopy(@lsBuffer1(0), @lsBuffer0(0), LS_BUFFER1_LEN)
+  LET previousVerb = NULLWORD
+
+  RETURN populateLogicalSentence(1)
 
 END FUNCTION
 '==============================================================================
@@ -2939,8 +2943,7 @@ ENDP
 END ASM
 END SUB
 
-'===============================================================================
-'Main loop
+'-------------------------------------------------------------------------------
 
 #ifdef PLUS3
 InitPlus3Disc()
@@ -2956,22 +2959,47 @@ ASM
 END ASM
   SetRAMBank(ROM48KBASIC)
 #endif
-
 '-------------------------------------------------------------------------------
+DIM currCondact AS uByte
+
+SUB GetCurrentContact()
+
+  DIM pPROC AS uInteger
+
+  LET pPROC = condactProc(currProc)
+  LET condactProc(currProc) = pPROC + 1
+  LET currCondact = PEEK(pPROC)
+
+'ASM
+'  ld l, (ix-2)
+'  ld h, (ix-1)
+'  ld a, (hl)
+'END ASM
+
+END SUB
+'-------------------------------------------------------------------------------
+'===============================================================================
+' Main Program starts here:
+'===============================================================================
+
 'Initialization
 '0x00 | 1 byte  | DAAD version number (1 for Aventura Original and Jabato, 1989, 2 for the rest, 3 for ZX128 format)
 '0x01 | 1 byte  | High nibble: target machine | Low nibble: target language
 '0x02 | 1 byte  | Always contains CTL value: 95d (ASCII '_')
 
-#define DDBHeaderAddress tmpTok
+#define DDBHeaderAddress NextCondactPtr
+LET tmpTok = DDBHeaderAddress 'Reusing the original DDB header as the token buffer
 LET DdbVersion = PEEK(DDBHeaderAddress)
-LET DdbTarget = PEEK(DDBHeaderAddress + 1)
-LET DdbNullChar = PEEK(DDBHeaderAddress + 2)
+LET DdbCtl = PEEK(DDBHeaderAddress + 2)
 MemCopy(DDBHeaderAddress + 3, @DdbNumObjDsc, SIZE_HEADER - $3) 'Moving header data to variables
 #undef DDBHeaderAddress
+ASM
+  ld hl, _GetCurrentContact__leave  ;Pointer to the end of advancement to next condact subroutine
+  ld (_NextCondactPtr), hl          ;Store at $6000
+END ASM
 
 'Check header data
-IF (DdbVersion <> 3) OR (DdbNullChar <> 95) THEN resetSys()
+IF (DdbVersion <> 3) OR (DdbCtl <> 95) THEN resetSys()
 
 'Apparently, token table starts one byte after the token pointer (Why Tim?, Why?)
 LET DdbTokensPos = DdbTokensPos + 1 'Skip first token
@@ -3020,7 +3048,7 @@ DIM ePROC AS uInteger
 DIM pPROC, total, addr AS uInteger
 DIM ccVerb, ccNoun, ccAdjc AS uByte
 DIM objno, locno, flagno, flagno2 AS uByte
-DIM currCondact, cVerb, cNoun AS uByte
+DIM cVerb, cNoun AS uByte
 DIM c AS uByte
 
 'Initialize & Clear ISDONE flags
@@ -3028,7 +3056,8 @@ LET isDone = FALSE
 LET continueEntryProc(currProc) = FALSE
 
 DO
-  LET currCondact = getCondOrValueAndInc()
+  GetCurrentContact()
+
   'Execute condacts until 0xff (entry end) is found
   DO WHILE continueEntryProc(currProc) AND currCondact <> $FF
 
