@@ -1075,7 +1075,7 @@ function generateProcesses($adventure, &$currentAddress, $subtarget)
                             $note = substr($mml, 0, strlen($mml)-strlen($next));
                         else
                             $note = $mml;
-                        $beep = mmlToBeep($note, $values, $target, $subtarget);
+                        $beep = mmlToBeep($note, $values, $subtarget);
                         if ($beep!==NULL) $xplay[] = $beep;
                         $mml = $next;
                     }
@@ -1401,8 +1401,7 @@ function dataToLet($flagno, $value)
 
 function mmlToBeep($note, &$values, $subtarget)
 {
-    // These targets don't support BEEP condact
-
+    
     $condact = NULL;
     $noteIdx = array('C'=>0, 'C#'=>1, 'D'=>2, 'D#'=>3, 'E'=>4,  'F'=>5, 'F#'=>6, 'G'=>7, 'G#'=>8, 'A'=>9, 'A#'=>10, 'B'=>11,
                      'C+'=>1,         'D+'=>3,         'E+'=>5, 'F+'=>6,         'G+'=>8,         'A+'=>10,         'B+'=>12,
@@ -1415,20 +1414,21 @@ function mmlToBeep($note, &$values, $subtarget)
         $period = 1;                        //Period increase length
         while (substr($note, -1)=='.') {
             $period *= 1.5;
-            $note = substr($note, 0, strlen($note)-1);
+            $note = substr($note, 0, strlen($note)-1); 
         }
         $length = $values[XPLAY_LENGTH] / $period;
-
+        
         $end = 1;                           //Note index
         if (@$note[1]=='#' || @$note[1]=='-' || @$note[1]=='+') $end++;
         $idx = $noteIdx[substr($note, 0, $end)];
-
+        
         if ($end<strlen($note))             //Length
             $length = intval(substr($note, $end)) / $period;
 
         $condact = new stdClass();
         $condact->Opcode = BEEP_OPCODE;
         $condact->NumParams = 2;
+        if ($length==0) Error('Wrong length at note ' . $note);
         $condact->Param1 = intval(round($baseLength * (120 / $values[XPLAY_TEMPO]) / $length));
         $condact->Param2 = 24 + $values[XPLAY_OCTAVE]*24 + $idx*2;
         $condact->Indirection1 = 0;

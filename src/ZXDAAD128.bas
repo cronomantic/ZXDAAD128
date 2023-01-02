@@ -2791,10 +2791,12 @@ SUB PRIVATEDoBEEP()
   DIM tone AS Byte
   DIM c AS uByte
 
-  LET c = getValueOrIndirection()
-  LET duration = (c * 0.02)
   LET c = getCondOrValueAndInc()
   LET tone = CAST(Byte, (c >> 1)) - 60
+  LET c = getValueOrIndirection()
+  LET duration = c
+  'LET duration = duration * 0.02
+  LET duration = duration * 0.01
 
   BEEP duration, tone
 
