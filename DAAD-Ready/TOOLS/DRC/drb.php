@@ -27,6 +27,8 @@ define('XUNDONE_OPCODE',137);
 define('XNEXTCLS_OPCODE',138);
 define('XNEXTRST_OPCODE',139);
 define('XSPEED_OPCODE',140);
+define('XDATA_OPCODE',142);
+define('LET_OPCODE',51);
 
 
 define('SFX_OPCODE',    18);
@@ -237,7 +239,7 @@ var $newConversions = array(16=>'à',17=>'ã',18=>'ä',19=>'â',20=>'è',21=>'ë
 
 }
 define('VERSION_HI',0);
-define('VERSION_LO',25);
+define('VERSION_LO',29);
 
 
 function summary($adventure)
@@ -412,6 +414,7 @@ function getXMessageFileSizeByTarget($target, $subtarget, $adventure)
         case 'MSX' : return 64; 
         case 'PCW' : return 64; 
         case 'MSX2': return 16; 
+        case 'HTML': return 16; 
         case 'CPC' : return 2;
         case 'C64' : return 2;
         case 'CP4' : return 2;      
@@ -660,7 +663,13 @@ function generateObjectWeightAndAttr($adventure, &$currentAddress, $outputFileHa
     foreach($adventure->object_data as $object)
     {
         $b = $object->Weight & 0x3F;
-        if ($object->Container) $b = $b | 0x40;
+        if ($object->Container) 
+        {
+            $b = $b | 0x40;
+            $locno = $object->Value;
+            $text = $adventure->objects[$locno]->Text;
+            if ($adventure->locations[$locno]->Text != '') echo "Warning: object #$locno ($text) is a container. You are supposed to reserve location #$locno to hold the objects in the container, but location #$locno has a description.\n";         
+        }
         if ($object->Wearable) $b = $b | 0x80;
         writeByte($outputFileHandler, $b);
         $currentAddress++;
@@ -761,7 +770,7 @@ function generateProcesses($adventure, &$currentAddress, $outputFileHandler, $is
                     $condact->NumParams=2;
                     $condact->Param2 = 0; // Maluva function 0
                     $condact->Condact = 'EXTERN';
-                    if ((!CheckMaluva($adventure)) && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256'))) Error("XPICTURE condact requires Maluva Extension $target $subtarget");
+                    if ((!CheckMaluva($adventure)) && ($target!='HTML') && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256'))) Error("XPICTURE condact requires Maluva Extension $target $subtarget");
                 }
                 else if ($condact->Opcode == XUNDONE_OPCODE)
                 {
@@ -771,7 +780,7 @@ function generateProcesses($adventure, &$currentAddress, $outputFileHandler, $is
                     $condact->Param2 = 7; // Maluva function 7
                     $condact->Indirection1 = 0; // Also useless, but it must be set
                     $condact->Condact = 'EXTERN';
-                    if ((!CheckMaluva($adventure)) && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XUNDONE condact requires Maluva Extension');
+                    if ((!CheckMaluva($adventure)) && ($target!='MSX2') && ($target!='HTML') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XUNDONE condact requires Maluva Extension');
                 }
                 else if ($condact->Opcode == XNEXTCLS_OPCODE)
                 {
@@ -832,7 +841,7 @@ function generateProcesses($adventure, &$currentAddress, $outputFileHandler, $is
                     $condact->NumParams=2;
                     $condact->Param2 = 1; // Maluva function 1 
                     $condact->Condact = 'EXTERN';
-                    if ((!CheckMaluva($adventure)) && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XSAVE condact requires Maluva Extension');
+                    if ((!CheckMaluva($adventure)) && ($target!='HTML') && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XSAVE condact requires Maluva Extension');
                 }
                 else if ($condact->Opcode == XLOAD_OPCODE)
                 {
@@ -840,7 +849,7 @@ function generateProcesses($adventure, &$currentAddress, $outputFileHandler, $is
                     $condact->NumParams=2;
                     $condact->Param2 = 2; // Maluva function 2
                     $condact->Condact = 'EXTERN';
-                    if ((!CheckMaluva($adventure)) && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XLOAD condact requires Maluva Extension');
+                    if ((!CheckMaluva($adventure)) && ($target!='HTML') && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XLOAD condact requires Maluva Extension');
                 }
                 else if ($condact->Opcode == XPART_OPCODE)
                 {
@@ -848,7 +857,7 @@ function generateProcesses($adventure, &$currentAddress, $outputFileHandler, $is
                     $condact->NumParams=2;
                     $condact->Param2 = 4; // Maluva function 4
                     $condact->Condact = 'EXTERN';
-                    if ((!CheckMaluva($adventure)) && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XPART condact requires Maluva Extension');
+                    if ((!CheckMaluva($adventure))  && ($target!='HTML') && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XPART condact requires Maluva Extension');
                 }
                 else if ($condact->Opcode == XBEEP_OPCODE)
                 {
@@ -865,7 +874,7 @@ function generateProcesses($adventure, &$currentAddress, $outputFileHandler, $is
                         $condact->Param3 = $condact->Param2; 
                         $condact->Param2 = 5; // Maluva function 5
                         $condact->Condact = 'EXTERN'; // XBEEP A B  ==> EXTERN A 5 B  (3 parameters)
-                        if ((!CheckMaluva($adventure)) && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XBEEP condact requires Maluva Extension');
+                        if ((!CheckMaluva($adventure))  && ($target!='HTML') && ($target!='MSX2') && !(($target=='PC') && ($subtarget=='VGA256')))  Error('XBEEP condact requires Maluva Extension');
                     }
                 }
                 else if ($condact->Opcode == BEEP_OPCODE)
@@ -917,6 +926,38 @@ function generateProcesses($adventure, &$currentAddress, $outputFileHandler, $is
                     {
                         array_splice($entry->condacts, $condactID, 1, $xplay);
                         $condactID --; // As the current condact has been replaced with a sequentia of BEEPs, we move the pointer one step back to make sure the changes made for BEEP in ZX Spectrum applies
+                    }
+                }
+                else if ($condact->Opcode == XDATA_OPCODE)
+                {
+                    $lets = array();
+                    $dataString = strtoupper($adventure->other_strings[$condact->Param1]->Text);
+                    $dataArray = explode(',', $dataString);
+
+                    if (sizeof($dataArray)<2) Error('There is not data enough in XDATA condact');               
+
+                    foreach ($dataArray as $i=>$element)
+                    {
+                        $element = trim($dataArray[$i]);
+                        $var = filter_var($element, FILTER_VALIDATE_INT, array());
+                        if (!$var) Error("Non integer value in XDATA condact element #$i '$element'");
+                        if (($element < 0) || ($element > 255)) Error("XDATA values must be in the 0-255 range, element #$i is not ($element)");
+                    }
+
+                    $baseFlagno = $dataArray[0];
+                    for ($i=1;$i<sizeof($dataArray);$i++)
+                    {
+                        if ($baseFlagno>255) Error('XDATA condact went over flag 255');
+                        $element = trim($dataArray[$i]);
+                        $let = dataToLet($baseFlagno, $element);
+                        $lets[]= $let;
+                        $baseFlagno++;
+                    }
+
+                    if (sizeof($lets)) 
+                    {
+                        array_splice($entry->condacts, $condactID, 1, $lets);
+                        $condactID --; // As the current condact has been replaced with a sequentia of LETs, we move the pointer one step back 
                     }
                 }
                 else if ($condact->Opcode == XSPLITSCR_OPCODE)
@@ -1113,7 +1154,7 @@ function generateProcesses($adventure, &$currentAddress, $outputFileHandler, $is
 
 function isValidTarget($target)
 {
-    return ($target == 'ZX') || ($target == 'CPC') ||  ($target == 'C64') ||  ($target == 'PCW') ||  ($target == 'MSX') ||  ($target == 'AMIGA') ||  ($target == 'PC') ||  ($target == 'ST') || ($target == 'MSX2') || ($target=='CP4');
+    return ($target == 'HTML') || ($target == 'ZX') || ($target == 'CPC') ||  ($target == 'C64') ||  ($target == 'PCW') ||  ($target == 'MSX') ||  ($target == 'AMIGA') ||  ($target == 'PC') ||  ($target == 'ST') || ($target == 'MSX2') || ($target=='CP4');
 }
 
 function isValidSubtarget($target, $subtarget)
@@ -1153,6 +1194,7 @@ function getMachineIDByTarget($target, $subtarget)
   if ($target=='ST')    return 0x05; 
   if ($target=='AMIGA') return 0x06; 
   if ($target=='PCW')   return 0x07; 
+  if ($target=='HTML')  return 0x0D;   // New target for jDAAD html/js interpreter
   if ($target=='CP4')   return 0x0E;    // New target for Commodore Plus/4 interpreter
   if ($target=='MSX2')  return 0x0F;   // New target for @ishwin MSX2 interpreter
   return 0x00; // Default in case of error
@@ -1170,7 +1212,7 @@ function getBaseAddressByTarget($target)
 
 function isPaddingPlatform($target)
 {
-    return (($target=='PC') || ($target=='ST') || ($target=='AMIGA'));
+    return (($target=='PC') || ($target=='ST') || ($target=='AMIGA') || ($target=='HTML'));
 };
 
 function isLittleEndianPlatform($target)
@@ -1187,7 +1229,7 @@ function Syntax()
 {
     
     echo("SYNTAX: php drb <target> [subtarget] <language> <inputfile> [outputfile] [options]\n\n");
-    echo("+ <target>: target machine, should be 'ZX', 'CPC', 'C64', 'CP4', 'MSX', 'MSX2', 'PCW', 'PC', 'ST' or 'AMIGA'. Just to clarify, CP4 stands for Commodore Plus/4\n");
+    echo("+ <target>: target machine, should be 'ZX', 'CPC', 'C64', 'CP4', 'MSX', 'MSX2', 'PCW', 'PC', 'ST', 'AMIGA' or 'HTML'. Just to clarify, CP4 stands for Commodore Plus/4\n");
     echo("+ [subtarget]: some targets need to specify a subtarget.\n\tFor MSX2 target: 5_6, 5_8, 6_6, 6_8, 7_6, 7_8, 8_6, 8_8, 10_6, 10_8, 12_6 ad 12_8 (being video mode and character width in pixels).\n\tFor PC target: VGA256, VGA, EGA, CGA and TEXT.\n\tFor ZX target: PLUS3, NEXT; UNO and ESXDOS.\n");
     echo("+ <language>: game language, should be 'EN', 'ES', 'DE', 'FR' or 'PT' (English, Spanish, German, French or Portuguese).\n");
     echo("+ <inputfile>: a json file generated by DRF.\n");
@@ -1248,6 +1290,33 @@ function parseOptionalParameters($argv, $nextParam, &$adventure)
     return $result; // output file name
 }
 
+
+function generateJDDB($outputFileName)
+{
+    echo "Converting DDB to JDDB\n";
+    $outputFileNameJDDB = strtolower($outputFileName);
+    $outputFileNameJDDB = str_replace('.ddb','.jddb', $outputFileNameJDDB);
+    $inputHandle = fopen($outputFileName, 'r');
+    $outputHandle = fopen($outputFileNameJDDB, "w");
+
+    fputs($outputHandle, "var DDBDATA = [\n");
+    $i= 0;
+    while (!feof($inputHandle))
+    {
+        $c = fgetc($inputHandle);
+        $val = '0x' . dechex(ord($c));
+        fputs($outputHandle,$val);
+        if (!feof($inputHandle)) fputs($outputHandle,',');
+        $offset = '0x' . str_pad(dechex($i),4,'0',STR_PAD_LEFT);
+        if ($i % 10 == 9) fputs($outputHandle, "// $offset\n");
+        
+        $i++;
+    }
+    fputs($outputHandle, "\n];");
+    fclose($inputHandle);
+    fclose($outputHandle);
+
+}
 
 function prependPlus3HeaderToDDB($outputFileName)
 {
@@ -1316,12 +1385,25 @@ function prependC64HeaderToDDB($outputFileName, $target)
     rename("prepend.tmp" ,$outputFileName);
 }
 
+
+function dataToLet($flagno, $value)
+{
+    $condact = new stdClass();
+    $condact->NumParams = 2;
+    $condact->Indirection1 = 0;
+    $condact->Param1 = $flagno;
+    $condact->Param2 = $value;
+    $condact->Condact ='LET';
+    $condact->Opcode = LET_OPCODE;
+    return $condact;
+}
+
 //********************************************** XPLAY *************************************************************** */
 
 function mmlToBeep($note, &$values, $target, $subtarget)
 {
     // These targets don't support BEEP condact
-    if (($target=='ST') || ($target=='AMIGA') || ($target=='PCW') || (($target=='PC') && ($subtarget!='VGA256'))) return NULL;
+    if (($target=='ST') || ($target=='AMIGA') || ($target=='PCW') || ($target=='PCW') || (($target=='PC') && ($subtarget!='VGA256'))) return NULL;
 
     $condact = NULL;
     $noteIdx = array('C'=>0, 'C#'=>1, 'D'=>2, 'D#'=>3, 'E'=>4,  'F'=>5, 'F#'=>6, 'G'=>7, 'G#'=>8, 'A'=>9, 'A#'=>10, 'B'=>11,
@@ -1333,8 +1415,9 @@ function mmlToBeep($note, &$values, $target, $subtarget)
         case 'C64':
         case 'CP4': $baseLength = 205; break;
         case 'PC':  
-	case 'MSX': 
-	case 'MSX2': $baseLength = 200; break;
+        case 'HTML':  
+	    case 'MSX': 
+	    case 'MSX2': $baseLength = 200; break;
         default: $baseLength = 200; // Full note (1 sec)
     }
     
@@ -1755,5 +1838,10 @@ if ($adventure->prependPlus3Header)
     prependPlus3HeaderToDDB($outputFileName);
     if ($adventure->verbose) echo ("+3DOS header added\n");
 } 
+
+if ($target == 'HTML')
+{
+    generateJDDB($outputFileName);
+}
 
 

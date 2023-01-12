@@ -38,7 +38,9 @@
 #endif
 #endif
 
-
+#ifdef "html"
+#define nativeraster 1
+#endif
 #ifdef "pcw"
 #define nativeraster 1
 #endif

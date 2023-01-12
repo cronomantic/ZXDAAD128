@@ -954,6 +954,7 @@ END SUB
 SUB checkPrintedLines()
 
   DIM oldTmpMsg AS uInteger
+  DIM oldTmpTok AS uInteger
 
   IF checkPrintedLinesinUse THEN RETURN
   IF (cwinMode bAND MODE_DISABLEMORE) THEN RETURN
@@ -970,9 +971,12 @@ SUB checkPrintedLines()
     END IF
     'Print SYS32 "More..."
     LET oldTmpMsg = tmpMsg
-    LET tmpMsg = memAlloc(TEXT_BUFFER_LEN)
+    LET oldTmpTok = tmpTok
+    LET tmpMsg = memAlloc(TEXT_BUFFER_LEN*2)
+    LET tmpTok = tmpMsg + TEXT_BUFFER_LEN
     printSystemMsg(32)
     deallocate(tmpMsg)
+    LET tmpTok = oldTmpTok
     LET tmpMsg = oldTmpMsg
     waitForTimeout(TIME_MORE)
     LET printedLines = 0
