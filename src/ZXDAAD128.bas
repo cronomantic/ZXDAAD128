@@ -4584,8 +4584,12 @@ condactINKEY:
 ' code pair.
 ' On 8 bit only Key1 will be valid, and the code will be machine specific
 #ifndef DISABLE_INKEY
-  LET continueEntryProc(currProc) = (PEEK LastKAddress) <> 0
-  IF continueEntryProc(currProc) THEN LET flags(fKey1) = PEEK LastKAddress
+  LET flagno = (PEEK LastKAddress)
+  IF flagno <> 0 THEN
+    LET flags(fKey1) = flagno
+    POKE LastKAddress, 0
+  END IF
+  LET continueEntryProc(currProc) = flagno <> 0
 #endif
   GOTO NextCondact
 ' =============================================================================
