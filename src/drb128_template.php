@@ -936,9 +936,11 @@ function generateProcesses($adventure, &$currentAddress, $subtarget)
                 else if ($condact->Opcode == XPICTURE_OPCODE)
                 {
                     $condact->Opcode = EXTERN_OPCODE;
-                    $condact->NumParams=2;
+                    $condact->NumParams = 2;
                     $condact->Param2 = 0; // Maluva function 0
                     $condact->Condact = 'EXTERN';
+                    // This is not necessary for 128, keep commented for reference
+                    /*
                     if ($subtarget=='TAPE')  // If target does not support XPICTURE replace by always true condition "AT @38"
                     {
                         $condact->Opcode = AT_OPCODE;
@@ -947,6 +949,7 @@ function generateProcesses($adventure, &$currentAddress, $subtarget)
                         $condact->Param1 = 38;
                         $condact->NumPrams=1;
                     }
+                    */
                 }
                 else if ($condact->Opcode == XUNDONE_OPCODE)
                 {

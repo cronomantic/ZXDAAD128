@@ -3852,8 +3852,7 @@ condactEXTERN:
 #ifdef TAPE
     LET flagno2 = preparePicture(c)
     IF flagno2 THEN showBufferedPicture()
-#endif
-#ifndef TAPE
+#else
     LET flagno2 = loadXPicture(c)
     IF flagno2 THEN showBufferedPicture()
 #endif
