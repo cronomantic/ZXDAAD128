@@ -7,6 +7,8 @@
 
 #include "zx0.h"
 
+#define VERSION "0.3"
+
 #define MAX_OFFSET_ZX0 32640
 #define MAX_SIZE 6912
 #define SECTOR1 2048
@@ -30,7 +32,7 @@ void convert(uint8_t num_lines_scr, uint8_t num_lines_att, uint8_t mirror_mode)
     line_cnt = 0;
 
     /* transform bitmap area */
-    for (sector = 0; sector < MAX_SIZE / SECTOR1; sector++)
+    for (sector = 0; sector < 3; sector++)
     {
         for (row = 0; row < 8; row++)
         {
@@ -38,20 +40,16 @@ void convert(uint8_t num_lines_scr, uint8_t num_lines_att, uint8_t mirror_mode)
             {
                 for (col = 0; col < 32; col++)
                 {
-                    idx = (((((sector << 3) + char_row) << 3) + row) << 5) + col;
                     if ((col >= 16 && mirror_mode) || (line_cnt >= num_lines_scr))
                     {
-                        // screen_data[i++] = 0;
-                        screen_data[idx] = 0;
+                        screen_data[i++] = 0;
                     }
                     else
                     {
-                        // screen_data[i++] = input_data[idx];
-                        screen_data[idx] = input_data[idx];
+                        idx = (((((sector << 3) + char_row) << 3) + row) << 5) + col;
+                        screen_data[i++] = input_data[idx];
                     }
-                    i++;
                 }
-                line_cnt++;
             }
         }
     }
@@ -252,7 +250,7 @@ int main(int argc, char *argv[])
             config.output = value;
             break;
         case 'h':
-            printf("DCP v0.2: Daad Picture Compressor by Cronomantic\n");
+            printf("DCP v%s: Daad Picture Compressor by Cronomantic\n", VERSION);
             printf("          Based on ZX0 v2.2 by Einar Saukas\n\n");
             printf(" Usage: DCP [-f] [-m] [-l=num_lines] [-o=output] input\n");
             cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
@@ -360,18 +358,19 @@ int main(int argc, char *argv[])
     }
 
     /* generate output file */
+    /*
     output_data_scr = compress(optimize(&(screen_data[0]), (192 * 32), 0, MAX_OFFSET_ZX0), &(screen_data[0]), (192 * 32), 0, FALSE, TRUE, &output_size_scr, &delta_scr);
     printf("Pixel data compressed from %d to %d bytes! (delta %d)\n", (192 * 32), output_size_scr, delta_scr);
 
     output_data_att = compress(optimize(&(att_data[0]), (24 * 32), 0, MAX_OFFSET_ZX0), &(att_data[0]), (24 * 32), 0, FALSE, TRUE, &output_size_att, &delta_att);
     printf("Attributes compressed from %d to %d bytes! (delta %d)\n", (24 * 32), output_size_att, delta_att);
-    /*
+    */
     output_data_scr = compress(optimize(&(screen_data[0]), (num_lines_scr * 32), 0, MAX_OFFSET_ZX0), &(screen_data[0]), (num_lines_scr * 32), 0, FALSE, TRUE, &output_size_scr, &delta_scr);
     printf("Pixel data compressed from %d to %d bytes! (delta %d)\n", (num_lines_scr * 32), output_size_scr, delta_scr);
 
     output_data_att = compress(optimize(&(att_data[0]), (num_lines_att * 32), 0, MAX_OFFSET_ZX0), &(att_data[0]), (num_lines_att * 32), 0, FALSE, TRUE, &output_size_att, &delta_att);
     printf("Attributes compressed from %d to %d bytes! (delta %d)\n", (num_lines_att * 32), output_size_att, delta_att);
-    */
+
     scr_size = (uint16_t)output_size_scr;
     att_size = (uint16_t)output_size_att;
 
@@ -381,41 +380,41 @@ int main(int argc, char *argv[])
         att_size = swap_uint16(att_size);
     }
 
-    if (config.mirror_mode)
-    {
-        // Using MSB of the att size to tell if it is mirrored
-        att_size |= 0x8000;
-    }
-    /*
-        if (fwrite(&num_lines_scr, sizeof(char), 1, ofp) != 1)
-        {
-            fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
-            return EXIT_FAILURE;
-        }
-
-        if (fwrite(&num_lines_att, sizeof(char), 1, ofp) != 1)
-        {
-            fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
-            return EXIT_FAILURE;
-        }
-
-
-        if (fwrite(&config.mirror_mode, sizeof(char), 1, ofp) != 1)
-        {
-            fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
-            return EXIT_FAILURE;
-        }
-        */
-
     if (fwrite(&scr_size, sizeof(char), 2, ofp) != 2)
     {
         fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
+        fclose(ofp);
+        free(output_name);
         return EXIT_FAILURE;
     }
 
     if (fwrite(&att_size, sizeof(char), 2, ofp) != 2)
     {
         fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
+        fclose(ofp);
+        free(output_name);
+        return EXIT_FAILURE;
+    }
+
+    if (fwrite(&num_lines_scr, sizeof(char), 1, ofp) != 1)
+    {
+        fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
+        fclose(ofp);
+        free(output_name);
+        return EXIT_FAILURE;
+    }
+
+    if (config.mirror_mode)
+    {
+        // Using MSB of the att size to tell if it is mirrored
+        num_lines_att |= 0x80;
+    }
+
+    if (fwrite(&num_lines_att, sizeof(char), 1, ofp) != 1)
+    {
+        fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
+        fclose(ofp);
+        free(output_name);
         return EXIT_FAILURE;
     }
 
@@ -423,6 +422,8 @@ int main(int argc, char *argv[])
     if (fwrite(output_data_scr, sizeof(char), output_size_scr, ofp) != output_size_scr)
     {
         fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
+        fclose(ofp);
+        free(output_name);
         return EXIT_FAILURE;
     }
 
@@ -430,6 +431,8 @@ int main(int argc, char *argv[])
     if (fwrite(output_data_att, sizeof(char), output_size_att, ofp) != output_size_att)
     {
         fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
+        fclose(ofp);
+        free(output_name);
         return EXIT_FAILURE;
     }
 

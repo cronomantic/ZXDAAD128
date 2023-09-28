@@ -41,7 +41,7 @@ CONST ROM48KBASIC AS uByte = %00010000
   #endif
 #else
   #include once "plus3dos.bas"
-  #define SCR_BUFF_ADDR ($F000-$1B04)
+  #define SCR_BUFF_ADDR ($F000-$1B06)
   #define SCR_BUFF_BANK 6
 #endif
 '---------------------------------------------------------------------
@@ -356,10 +356,36 @@ SUB FASTCALL DecompressPicture(addr AS uInteger)
 ASM
 PROC
     LOCAL EndDecompressPicture, HasMirroring
-    LOCAL no_mirror
-    LOCAL loop1, loop2, loop3, loop4
+    LOCAL no_mirror, NLinesPxl, NLinesAtt
+    LOCAL loop1, loop2, loop3, loop4, loop5
 
     PUSH IX
+    
+    LD E, (HL)         ;Get the size of the compressed pixel data
+    INC HL
+    LD D, (HL)
+    INC HL
+    INC HL
+    INC HL             ;Skip Att Size
+    LD A, (HL)         ;Num Lines Pxl
+    INC HL
+    LD (NLinesPxl+1), A
+    LD A, (HL)         ;Num Lines Att
+    INC HL             ;Skip to beginning of pixel data
+    LD (HasMirroring), A
+    AND $7F
+    LD (NLinesAtt+1), A
+    EXX
+    RRCA               
+    RRCA
+    RRCA
+    LD L, A
+    AND %00011111
+    LD H, A
+    LD A, %11100000
+    AND L
+    LD L, A          ; 32 * Num Att Lines
+    DEC HL           ; 32 * Num Att Lines - 1
     PUSH HL
     ;To hide the decompression, we set all the attributes
     ;with the same color of ink and paper
@@ -374,29 +400,22 @@ PROC
     LD HL, $5800
     LD (HL), A         ;Sets the color on ATTRMEM
     LD DE, $5801
-    LD BC, $2FF
-    LDIR               ;Put the screen on black
-    POP HL
-    LD E, (HL)         ;Get the size of the compressed pixel data
-    INC HL
-    LD D, (HL)
-    INC HL
-    INC HL
-    LD A, (HL)         ; Get MSB of attribute size
-    LD (HasMirroring), A 
-    INC HL             ;Skip to beginning of pixel data
+    POP BC             ;Recover num of atts to draw...
+    LDIR               ;Put the screen on the paper color
+    EXX
     EX DE, HL          ;Gets the pointer of the file to DE
     ADD HL, DE         ;Add to the current pointer to obtain on HL the pointer to Attribute data
     PUSH HL
     EX DE, HL          ;HL: Pointer to pixel data, DE: pointer to attr data
     LD DE, $4000
     PUSH DE
-    CALL DecompressZX0
+    CALL dzx0_turbo_dcp
     POP DE
 ;---------------------------------------
     LD A, (HasMirroring)
     AND $80
     JR Z, no_mirror
+NLinesPxl:
     LD B, 192
 loop2:
     LD C, B
@@ -406,24 +425,14 @@ loop2:
 loop1:
     LD A, (DE)
     INC DE
-    EXX                       ;inverting the byte
+    EXX  
+    ;inverting the byte
+    LD B, 8
+loop5:
     RRA
-    RL B
-    RRA
-    RL B
-    RRA
-    RL B
-    RRA
-    RL B
-    RRA
-    RL B
-    RRA
-    RL B
-    RRA
-    RL B
-    RRA
-    RL B
-    LD A, B
+    RL C
+    DJNZ loop5
+    LD A, C
     EXX
     LD (HL), A
     DEC HL
@@ -438,12 +447,13 @@ no_mirror:
     POP HL
     LD DE, $5800
     PUSH DE
-    CALL DecompressZX0 ;Decompress attributes
+    CALL dzx0_standard ;Decompress attributes
     POP DE
 ;---------------------------------------
     LD A, (HasMirroring)
     AND $80
     JP Z, EndDecompressPicture
+NLinesAtt:
     LD B, 24
 loop4:
     LD C, B
@@ -466,7 +476,9 @@ loop3:
 HasMirroring:
     DEFB 0
 
-#include once "./ZX0/z80/dzx0_fast.asm"
+#include once "./asm/dzx0_turbo_dcp.asm"
+#include once "./asm/dzx0_standard.asm"
+
 
 EndDecompressPicture:
     POP IX
@@ -532,9 +544,9 @@ FUNCTION loadXPicture(idx AS uByte) AS uByte
 XpicturePlus3:
   LET h = 1
   IF Plus3DOSOpen(@XpictureFilename, h, 3, 2, 0) <> 0 THEN GOTO ErrorloadXpicture2
-  LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR, 4)
+  LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR, 6)
   IF size <> 0 THEN GOTO ErrorloadXpicture
-  LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR + 4, scrSize + (attSize bAND $7FFF))
+  LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR + 6, scrSize + attSize)
   Plus3DOSClose(h)
   IF size <> 0 THEN GOTO ErrorloadXpicture2
 
