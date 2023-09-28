@@ -41,7 +41,7 @@ CONST ROM48KBASIC AS uByte = %00010000
   #endif
 #else
   #include once "plus3dos.bas"
-  #define SCR_BUFF_ADDR $D4FC
+  #define SCR_BUFF_ADDR ($F000-$1B04)
   #define SCR_BUFF_BANK 6
 #endif
 '---------------------------------------------------------------------
@@ -355,7 +355,9 @@ END FUNCTION
 SUB FASTCALL DecompressPicture(addr AS uInteger)
 ASM
 PROC
-    LOCAL EndDecompressPicture
+    LOCAL EndDecompressPicture, HasMirroring
+    LOCAL no_mirror
+    LOCAL loop1, loop2, loop3, loop4
 
     PUSH IX
     PUSH HL
@@ -380,20 +382,90 @@ PROC
     LD D, (HL)
     INC HL
     INC HL
+    LD A, (HL)         ; Get MSB of attribute size
+    LD (HasMirroring), A 
     INC HL             ;Skip to beginning of pixel data
     EX DE, HL          ;Gets the pointer of the file to DE
     ADD HL, DE         ;Add to the current pointer to obtain on HL the pointer to Attribute data
     PUSH HL
     EX DE, HL          ;HL: Pointer to pixel data, DE: pointer to attr data
     LD DE, $4000
+    PUSH DE
     CALL DecompressZX0
-    CALL drcs_onscreen ;Decompress pixels
+    POP DE
+;---------------------------------------
+    LD A, (HasMirroring)
+    AND $80
+    JR Z, no_mirror
+    LD B, 192
+loop2:
+    LD C, B
+    LD HL, 31
+    ADD HL, DE
+    LD B, 16
+loop1:
+    LD A, (DE)
+    INC DE
+    EXX                       ;inverting the byte
+    RRA
+    RL B
+    RRA
+    RL B
+    RRA
+    RL B
+    RRA
+    RL B
+    RRA
+    RL B
+    RRA
+    RL B
+    RRA
+    RL B
+    RRA
+    RL B
+    LD A, B
+    EXX
+    LD (HL), A
+    DEC HL
+    DJNZ loop1
+    LD HL, 16
+    ADD HL, DE
+    EX DE, HL
+    LD B, C
+    DJNZ loop2
+no_mirror:
+;---------------------------------------
     POP HL
     LD DE, $5800
+    PUSH DE
     CALL DecompressZX0 ;Decompress attributes
+    POP DE
+;---------------------------------------
+    LD A, (HasMirroring)
+    AND $80
+    JP Z, EndDecompressPicture
+    LD B, 24
+loop4:
+    LD C, B
+    LD HL, 31
+    ADD HL, DE
+    LD B, 16
+loop3:
+    LD A, (DE)
+    INC DE
+    LD (HL), A
+    DEC HL
+    DJNZ loop3
+    LD HL, 16
+    ADD HL, DE
+    EX DE, HL
+    LD B, C
+    DJNZ loop4
     JP EndDecompressPicture
 
-#include once "./RCS/z80/drcs_onscreen.asm"
+HasMirroring:
+    DEFB 0
+
 #include once "./ZX0/z80/dzx0_fast.asm"
 
 EndDecompressPicture:
@@ -462,7 +534,7 @@ XpicturePlus3:
   IF Plus3DOSOpen(@XpictureFilename, h, 3, 2, 0) <> 0 THEN GOTO ErrorloadXpicture2
   LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR, 4)
   IF size <> 0 THEN GOTO ErrorloadXpicture
-  LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR + 4, scrSize + attSize)
+  LET size = Plus3DOSRead(h, SCR_BUFF_BANK, SCR_BUFF_ADDR + 4, scrSize + (attSize bAND $7FFF))
   Plus3DOSClose(h)
   IF size <> 0 THEN GOTO ErrorloadXpicture2
 
