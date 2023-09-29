@@ -358,8 +358,7 @@ PROC
     LOCAL EndDecompressPicture, HasMirroring
     LOCAL no_mirror, NLinesPxl, NLinesAtt
     LOCAL loop1, loop2, loop3, loop4, loop5
-
-    PUSH IX
+    LOCAL mirr_leave
     
     LD E, (HL)         ;Get the size of the compressed pixel data
     INC HL
@@ -376,7 +375,7 @@ PROC
     AND $7F
     LD (NLinesAtt+1), A
     EXX
-    RRCA               
+    RRCA
     RRCA
     RRCA
     LD L, A
@@ -409,7 +408,8 @@ PROC
     EX DE, HL          ;HL: Pointer to pixel data, DE: pointer to attr data
     LD DE, $4000
     PUSH DE
-    CALL dzx0_turbo_dcp
+    ;CALL dzx0_turbo_dcp
+    CALL dzx0_standard_dcp
     POP DE
 ;---------------------------------------
     LD A, (HasMirroring)
@@ -421,12 +421,13 @@ loop2:
     LD C, B
     LD HL, 31
     ADD HL, DE
+    PUSH DE
     LD B, 16
 loop1:
     LD A, (DE)
     INC DE
-    EXX  
     ;inverting the byte
+    EXX  
     LD B, 8
 loop5:
     RRA
@@ -437,9 +438,33 @@ loop5:
     LD (HL), A
     DEC HL
     DJNZ loop1
-    LD HL, 16
+
+    POP HL
+    LD DE, $4000
+    LD A, $E0
+    AND L
+    LD L, A
+    OR A
+    SBC HL, DE
+    INC H
+    LD A,H
+    AND $07
+    JR NZ, mirr_leave
+    XOR A                   ;Clear carry
+    LD A,H
+    SUB $08
+    LD H,A
+    LD A,L
+    ADD A,$20
+    LD L,A
+    JR NC, mirr_leave
+    LD A,H
+    ADD A,$08
+    LD H,A
+mirr_leave:
     ADD HL, DE
     EX DE, HL
+
     LD B, C
     DJNZ loop2
 no_mirror:
@@ -476,12 +501,12 @@ loop3:
 HasMirroring:
     DEFB 0
 
-#include once "./asm/dzx0_turbo_dcp.asm"
+;include once "./asm/dzx0_turbo_dcp.asm"
+#include once "./asm/dzx0_standard_dcp.asm"
 #include once "./asm/dzx0_standard.asm"
 
 
 EndDecompressPicture:
-    POP IX
 ENDP
 END ASM
 END SUB

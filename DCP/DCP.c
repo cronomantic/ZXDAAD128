@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "zx0.h"
+#include "symmetry.h"
 
 #define VERSION "0.3"
 
@@ -72,68 +73,6 @@ void convert(uint8_t num_lines_scr, uint8_t num_lines_att, uint8_t mirror_mode)
     }
 }
 
-unsigned char reverse(unsigned char b)
-{
-    b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
-    b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
-    b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-    return b;
-}
-
-bool is_symmetric(uint8_t num_lines_scr, uint8_t num_lines_att)
-{
-    int sector;
-    int row;
-    int char_row;
-    int col;
-    int i, j, idx;
-    uint8_t line_cnt;
-
-    line_cnt = 0;
-
-    /* transform bitmap area */
-    for (sector = 0; sector < MAX_SIZE / SECTOR1; sector++)
-    {
-        for (row = 0; row < 8; row++)
-        {
-            for (char_row = 0; char_row < 8; char_row++)
-            {
-                idx = (((((sector << 3) + char_row) << 3) + row) << 5);
-                if (line_cnt < num_lines_scr)
-                {
-                    for (col = 0; col < 16; col++)
-                    {
-
-                        i = input_data[idx + col];
-                        j = input_data[idx + (31 - col)];
-                        if (i != reverse(j))
-                            return FALSE;
-                    }
-                }
-                line_cnt++;
-            }
-        }
-    }
-
-    idx = MAX_SIZE - ATTRIB1;
-    for (row = 0; row < 24; row++)
-    {
-        if (row < num_lines_att)
-        {
-            for (col = 0; col < 16; col++)
-            {
-
-                i = input_data[idx + col];
-                j = input_data[idx + (31 - col)];
-                if (i != j)
-                    return FALSE;
-            }
-        }
-        idx += 32;
-    }
-
-    return TRUE;
-}
 
 bool is_little_endian()
 {
@@ -337,7 +276,7 @@ int main(int argc, char *argv[])
         printf("Converting screen data...\n");
         if (!config.mirror_mode)
         {
-            config.mirror_mode = is_symmetric(num_lines_scr, num_lines_att);
+            config.mirror_mode = is_symmetric(num_lines_scr, num_lines_att, input_data);
             if (config.mirror_mode)
                 printf("Symmetric image detected! Enabling mirror mode.\n");
         }
