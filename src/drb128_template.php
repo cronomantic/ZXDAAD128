@@ -1746,7 +1746,7 @@ if ($adventure->verbose)
 
 $baseAddress = 0x6000;
 $baseAddressBanks = 0xC000;
-$screenBufferSize = 0x1B04;
+$screenBufferSize = 0x1B06;
 $diskBufferSize = 0x1000;
 
 $bankCurrentAddress = array(

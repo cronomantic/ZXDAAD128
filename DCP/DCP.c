@@ -1,36 +1,14 @@
-/*
- * (c) Copyright 2021 by Einar Saukas. All rights reserved.
- *     Modifications by Cronomantic.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * The name of its author may not be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
+#include "cargs.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 #include "zx0.h"
+#include "symmetry.h"
+
+#define VERSION "0.3"
 
 #define MAX_OFFSET_ZX0 32640
 #define MAX_SIZE 6912
@@ -41,38 +19,60 @@ unsigned char input_data[MAX_SIZE + 1];
 unsigned char screen_data[(MAX_SIZE - ATTRIB1)];
 unsigned char att_data[ATTRIB1];
 
-void convert()
+void convert(uint8_t num_lines_scr, uint8_t num_lines_att, uint8_t mirror_mode)
 {
     int sector;
     int row;
-    int lin;
+    int char_row;
     int col;
-    int i, j;
+    int i, j, idx;
+    uint8_t line_cnt;
 
     i = 0;
     j = 0;
+    line_cnt = 0;
 
     /* transform bitmap area */
-    for (sector = 0; sector < MAX_SIZE / SECTOR1; sector++)
+    for (sector = 0; sector < 3; sector++)
     {
-        for (col = 0; col < 32; col++)
+        for (row = 0; row < 8; row++)
         {
-            for (row = 0; row < 8; row++)
+            for (char_row = 0; char_row < 8; char_row++)
             {
-                for (lin = 0; lin < 8; lin++)
+                for (col = 0; col < 32; col++)
                 {
-                    screen_data[i++] = input_data[(((((sector << 3) + lin) << 3) + row) << 5) + col];
+                    if ((col >= 16 && mirror_mode) || (line_cnt >= num_lines_scr))
+                    {
+                        screen_data[i++] = 0;
+                    }
+                    else
+                    {
+                        idx = (((((sector << 3) + char_row) << 3) + row) << 5) + col;
+                        screen_data[i++] = input_data[idx];
+                    }
                 }
             }
         }
     }
 
     /* just copy attributes */
-    for (; i < MAX_SIZE; i++)
+    for (row = 0; row < 24; row++)
     {
-        att_data[j++] = input_data[i];
+        for (col = 0; col < 32; col++)
+        {
+            if ((col >= 16 && mirror_mode) || (row >= num_lines_att))
+            {
+                att_data[j++] = 0;
+                i++;
+            }
+            else
+            {
+                att_data[j++] = input_data[i++];
+            }
+        }
     }
 }
+
 
 bool is_little_endian()
 {
@@ -101,8 +101,54 @@ void strip_ext(char *fname)
     }
 }
 
+/**
+ * This is the main configuration of all options available.
+ */
+static struct cag_option options[] = {
+    {.identifier = 'f',
+     .access_letters = "f",
+     .access_name = "force",
+     .description = "Force overwrite of output file"},
+
+    {.identifier = 'm',
+     .access_letters = "m",
+     .access_name = "mirror",
+     .description = "The right side of the image is the reflection of the left one."},
+
+    {.identifier = 'o',
+     .access_letters = "o",
+     .access_name = "output",
+     .value_name = "FILE",
+     .description = "Output path for the file"},
+
+    {.identifier = 'l',
+     .access_letters = "l",
+     .access_name = "num-lines",
+     .value_name = "NUMBER",
+     .description = "Number of visible lines"},
+
+    {.identifier = 'h',
+     .access_letters = "h",
+     .access_name = "help",
+     .description = "Shows the command help"}};
+
+struct options
+{
+    bool forced_mode;
+    bool mirror_mode;
+    int num_lines;
+    const char *input;
+    const char *output;
+};
+
 int main(int argc, char *argv[])
 {
+    char identifier;
+    const char *value;
+    cag_option_context context;
+    struct options config = {FALSE, FALSE, 0, NULL, NULL};
+    int param_index;
+    char *output_name = NULL;
     unsigned char *output_data_scr;
     unsigned char *output_data_att;
     size_t input_size;
@@ -111,61 +157,108 @@ int main(int argc, char *argv[])
     int output_size_att;
     uint16_t scr_size;
     uint16_t att_size;
-    int forced_mode = FALSE;
-    char *input_name = NULL;
-    char *output_name = NULL;
+    uint8_t num_lines_scr;
+    uint8_t num_lines_att;
     FILE *ifp;
     FILE *ofp;
     int delta_scr;
     int delta_att;
     int i;
 
-    printf("DCP v0.1: Daad Picture Compressor by Cronomantic\n");
-    printf("          Based on ZX0 v2.2 by Einar Saukas\n\n");
-
-    for (i = 1; i < argc; i++)
+    /**
+     * Now we just prepare the context and iterate over all options. Simple!
+     */
+    cag_option_prepare(&context, options, CAG_ARRAY_SIZE(options), argc, argv);
+    while (cag_option_fetch(&context))
     {
-        if (!strcmp(argv[i], "-f"))
+        identifier = cag_option_get(&context);
+        switch (identifier)
         {
-            forced_mode = 1;
-        }
-        else if (input_name == NULL)
-        {
-            input_name = argv[i];
-        }
-        else if (output_name == NULL)
-        {
-            output_name = argv[i];
-        }
-        else
-        {
-            input_name = NULL;
+        case 'f':
+            config.forced_mode = true;
             break;
+        case 'm':
+            config.mirror_mode = true;
+            break;
+        case 'l':
+            value = cag_option_get_value(&context);
+            config.num_lines = atoi(value);
+            break;
+        case 'o':
+            value = cag_option_get_value(&context);
+            config.output = value;
+            break;
+        case 'h':
+            printf("DCP v%s: Daad Picture Compressor by Cronomantic\n", VERSION);
+            printf("          Based on ZX0 v2.2 by Einar Saukas\n\n");
+            printf(" Usage: DCP [-f] [-m] [-l=num_lines] [-o=output] input\n");
+            cag_option_print(options, CAG_ARRAY_SIZE(options), stdout);
+            return EXIT_SUCCESS;
         }
     }
 
-    /* validate command-line arguments */
-    if (input_name == NULL)
+    i = 0;
+    for (param_index = context.index; param_index < argc; ++param_index)
     {
-        fprintf(stderr, "Usage: %s [-f] input [output]\n"
-                        "  -f      Force overwrite of output file\n",
-                argv[0]);
-        exit(1);
+        if (i == 0)
+            config.input = argv[param_index];
+        i++;
     }
-    if (output_name == NULL)
+
+    if (i == 0)
     {
-        output_name = (char *)malloc(strlen(input_name) + 5);
-        strcpy(output_name, input_name);
+        fprintf(stderr, "Error: Input file not specified \n");
+        return EXIT_FAILURE;
+    }
+
+    if (i > 1)
+    {
+        fprintf(stderr, "Error: Too many parameters\n");
+        return EXIT_FAILURE;
+    }
+
+    if (config.output == NULL)
+    {
+        output_name = (char *)malloc(strlen(config.input) + 5);
+        strcpy(output_name, config.input);
         strip_ext(output_name);
         strcat(output_name, ".DCP");
     }
+    else
+    {
+        output_name = (char *)malloc(strlen(config.output) + 1);
+        strcpy(output_name, config.output);
+    }
+
+    if (config.num_lines < 0 || config.num_lines > 192)
+    {
+        fprintf(stderr, "Error: Invalid number of lines\n");
+        return EXIT_FAILURE;
+    }
+    else if (config.num_lines == 0)
+    {
+        config.num_lines = 192;
+    }
+
+    num_lines_scr = (uint8_t)(config.num_lines);
+    num_lines_att = (uint8_t)(config.num_lines >> 3);
+
+    if (config.num_lines & 0x7)
+        num_lines_att++;
+
+    /* check output file */
+    if (!config.forced_mode && fopen(output_name, "rb") != NULL)
+    {
+        fprintf(stderr, "Error: Already existing output file %s\n", output_name);
+        return EXIT_FAILURE;
+    }
 
     /* open input file */
-    ifp = fopen(input_name, "rb");
+    ifp = fopen(config.input, "rb");
     if (!ifp)
     {
-        fprintf(stderr, "Error: Cannot access input file %s\n", input_name);
-        exit(1);
+        fprintf(stderr, "Error: Cannot access input file %s\n", config.input);
+        return EXIT_FAILURE;
     }
 
     /* read input file */
@@ -181,19 +274,18 @@ int main(int argc, char *argv[])
     if (input_size == MAX_SIZE)
     {
         printf("Converting screen data...\n");
-        convert();
+        if (!config.mirror_mode)
+        {
+            config.mirror_mode = is_symmetric(num_lines_scr, num_lines_att, input_data);
+            if (config.mirror_mode)
+                printf("Symmetric image detected! Enabling mirror mode.\n");
+        }
+        convert(num_lines_scr, num_lines_att, config.mirror_mode);
     }
     else
     {
-        fprintf(stderr, "Error: Invalid input file %s\n", input_name);
-        exit(1);
-    }
-
-    /* check output file */
-    if (!forced_mode && fopen(output_name, "rb") != NULL)
-    {
-        fprintf(stderr, "Error: Already existing output file %s\n", output_name);
-        exit(1);
+        fprintf(stderr, "Error: Invalid input file %s\n", config.input);
+        return EXIT_FAILURE;
     }
 
     /* create output file */
@@ -201,15 +293,22 @@ int main(int argc, char *argv[])
     if (!ofp)
     {
         fprintf(stderr, "Error: Cannot create output file %s\n", output_name);
-        exit(1);
+        return EXIT_FAILURE;
     }
 
     /* generate output file */
-    output_data_scr = compress(optimize(&(screen_data[0]), (MAX_SIZE - ATTRIB1), 0, MAX_OFFSET_ZX0), &(screen_data[0]), (MAX_SIZE - ATTRIB1), 0, FALSE, TRUE, &output_size_scr, &delta_scr);
-    printf("Pixel data compressed from %d to %d bytes! (delta %d)\n", (MAX_SIZE - ATTRIB1), output_size_scr, delta_scr);
+    /*
+    output_data_scr = compress(optimize(&(screen_data[0]), (192 * 32), 0, MAX_OFFSET_ZX0), &(screen_data[0]), (192 * 32), 0, FALSE, TRUE, &output_size_scr, &delta_scr);
+    printf("Pixel data compressed from %d to %d bytes! (delta %d)\n", (192 * 32), output_size_scr, delta_scr);
 
-    output_data_att = compress(optimize(&(att_data[0]), ATTRIB1, 0, MAX_OFFSET_ZX0), &(att_data[0]), ATTRIB1, 0, FALSE, TRUE, &output_size_att, &delta_att);
-    printf("Atributtes compressed from %d to %d bytes! (delta %d)\n", ATTRIB1, output_size_att, delta_att);
+    output_data_att = compress(optimize(&(att_data[0]), (24 * 32), 0, MAX_OFFSET_ZX0), &(att_data[0]), (24 * 32), 0, FALSE, TRUE, &output_size_att, &delta_att);
+    printf("Attributes compressed from %d to %d bytes! (delta %d)\n", (24 * 32), output_size_att, delta_att);
+    */
+    output_data_scr = compress(optimize(&(screen_data[0]), (num_lines_scr * 32), 0, MAX_OFFSET_ZX0), &(screen_data[0]), (num_lines_scr * 32), 0, FALSE, TRUE, &output_size_scr, &delta_scr);
+    printf("Pixel data compressed from %d to %d bytes! (delta %d)\n", (num_lines_scr * 32), output_size_scr, delta_scr);
+
+    output_data_att = compress(optimize(&(att_data[0]), (num_lines_att * 32), 0, MAX_OFFSET_ZX0), &(att_data[0]), (num_lines_att * 32), 0, FALSE, TRUE, &output_size_att, &delta_att);
+    printf("Attributes compressed from %d to %d bytes! (delta %d)\n", (num_lines_att * 32), output_size_att, delta_att);
 
     scr_size = (uint16_t)output_size_scr;
     att_size = (uint16_t)output_size_att;
@@ -223,34 +322,62 @@ int main(int argc, char *argv[])
     if (fwrite(&scr_size, sizeof(char), 2, ofp) != 2)
     {
         fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
-        exit(1);
+        fclose(ofp);
+        free(output_name);
+        return EXIT_FAILURE;
     }
 
     if (fwrite(&att_size, sizeof(char), 2, ofp) != 2)
     {
         fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
-        exit(1);
+        fclose(ofp);
+        free(output_name);
+        return EXIT_FAILURE;
+    }
+
+    if (fwrite(&num_lines_scr, sizeof(char), 1, ofp) != 1)
+    {
+        fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
+        fclose(ofp);
+        free(output_name);
+        return EXIT_FAILURE;
+    }
+
+    if (config.mirror_mode)
+    {
+        // Using MSB of the att size to tell if it is mirrored
+        num_lines_att |= 0x80;
+    }
+
+    if (fwrite(&num_lines_att, sizeof(char), 1, ofp) != 1)
+    {
+        fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
+        fclose(ofp);
+        free(output_name);
+        return EXIT_FAILURE;
     }
 
     /* write output file */
     if (fwrite(output_data_scr, sizeof(char), output_size_scr, ofp) != output_size_scr)
     {
         fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
-        exit(1);
+        fclose(ofp);
+        free(output_name);
+        return EXIT_FAILURE;
     }
 
     /* write output file */
     if (fwrite(output_data_att, sizeof(char), output_size_att, ofp) != output_size_att)
     {
         fprintf(stderr, "Error: Cannot write output file %s\n", output_name);
-        exit(1);
+        fclose(ofp);
+        free(output_name);
+        return EXIT_FAILURE;
     }
 
     /* close output file */
     fclose(ofp);
+    free(output_name);
 
-    /* done! */
-    printf("Done!\n");
-
-    return 0;
+    return EXIT_SUCCESS;
 }

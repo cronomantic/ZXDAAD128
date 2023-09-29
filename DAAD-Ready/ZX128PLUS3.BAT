@@ -50,9 +50,9 @@ REM  ---- PREPARE IMAGES ----
 tools\cecho\cecho {06}Preparing images (if any){07}
 ECHO.
 CD IMAGES
-for /L %%i in (0, 1, 9) do (CALL :CHECK_IF_COMPRESS 00%%i.SCR 00%%i.DCP && (..\TOOLS\ZXDAAD128\DCP -f 00%%i.SCR 00%%i.DCP > nul 2>&1))
-for /L %%i in (10, 1, 99) do (CALL :CHECK_IF_COMPRESS 0%%i.SCR 0%%i.DCP && (..\TOOLS\ZXDAAD128\DCP -f 0%%i.SCR 0%%i.DCP > nul 2>&1))
-for /L %%i in (100, 1, 256) do (CALL :CHECK_IF_COMPRESS %%i.SCR %%i.DCP && (..\TOOLS\ZXDAAD128\DCP -f %%i.SCR %%i.DCP > nul 2>&1))
+for /L %%i in (0, 1, 9) do (CALL :CHECK_IF_COMPRESS 00%%i.SCR 00%%i.DCP && (..\TOOLS\ZXDAAD128\DCP -l=%IMGLINES% -f -o=00%%i.DCP 00%%i.SCR  > nul 2>&1))
+for /L %%i in (10, 1, 99) do (CALL :CHECK_IF_COMPRESS 0%%i.SCR 0%%i.DCP && (..\TOOLS\ZXDAAD128\DCP -l=%IMGLINES% -f -o=0%%i.DCP 0%%i.SCR  > nul 2>&1))
+for /L %%i in (100, 1, 256) do (CALL :CHECK_IF_COMPRESS %%i.SCR %%i.DCP && (..\TOOLS\ZXDAAD128\DCP -l=%IMGLINES% -f -o=%%i.DCP %%i.SCR  > nul 2>&1))
 CD ..
 tools\cecho\cecho {02}[OK]{07}
 ECHO.
