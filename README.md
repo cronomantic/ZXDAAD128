@@ -22,13 +22,13 @@
   - [**How to compile**](#how-to-compile)
     - [**Compiling an interpreter**](#compiling-an-interpreter)
     - [**Building DRB128**](#building-drb128)
-    - [**Building DAADMaker128 \& DAADMakerPlus3**](#building-daadmaker128--daadmakerplus3)
+    - [**Building DAADMaker128 & DAADMakerPlus3**](#building-daadmaker128--daadmakerplus3)
     - [**Compiling DCP**](#compiling-dcp)
     - [**Build batch file**](#build-batch-file)
   - [**Extending the interpreter**](#extending-the-interpreter)
     - [**Inserting binary data on the database**](#inserting-binary-data-on-the-database)
     - [**The calling mechanism**](#the-calling-mechanism)
-      - [**1 - SFX \& EXTERN:**](#1---sfx--extern)
+      - [**1 - SFX & EXTERN:**](#1---sfx--extern)
       - [**2 - Interrupt routine**](#2---interrupt-routine)
       - [**3 - CALL address**](#3---call-address)
       - [**4 - Jumping to another bank**](#4---jumping-to-another-bank)
@@ -67,7 +67,7 @@ Supports loading and saving on tape or disk with +3DOS and 42 or 32 characters p
 ## **Shortcomings**
 
 - The interpreter is very big!
-- The images are always full screen. They do not ajust themselves to the dimensions and position of the active window, which is the standard behaviour.
+- The images are always displayed from the upper left corner of the screen. They do not ajust themselves to the dimensions and position of the active window, which is the standard behaviour.
 - CondActs `GFX` not implemented.
 - Maluva's condActs `XPART`, `XBEEP`. `XSPLITSCR`, `XNEXTCLS`, `XNEXTRST` & `XSPEED` not supported.
 
@@ -224,12 +224,12 @@ The use is quite simple:
 You must supply the path of a SCR file, and a file with the same name but with extension DCP will be created on the same path (if the `-o` parameter is not used).  
 These are the options of this program:
 
-- **\-f** : This parameter will force the overwriting of the destination file if it already exists (instead of giving an error).
-- **\-m** : This parameter will force mirroring mode, that is, the right side of the image will be discarded to save space, and the interpreter will draw there the left side mirrored instead.
+- **\-f** : This parameter will force the overwriting of the destination file if it already exists (instead of giving an error if that is the case).
+- **\-m** : This parameter will force mirroring mode, that is, the right side of the image will be discarded to save space, and the interpreter will draw the left side mirrored in its place.
 - **\-o=OUTPUT** : Use this parameter to set the path and the filename of the compressed output file.
-- **\-l=NUM_LINES** : The number of lines of the image to include. The excluded lines will be 'zeroed' to gain more compression.
+- **\-l=NUM_LINES** : The number of lines of the image to include. The rest, will be discarded.
 
-If you provide an already symmetric image, the program will detect it and will enable mirroring mode by itself. However, the image must be symmetrical EXACTLY.
+If you provide an already symmetric image, the program will detect it and will enable mirroring mode by itself.
 
 ### **DAADMaker128**
 
@@ -484,4 +484,4 @@ However, a handicap of this interpreter is that the database's addresses varies 
 - This work has been made posible thanks to the continuous help of Uto and his marvelous [**DAAD Ready**](https://github.com/Utodev/DAAD-Ready).
 - Thanks to NataliaPC for their [**Msx2Daad**](https://github.com/nataliapc/msx2daad), a great source of inspiration.
 - Plus3 loader has been made thanks to the help of Sergio thEpOpE.
-- Thanks to [Dwalin](www.rudolphinerur.com) for his help on testing the interpreter. with
+- Thanks to [Dwalin](www.rudolphinerur.com) for his help on testing the interpreter.

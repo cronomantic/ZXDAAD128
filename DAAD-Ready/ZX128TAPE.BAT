@@ -1,4 +1,5 @@
 @echo off
+SET DAADSCRIPT=ZX128TAPE
 
 REM ----  VARIABLES ---- 
 CALL CONFIG.BAT
@@ -96,10 +97,13 @@ MOVE %GAME%.TAP RELEASE\ZX128TAPE > nul 2>&1
 tools\cecho\cecho {02}[OK]{07}
 ECHO.
 
+IF exist CUSTOM1.BAT CALL CUSTOM1.BAT
 REM ----  CLEANING ---- 
 DEL %GAME%.AD? > nul 2>&1
 DEL %GAME%.json > nul 2>&1
 
+IF exist CUSTOM2.BAT CALL CUSTOM2.BAT
+IF ERRORLEVEL  1 GOTO CUSTOM
 REM ---- TESTER ---- 
 tools\cecho\cecho {03}
 ECHO "Press any key to run emulator, or Ctrl+C to cancel." 
@@ -136,3 +140,7 @@ REM ----  CLEANING ----
 DEL %GAME%.AD? > nul 2>&1
 DEL %GAME%.json > nul 2>&1
 
+
+REM  --- CUSTOM AREA ---
+:CUSTOM
+IF exist CUSTOM3.BAT CALL CUSTOM3.BAT 
