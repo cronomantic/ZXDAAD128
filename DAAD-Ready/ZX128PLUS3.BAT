@@ -1,6 +1,19 @@
 @echo off
 SET DAADSCRIPT=ZX128PLUS3
 
+GOTO START
+REM ---- Check if the file to compress is already compressed or is newer
+:CHECK_IF_COMPRESS
+  IF not exist %1 exit /b 1
+  IF not exist %2 exit /b 0
+  FOR %%i IN (%1) DO SET DATE1=%%~ti
+  FOR %%i IN (%2) DO SET DATE2=%%~ti
+  IF "%DATE1%"=="%DATE2%" exit /b 0
+  FOR /F %%i IN ('DIR /B /O:D %1 %2') DO SET NEWEST=%%i
+  IF "%2"=="%NEWEST%" exit /b 1
+  exit /b 0
+:START
+
 REM ----  VARIABLES ---- 
 CALL CONFIG.BAT
 IF exist CUSTOM.BAT CALL CUSTOM.BAT
@@ -112,8 +125,8 @@ IF exist CUSTOM2.BAT CALL CUSTOM2.BAT
 IF ERRORLEVEL  1 GOTO CUSTOM
 REM ---- TESTER ---- 
 tools\cecho\cecho {03}
-ECHO "Press any key to run emulator, or Ctrl+C to cancel." 
-ECHO "To exit ZEsarUX emulator, press F5, then F10." 
+ECHO Press any key to run emulator, or Ctrl+C to cancel.
+ECHO To exit ZEsarUX emulator, press F5, then F10.
 tools\cecho\cecho {07}
 
 
@@ -123,21 +136,11 @@ zesarux --noconfigfile --quickexit --zoom 2 --machine P341 --realvideo --nosplas
 CD ..\..
 GOTO END
 
-REM ---- Check if the file to compress is already compressed or is newer
-:CHECK_IF_COMPRESS
-  IF not exist %1 exit /b 1
-  IF not exist %2 exit /b 0
-  FOR %%i IN (%1) DO SET DATE1=%%~ti
-  FOR %%i IN (%2) DO SET DATE2=%%~ti
-  IF "%DATE1%"=="%DATE2%" exit /b 0
-  FOR /F %%i IN ('DIR /B /O:D %1 %2') DO SET NEWEST=%%i
-  IF "%2"=="%NEWEST%" exit /b 1
-  exit /b 0
 
 :ERROR
 :ERROR
 tools\cecho\cecho {04}
-ECHO "Compile error, please check"
+ECHO Compile error, please check
 tools\cecho\cecho {07}
 PAUSE
 :END

@@ -90,6 +90,8 @@
 #define fAdverb             36
 #define fMaxCarr            37
 #define fPlayer             38
+#define fStream             41
+#define fPrompt             42
 #define fPrep               43
 #define fNoun2              44
 #define fAdject2            45
@@ -378,10 +380,8 @@ LOGO    2       conjugation
 #ifndef "zx128"
 > _       _     CLEAR 20
 #ifndef "tape"
+                ZERO fDarkF
                 XPICTURE @fPlayer           ; Se existir uma imagem, carrega
-                #ifndef "nativeraster"
-                GT 20 127
-                #endif
 #endif
 #ifdef "nativeraster"
                 DISPLAY @fDarkF             ; Faz o DISPLAY se não estiver escuro, senão CLS
@@ -391,9 +391,16 @@ LOGO    2       conjugation
                 XNEXTCLS                    ; desabilitar adn clear Layer2
 #endif       
 
+> _      _      NOTZERO fDarkF
+                CLS
+
+
 #ifndef "noretryImage"
 > _        _    GT 20 127
                 XPICTURE 255                ; Se o XPICTURE falhar, tentar mostrar a imagem 255 (filler)
+                #ifdef "nativeraster"
+                                DISPLAY @fDarkF         ; & Display it if not dark, else CLS
+                #endif       
 #endif                
 
 
@@ -566,27 +573,32 @@ LOGO    2       conjugation
 
 /PRO 6 ; Inicialização
 
+
 #ifndef "zx128"
 > _       _     WINDOW  1               ; Inicializamos as janelas
                 #ifdef "pc"
-                PAPER 0
-                INK 15
+                    PAPER 0
+                    INK 15
                 #endif
                 #ifndef "tape"
-                WINAT   14       0
+                    WINAT   14       0
                 #endif
                 #ifdef "tape"
-                WINAT   0       0
+                    WINAT   0       0
                 #endif
                 WINSIZE 25      127     ; Tamanho máximo
                 CLS
                 DESC    0               ; Introdução
-#ifndef "tape"
-                XPICTURE 0
-                #ifdef "nativeraster"
-                DISPLAY 0
+                #ifndef "tape"
+                    #ifdef "nativeraster"
+                        WINDOW 0
+                        PICTURE 0
+                        DISPLAY 0
+                    #else
+                        XPICTURE 0
+                        WINDOW 0
+                    #endif
                 #endif
-                #endif                
 
 > _       _     
                 ANYKEY

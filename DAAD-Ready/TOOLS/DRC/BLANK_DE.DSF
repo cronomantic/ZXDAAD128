@@ -104,6 +104,8 @@
 #define fAdverb             36
 #define fMaxCarr            37
 #define fPlayer             38
+#define fStream             41
+#define fPrompt             42
 #define fPrep               43
 #define fNoun2              44
 #define fAdject2            45
@@ -382,12 +384,12 @@ S 1
 
 > _       _     AT      0                ; Starting game
                 #ifdef "canBoostSpeed"
-                #echo "Target using boosted CPU speed"
-                XSPEED  1                ; if a boostable target, boost CPU speed to 7Mhz
+                    #echo "Target using boosted CPU speed"
+                    XSPEED  1                ; if a boostable target, boost CPU speed to 7Mhz
                 #endif
                 #ifdef "hasSplitMode"    ; If a split screen target, set split screen
-                #echo "Target using split mode"
-                XSPLITSCR 1
+                    #echo "Target using split mode"
+                    XSPLITSCR 1
                 #endif
                 PROCESS 6                ; then we need init sequence
 
@@ -403,10 +405,8 @@ S 1
 #ifndef "zx128"
 > _       _     CLEAR 20
 #ifndef "tape"
+                ZERO fDarkF
                 XPICTURE @fPlayer        ; If there is a picture, Load it
-                #ifndef "nativeraster"
-                GT 20 127
-                #endif
 #endif
 #ifdef "nativeraster"
                 DISPLAY @fDarkF         ; & Display it if not dark, else CLS
@@ -416,9 +416,17 @@ S 1
                 XNEXTCLS                 ; Disable adn clear Layer2
 #endif
 
+> _      _      NOTZERO fDarkF
+                CLS
+
+
 #ifndef "noretryImage"
 > _        _    GT 20 127
                 XPICTURE 255            ; If XPICTURE failed, then try to paint filler picture 255
+                #ifdef "nativeraster"
+                                DISPLAY @fDarkF         ; & Display it if not dark, else CLS
+                #endif       
+
 #endif
 
 #ifndef "hasSplitMode"
@@ -607,26 +615,29 @@ S 1
 #ifndef "zx128"
 > _       _     WINDOW  1               ; Windows are random
                 #ifdef "pc"
-                PAPER 0
-                INK 15
+                  PAPER 0
+                    INK 15
                 #endif
              
 > _       _     #ifndef "tape"
-                WINAT   14       0
+                    WINAT   14       0
                 #endif
                 #ifdef "tape"
-                WINAT   0       0
+                    WINAT   0       0
                 #endif
                 WINSIZE 25      127     ; Maximum window
                 CLS
                 DESC    0               ; Introduction
                 #ifndef "tape"
-                XPICTURE 0
-                #ifdef "nativeraster"
-                DISPLAY 0
+                    #ifdef "nativeraster"
+                        WINDOW 0
+                        PICTURE 0
+                        DISPLAY 0
+                    #else
+                        XPICTURE 0
+                        WINDOW 0
+                    #endif
                 #endif
-                #endif                
-
 > _       _     
                 ANYKEY
                 CLS

@@ -101,6 +101,8 @@
 #define fAdverb             36
 #define fMaxCarr            37
 #define fPlayer             38
+#define fStream             41
+#define fPrompt             42
 #define fPrep               43
 #define fNoun2              44
 #define fAdject2            45
@@ -383,10 +385,8 @@ S 1
 #ifndef "zx128"
 > _       _     CLEAR 20
 #ifndef "tape"
+                ZERO fDarkF
                 XPICTURE @fPlayer        ; If there is a picture, Load it
-                #ifndef "nativeraster"
-                GT 20 127
-                #endif
 #endif
 #ifdef "nativeraster"
                 DISPLAY @fDarkF         ; & Display it if not dark, else CLS
@@ -395,6 +395,10 @@ S 1
                 GT  20 127               ; Muestralo si no oscuro; si oscuro
                 XNEXTCLS                 ; Disable adn clear Layer2
 #endif
+
+> _      _      NOTZERO fDarkF
+                CLS
+
 
 #ifndef "noretryImage"
 > _        _    GT 20 127
@@ -604,12 +608,17 @@ S 1
                 WINSIZE 25      127     ; Maximum window
                 CLS
                 DESC    0               ; Introduction
-#ifndef "tape"
-                XPICTURE 0
-                #ifdef "nativeraster"
-                DISPLAY 0
+                #ifndef "tape"
+                    #ifdef "nativeraster"
+                        WINDOW 0
+                        PICTURE 0
+                        DISPLAY 0
+                    #else
+                        XPICTURE 0
+                        WINDOW 0
+                    #endif
                 #endif
-#endif
+
 > _       _     
                 ANYKEY
                 CLS

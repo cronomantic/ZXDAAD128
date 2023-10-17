@@ -90,6 +90,8 @@
 #define fAdverb             36
 #define fMaxCarr            37
 #define fPlayer             38
+#define fStream             41
+#define fPrompt             42
 #define fPrep               43
 #define fNoun2              44
 #define fAdject2            45
@@ -328,15 +330,20 @@ LUEGO   2       conjugation
 ;num    at
 /0      _  1       _ _  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _    LINTER  _
 ;------------------------------------------------------------------------------
-/PRO 0       ;Bucle principal de localidades
+/PRO 0   
+
+; Este proceso es el primero en ser ejecutado por DAAD, y así contiene una primera entrada que
+; salta al proceso que inicializa objetos, flags, etc. y luego cada vez que es llamado, y el
+; jugador ya no está en la localidad 0, se encarga de mostrar el gráfico y texto de la localidad
+; actual, si procede,  y saltar al proceso 1 donde está el sistema que pide órdenes al jugador.
 
 
-> _       _     AT      0                ; Starting game
+> _       _     AT      0                ; Iniciando el juego
                 #ifdef "canBoostSpeed"
-                XSPEED  1                ; if a boostable target, boost CPU speed to 7Mhz
+                    XSPEED  1                ; Si se puede cambiar la velocidad de la CPU, ponerla a 7Mhz
                 #endif
-                #ifdef "hasSplitMode"    ; If a split screen target, set split screen
-                XSPLITSCR 1
+                #ifdef "hasSplitMode"    ; si soporta split screen, activarla
+                    XSPLITSCR 1
                 #endif
                 PROCESS 6               ; El proceso de inicialización
                 
@@ -351,31 +358,36 @@ LUEGO   2       conjugation
 #ifndef "zx128"
 > _       _     CLEAR 20
 #ifndef "tape"
-                XPICTURE @fPlayer        ; If there is a picture, Load it
-                #ifndef "nativeraster"
-                GT 20 127
-                #endif
+                ZERO fDarkF
+                XPICTURE @fPlayer        ; Si hay una imagen, cargarla
 #endif
 #ifdef "nativeraster"
-                DISPLAY @fDarkF         ; & Display it if not dark, else CLS
+                DISPLAY @fDarkF         ; Y mostrarla si no está oscuro, en caso contrario, borra la ventana
 #endif       
 #ifdef "next"
                 GT  20 127               ; Muestralo si no oscuro; si oscuro
-                XNEXTCLS                 ; Disable adn clear Layer2
+                XNEXTCLS                 ; Deshabilita y borra Layer2
 #endif       
+
+> _      _      NOTZERO fDarkF
+                CLS
+
 
 #ifndef "noretryImage"
 > _        _    GT 20 127
-                XPICTURE 255            ; If XPICTURE failed, then try to paint filler picture 255
+                XPICTURE 255            ; Si XPICTURE falló, trata de poner el gráfico de relleno 255
+                #ifdef "nativeraster"
+                                DISPLAY @fDarkF         ; Y mostrarlo si no está oscuro, en caso contrario, borra la ventana
+                #endif       
 #endif                
 
 
 #ifndef "hasSplitMode"
-> _        _    GT 20 127                ; XPICTURE failed to load
+> _        _    GT 20 127                ; XPICTURE falló
                 CLS
                 WINDOW 1
                 WINAT 0 0
-                WINSIZE 25 127           ; Maximum window
+                WINSIZE 25 127           ; Full screen
                 CLS
                 SKIP 1
 #endif
@@ -422,13 +434,16 @@ LUEGO   2       conjugation
 ;------------------------------------------------------------------------------
 /PRO 1
 
+; Este proceso se encarga de ir pidiendo órdenes al jugador e ir ejecutándolas,
+; ya sea como órdenes, o como movimientos en las distintas direcciones.
+
 > _       _     PROCESS 4               ; Lo que en el PAW era el proceso 2
 
 > _       _     PARSE   0               ; Toma sentencia lógica del buffer
                 PROCESS 2               ; Sentencia no válida o timeout
                 REDO
 
-> _       _     EQ      fTurns   255     ; El valo máximo de un byte
+> _       _     EQ      fTurns   255     ; El valor máximo de un byte
                 PLUS    fTurnsHi   1
                 CLEAR   fTurns
                 SKIP    1
@@ -454,6 +469,10 @@ LUEGO   2       conjugation
 
 ;------------------------------------------------------------------------------
 /PRO 2
+
+; Este pequeño proceso se encarga de dar una respuesta diferente al jugador dependiendo de si
+; ha ocurrido un timeout, o si lo que ha tecleado es ininteligible para el parser.
+
 > _       _     HASAT TIMEOUT
                 SYSMESS 35
                 DONE
@@ -461,20 +480,54 @@ LUEGO   2       conjugation
 > _       _     SYSMESS 6               ; No te entiendo
 
 ;------------------------------------------------------------------------------
-/PRO 3 ; Antiguo proceso 1 del PAW. (Nótese que tanto la tabla de respuestas como los
-; antiguos procesos 1 y 2 del PAW ahora pueden estar en cualquer parte; o no
-; existir en absoluto, ya que ya no hay nada automático al haberse implementado
-; todo en el propio lenguaje del DAAD)
+/PRO 3
 
+; Este proceso se ejecuta justo después de mostrar la descripción de una localidad, y se encarga de mostrar la lista de objetos
+; que hay en ella, si los hay. Puedes añadir aquí entradas que muestren texto o hagan cosas cuando el jugador llega a determinada 
+; localidad. Para los que venís de PAW, es el equivalente al proceso 1. Ver las entradas de ejemplo:
+
+; EJEMPLOS:
+; > _ _  AT 2                                       ; ¿Estamos en la localidad de la puerta?
+;        NOTZERO fPuertaAbierta                     ; ¿Está la puerta abierta? (esto requiere que en otro sitio modifiquemos el flag fPuertaAbierta)
+;        MESSAGE "La puerta está abierta. "         ; Mostramos texto
+;
+; > _ _  AT 17                                      ; ¿Estamos en la localidad con atmósfera irrespirable?
+;        NOTCARRIED oTrajeProtector                 ; ¿No llevamos el traje?
+;        MESSAGE "Te has asfixiado. Estás muerto."  ; Mostramos texto
+;        END                                        ; ¿Jugar de nuevo?
+
+
+ 
+; Esta entrada ya viene activa, y es la que se encarga precisamente de mostrar la lista de objetos (si los hay, y no está oscuro)
 > _       _     NEWLINE
                 ZERO    fDarkF            ; No está oscuro
                 LISTOBJ
 
 
 ;------------------------------------------------------------------------------
-/PRO 4 ; Antiguo proceso 2 del PAW
+/PRO 4 
 
-/PRO 5 ; Interpretamos los comando como en la antigua tabla de respuestas
+; Este proceso se ejecuta cada turno, después de dar respuesta la orden del jugador. Es útil para controlar cosas que puedan 
+; pasar pasado un tiempo, o eventos que puedan ocurrir en cualquier momento. Para los que venís de PAW, es el equivalente al
+; proceso 2. Ver las entradas de ejemplo:
+
+; > _ _   AT 17                                         ; ¿Estamos en la localidad de la atmósfera irrespirable?
+;         MINUS fOxigenoEnTraje 1                       ; Decrementamos en 1 el valor del flag fOxigeno en traje (ha debido ser puesto a un cierto valor antes)
+;         ZERO fOxigenoEnTraje                          ; ¿Hemos llegado a cero? ¿El óxigeno se ha acabado?
+;         MESSAGE "No puedes respirar. Estás muerto."   ; Mostramos texto
+;         END                                           ; ¿Jugar de nuevo?
+;
+; > _ _   AT 4                                          ; ¿Estamos en el bosque?
+;         CHANCE 10                                     ; Esta condición se cumple un 10% de las veces
+;         MESSAGE "Oyes algo que repta entre las hojas" ; Mostrar texto
+
+
+/PRO 5 
+
+; En este proceso se da respuesta a la ordenes del jugador, por lo que las entradas suelen
+; tener verbo y nombre, o al menos verbo. Las órdenes del jugador ejecutarán cada entrada
+; si coinciden con las palabras indicadas en cada una. Para los que venís de PAW, es el 
+; equivalente a la tabla de respuestas.
 
 
 > I       _     SYSMESS 9
@@ -541,24 +594,28 @@ LUEGO   2       conjugation
 #ifndef "zx128"
 > _       _     WINDOW  1               ; Inicializamos las ventanas
                 #ifdef "pc"
-                PAPER 0
-                INK 15
+                    PAPER 0
+                    INK 15
                 #endif
                 #ifndef "tape"
-                WINAT   14       0
+                    WINAT   14       0
                 #endif
                 #ifdef "tape"
-                WINAT   0       0
+                    WINAT   0       0
                 #endif
                 WINSIZE 25      127     ; Tamaño máximo
                 CLS
                 DESC    0               ; Introducción
-#ifndef "tape"
-                XPICTURE 0
-                #ifdef "nativeraster"
-                DISPLAY 0
+                #ifndef "tape"
+                    #ifdef "nativeraster"
+                        WINDOW 0
+                        PICTURE 0
+                        DISPLAY 0
+                    #else
+                        XPICTURE 0
+                        WINDOW 0
+                    #endif
                 #endif
-#endif
 
 > _       _     
                 ANYKEY

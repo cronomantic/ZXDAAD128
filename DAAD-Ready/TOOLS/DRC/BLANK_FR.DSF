@@ -101,6 +101,8 @@
 #define fAdverb             36
 #define fMaxCarr            37
 #define fPlayer             38
+#define fStream             41
+#define fPrompt             42
 #define fPrep               43
 #define fNoun2              44
 #define fAdject2            45
@@ -384,7 +386,9 @@ S 1
 #ifndef "zx128"
 > _       _     CLEAR 20
 #ifndef "tape"
+                ZERO fDarkF
                 XPICTURE @fPlayer        ; Si il y a une image, la charger
+
 #endif
 #ifdef "nativeraster"
                 DISPLAY @fDarkF         ; & Le montrer si pas d'obscurité, sinon effacer l'écran
@@ -394,9 +398,17 @@ S 1
                 XNEXTCLS                 ; Désactiver adn clear Layer2
 #endif
 
+> _      _      NOTZERO fDarkF
+                CLS
+
+
 #ifndef "noretryImage"
 > _        _    GT 20 127
                 XPICTURE 255            ; Si XPICTURE a échoué, essaie d'afficher l'image 255 (défaut)
+                #ifdef "nativeraster"
+                                DISPLAY @fDarkF         ; & Display it if not dark, else CLS
+                #endif       
+
 #endif
 
 #ifndef "hasSplitMode"
@@ -576,22 +588,37 @@ S 1
 ;------------------------------------------------------------------------------
 /PRO 6 ; Initialise le système DAAD
 
-> _       _     WINDOW  1               ; Initialisons les fenêtres
-
-> _       _     #ifndef "tape"
-                WINAT   14       0
+#ifndef "zx128"
+> _       _     WINDOW  1               ; Inicializamos las ventanas
+                #ifdef "pc"
+                    PAPER 0
+                    INK 15
+                #endif
+                #ifndef "tape"
+                    WINAT   14       0
                 #endif
                 #ifdef "tape"
-                WINAT   0       0
+                    WINAT   0       0
                 #endif
                 WINSIZE 25      127     ; Fenêtre maximale
                 CLS
                 DESC    0               ; Introduction
-                XPICTURE 0
+                #ifndef "tape"
+                    #ifdef "nativeraster"
+                        WINDOW 0
+                        PICTURE 0
+                        DISPLAY 0
+                        WINDOW 0
+                    #else
+                        XPICTURE 0
+                    #endif
+                #endif      
 > _       _     
                 ANYKEY
                 CLS
                 SET   255             
+
+
 #else
 ;ZX 128
 > _       _     WINDOW  1               ; Initialisons les fenêtres
