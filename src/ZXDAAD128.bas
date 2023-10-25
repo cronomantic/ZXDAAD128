@@ -2073,7 +2073,7 @@ SUB parser()
 
   DIM p, p2 AS uInteger
   DIM lsBuffer, aux AS uInteger
-  DIM c, c2, pron, wlen, l2, req AS uByte
+  DIM c, c2, pron, wlen, l2 AS uByte
   DIM id, type, id2, type2 AS uByte
 
   LET lsBuffer = @lsBuffer0(0)
@@ -2115,7 +2115,6 @@ SUB parser()
 
 #ifdef LANG_ES
       'In spanish, check pronominal sufixes
-        LET req = TRUE
         IF type = VERB THEN
           LET pron = FALSE
           IF NOT strcmp(p2-2, @pronominalsString, 2) THEN 'LO
@@ -2132,13 +2131,11 @@ SUB parser()
             LET l2 = wlen - 3
           END IF
           IF pron THEN
-            LET req = FALSE
             'If we have a word ending with pronominal suffixes, we need to check whether the word is a verb
             'also without the termination, to avoid the HABLA bug where "LA" is part of the verb habLAr and
             'not a suffix. So first we remove the termination & then check if still can be recognized as a verb
             IF checkWordVoc(p, l2, id2, type2) THEN
               IF id2 = id AND type2 = type THEN
-                LET req = TRUE
                 LET type = PRONOUNVERB 'Phony type for verbs with pronominal suffix
               END IF
             END IF
@@ -2146,14 +2143,9 @@ SUB parser()
             '5 characters long should have synonyms including the suffix or part of it: DAR->DARLO, COGE->COGEL
           END IF
         END IF
-        IF req THEN
-          POKE lsBuffer, id : LET lsBuffer = lsBuffer + 1
-          POKE lsBuffer, type : LET lsBuffer = lsBuffer + 1
-        END IF
-#else
+#endif
         POKE lsBuffer, id : LET lsBuffer = lsBuffer + 1
         POKE lsBuffer, type : LET lsBuffer = lsBuffer + 1
-#endif
       END IF
 
       LET p = p2
