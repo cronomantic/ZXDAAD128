@@ -1461,49 +1461,66 @@ FUNCTION printMaluvaExtraMsg(lsb AS uByte, msb AS uByte, doPrint AS uByte) AS uB
 END FUNCTION
 
 
-SUB cutMsgUntilPoint(ini AS uInteger)
+'Advance until a dot is found and cut everything after that
+FUNCTION FASTCALL cutMsgUntilDot(ini AS uInteger) AS uInteger
+ASM
+PROC
+    LOCAL l1, l2, l3
 
-  DIM c AS uByte
-
-  LET c = PEEK ini
-  DO WHILE c
-    IF c = 46 OR c = 10 THEN 'Found a dot or EOL
-      POKE ini, 0
-      EXIT DO
-    ELSE
-      LET ini = ini + 1
-      LET c = PEEK ini
-    END IF
-  LOOP
-
-END SUB
-
-FUNCTION skipSpaces(ini AS uInteger) AS uInteger
-
-  DIM c AS uByte
-
-  DO
-    LET c = PEEK ini
-    IF c <> 32 THEN EXIT DO
-    LET ini = ini + 1
-  LOOP
-  RETURN ini
-
+    push hl
+l1:
+    ld a, (hl)
+    cp 0        ;Found EOS
+    jr z, l3
+    cp 46        ;Found Dot character
+    jr z, l2
+    cp 10       ;Found EOL
+    jr z, l2
+    inc hl
+    jr l1
+l2:
+    xor a
+    ld (hl), a  ; Set EOS at the end
+l3:
+    pop hl      ; Restore value
+ENDP
+END ASM
 END FUNCTION
 
-FUNCTION findEndOfWord(ini AS uInteger) AS uInteger
+'Skip spaces until an different character is found
+FUNCTION FASTCALL skipSpaces(ini AS uInteger) AS uInteger
+ASM
+PROC
+    LOCAL l1, l2
+l1:
+    ld a, (hl)
+    cp 32         ;Non-Space detected
+    jr nz, l2
+    inc hl
+    jr l1
+l2:
+ENDP
+END ASM
+END FUNCTION
 
-  DIM c AS uByte
-
-  DO
-    LET c = PEEK ini
-    IF c = 0 THEN EXIT DO
-    IF c = 32 THEN EXIT DO
-    IF c = 13 THEN EXIT DO
-    LET ini = ini + 1
-  LOOP
-  RETURN ini
-
+'Finds the end of the current word
+FUNCTION FASTCALL findEndOfWord(ini AS uInteger) AS uInteger
+ASM
+PROC
+    LOCAL l1, l2
+l1:
+    ld a, (hl)
+    cp 0        ;Found EOS
+    jr z, l2
+    cp 32       ;Found space
+    jr z, l2
+    cp 13       ;Found CR
+    jr z, l2
+    inc hl
+    jr l1
+l2:
+ENDP
+END ASM
 END FUNCTION
 
 
@@ -1538,7 +1555,7 @@ SUB printObjectMsgModif(num AS uByte, modif AS uByte)
     POKE ini, c 'l'
   END IF
 
-  cutMsgUntilPoint(ini)
+  cutMsgUntilDot(ini)
   printOutMsg(ini)
 
   GOTO ENDMsgModifStrings:
@@ -1566,7 +1583,7 @@ SUB printObjectMsgModif(num AS uByte, modif AS uByte)
   LET ptr = findEndOfWord(ptr)
   LET ptr = skipSpaces(ptr)
 
-  cutMsgUntilPoint(ptr)
+  cutMsgUntilDot(ptr)
   printOutMsg(ptr)
 
 END SUB
@@ -1579,11 +1596,12 @@ SUB printObjectMsg(num AS uByte, cut AS uByte)
   IF num > DdbNumObjDsc THEN errorCode(0)
   getMessage(num, FALSE, DdbBnkObjDsc, DdbObjLstPos)
 
-  LET p = tmpMsg
   IF cut THEN
     LET p = skipSpaces(tmpMsg)
     POKE p, (ToLower(PEEK(p)))
-    cutMsgUntilPoint(p)
+    cutMsgUntilDot(p)
+  ELSE
+    LET p = tmpMsg
   END IF
 
   printOutMsg(p)
