@@ -2842,6 +2842,7 @@ SUB PRIVATEDoTAKEOUT(objno AS uByte, locno AS uByte)
   LET carr = flags(fNOCarr)
   LET fp = flags(fPlayer)
   LET loc = PEEK(objLocation + objno)
+  referencedObject(objno)
   IF loc = LOC_WORN OR loc = LOC_CARRIED THEN
     printSystemMsg(25)
   ELSEIF loc = fp THEN
