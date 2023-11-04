@@ -22,13 +22,13 @@
   - [**How to compile**](#how-to-compile)
     - [**Compiling an interpreter**](#compiling-an-interpreter)
     - [**Building DRB128**](#building-drb128)
-    - [**Building DAADMaker128 & DAADMakerPlus3**](#building-daadmaker128--daadmakerplus3)
+    - [**Building DAADMaker128 \& DAADMakerPlus3**](#building-daadmaker128--daadmakerplus3)
     - [**Compiling DCP**](#compiling-dcp)
     - [**Build batch file**](#build-batch-file)
   - [**Extending the interpreter**](#extending-the-interpreter)
     - [**Inserting binary data on the database**](#inserting-binary-data-on-the-database)
     - [**The calling mechanism**](#the-calling-mechanism)
-      - [**1 - SFX & EXTERN:**](#1---sfx--extern)
+      - [**1 - SFX \& EXTERN:**](#1---sfx--extern)
       - [**2 - Interrupt routine**](#2---interrupt-routine)
       - [**3 - CALL address**](#3---call-address)
       - [**4 - Jumping to another bank**](#4---jumping-to-another-bank)
@@ -379,7 +379,7 @@ Be careful with condact `EXTERN`, since it is also used with the Maluva emulatio
 On ZXDAAD128, EXTERN takes always two parameters after de CondAct:
 
 ```
-> EXTERN A B
+EXTERN A B
 ```
 
 The parámeter A is the parámeter that it will be passed on to the MALUVA function, and the second is the code of the actual Maluva function to run.  
@@ -398,8 +398,8 @@ The BC register must be preserved/updated,that is, you should advance the BC poi
 e.g.
 
 ```
-EXTERN 0 6
-#defw Anaddress
+  EXTERN 0 6
+  #defw Anaddress
 ```
 
 Could be accessed with the following routine:
@@ -444,7 +444,7 @@ When you have your custom code assembled, the resultant binary file should have 
 Now, for jumping into this code, you can call the 'false CondAct' JumpToBank. This false CondAct is not recognized by DRC, so on your code you should do this to call it:
 
 ```
-> EXTERN n 11
+  EXTERN n 100
   #defb p
 ```
 

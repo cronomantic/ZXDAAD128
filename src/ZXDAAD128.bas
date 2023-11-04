@@ -2960,6 +2960,9 @@ SUB initFlags()
   'Sets Current window
   LET flags(fCurWin) = 0
   popCurrentWindow(0)
+  'LET cwinH = 25
+  'LET cwinW = 43
+  'PRIVATEwindowCheck()
 
   'Sets border
   LET borderScr = 0
@@ -3996,7 +3999,7 @@ condactEXTERN:
 
   ELSEIF flagno = 10 THEN 'XSPEED
 '/
-  ELSEIF flagno = 11 THEN 'Custom Condact Jump to Bank
+  ELSEIF flagno = 100 THEN 'Custom Condact Jump to Bank
     'Changes to bank n and calls $c000
     LET objno = getCondOrValueAndInc() 'parameter 2
     LET flagno2 = jumpToBank(c, objno)
