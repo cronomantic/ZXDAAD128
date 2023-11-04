@@ -379,7 +379,7 @@ Be careful with condact `EXTERN`, since it is also used with the Maluva emulatio
 On ZXDAAD128, EXTERN takes always two parameters after de CondAct:
 
 ```
-> EXTERN A B
+EXTERN A B
 ```
 
 The parámeter A is the parámeter that it will be passed on to the MALUVA function, and the second is the code of the actual Maluva function to run.  
@@ -412,7 +412,7 @@ Could be accessed with the following routine:
     LD E,A
     INC BC
     LD A,(BC)
-    LD D,A ; DE = Anaddress
+    LD D,A ; DE = An address
     POP AF ; A = 6
 ```
 
@@ -444,7 +444,7 @@ When you have your custom code assembled, the resultant binary file should have 
 Now, for jumping into this code, you can call the 'false CondAct' JumpToBank. This false CondAct is not recognized by DRC, so on your code you should do this to call it:
 
 ```
-> EXTERN n 11
+  EXTERN n 11
   #defb p
 ```
 
