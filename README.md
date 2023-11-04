@@ -399,7 +399,7 @@ e.g.
 
 ```
 EXTERN 0 6
-#defw Anaddress
+#defw An_address
 ```
 
 Could be accessed with the following routine:
@@ -412,7 +412,7 @@ Could be accessed with the following routine:
     LD E,A
     INC BC
     LD A,(BC)
-    LD D,A ; DE = An address
+    LD D,A ; DE = An_address
     POP AF ; A = 6
 ```
 
