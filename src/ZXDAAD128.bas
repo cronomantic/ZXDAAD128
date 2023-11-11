@@ -1308,7 +1308,11 @@ SUB printMsg(tokStrPtr AS uInteger, doPrint AS uByte)
       LOOP
     ELSE
       IF doPrint
+#ifdef LANG_ES
         IF (c = 95 OR c = 64) THEN '(c=='_' || c=='@')
+#else
+        IF (c = 95) THEN '(c=='_')
+#endif
           printObjectMsgModif(flags(fCONum), c)
           LET i = tmpMsg
           CONTINUE DO
