@@ -10,35 +10,43 @@
 
 ; --- Por favor no quites este código, es importante para controlar los distintos objetivos
 #ifdef "SPLIT"
-#define hasSplitMode 1
+#define splitModeON 1
 #endif
 
-#ifndef "tape"
+#ifndef "tape48"
 #ifndef "st"
 #ifndef "amiga"
 #ifndef "zx128"
-#extern "MALUVA"
+    #extern "MALUVA"
 #endif
 #endif
 #endif
 #endif
 
+#ifdef "zx128"
+#define nativeraster 1
+#endif
 
 #ifdef "html"
 #define nativeraster 1
 #endif
+
 #ifdef "pcw"
 #define nativeraster 1
 #endif
+
 #ifdef "amiga"
 #define nativeraster 1
 #endif
+
 #ifdef "pc"
 #define nativeraster 1
 #endif
+
 #ifdef "st"
 #define nativeraster 1
 #endif
+
 #ifdef "nativeraster"
 #echo  "La máquina de destino soporta gráficos raster de manera nativa"
 #endif
@@ -56,7 +64,7 @@
 #int "MLV_CPC_INT.BIN"
 #endif
 
-#ifdef "hasSplitMode"
+#ifdef "splitModeON"
 #echo "La máquina destino usará split mode"
 #endif
 
@@ -64,13 +72,6 @@
 #echo "La máquina destino tiene modo turbo"
 #endif
 
-#ifdef "tape"
-#define noretryImage 1
-#endif
-
-#ifdef "nativeraster"
-#define noretryImage 1
-#endif
 ; --- Por favor no quites este código de arriba, es importante para controlar los distintos objetivos
 
 
@@ -322,13 +323,13 @@ LUEGO   2       conjugation
 ;------------------------------------------------------------------------------
 /CON    ;Conexiones
 /0
-/1 N 2
+/1 N 2 
 /2 S 1
 ;------------------------------------------------------------------------------
 /OBJ    ;Objetos
 ;obj  starts  weight    c w  5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0    noun   adjective
 ;num    at
-/0      _  1       _ _  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _    LINTER  _
+/0      1  1       _ _  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _    LINTER  _
 ;------------------------------------------------------------------------------
 /PRO 0   
 
@@ -337,88 +338,62 @@ LUEGO   2       conjugation
 ; jugador ya no está en la localidad 0, se encarga de mostrar el gráfico y texto de la localidad
 ; actual, si procede,  y saltar al proceso 1 donde está el sistema que pide órdenes al jugador.
 
-
 > _       _     AT      0                ; Iniciando el juego
                 #ifdef "canBoostSpeed"
                     XSPEED  1                ; Si se puede cambiar la velocidad de la CPU, ponerla a 7Mhz
                 #endif
-                #ifdef "hasSplitMode"    ; si soporta split screen, activarla
+                #ifdef "splitModeON"    ; si soporta split screen, activarla
                     XSPLITSCR 1
                 #endif
                 PROCESS 6               ; El proceso de inicialización
-                
-                
+
+
+> _       _     WINDOW 1
+                WINAT 14 0              ; por defecto, la ventana de texto está en la parte inferior
+                WINSIZE 25 127
+
 
 > _       _     WINDOW  0               ; Ventana de gráficos
-                CLEAR   fDarkF           ; Asume que hay luz
+                CLEAR   fDarkF          ; Asume que hay luz
                 NOTZERO 0
                 ABSENT  0
-                SET     fDarkF           ; Oscuro
+                SET     fDarkF          ; Oscuro
+                
 
-#ifndef "zx128"
-> _       _     CLEAR 20
-#ifndef "tape"
-                ZERO fDarkF
-                XPICTURE @fPlayer        ; Si hay una imagen, cargarla
+                
+#ifdef "nativeraster"               ; GRAFICO PARA TARGETS CON GRAFICOS RASTER NATIVOS
+> _       _     ZERO fDarkF
+                PICTURE @fPlayer        ; Si hay una imagen, cargarla
+                DISPLAY 0
+                SKIP $pictureOK
+
+#else                               ; GRAFICO PARA TARGETS CON GRAFICOS RASTER NO NATIVOS
+    #ifndef "tape48"                ; Y QUE NO SEAN Spectrum 48K
+    > _       _     ZERO fDarkF
+                    CLEAR 20
+                    XPICTURE @fPlayer        ; Si hay una imagen, cargarla
+                    ZERO 20                  ; Si fue cargado
+                    SKIP $pictureOK
+    #endif
 #endif
-#ifdef "nativeraster"
-                DISPLAY @fDarkF         ; Y mostrarla si no está oscuro, en caso contrario, borra la ventana
-#endif       
-#ifdef "next"
-                GT  20 127               ; Muestralo si no oscuro; si oscuro
+
+#ifndef "splitModeON"                  ; Esta entrada solo se ejecuta si no hay split screen, y solo llegamos a ella si falló la carga de la imagen o está oscuro
+> _       _     WINDOW 1
+                WINAT 0 0               ; Si no hay imagen, nos ponemos a pantalla completa de texto
+                WINSIZE 25 127
+                CLS
+                #ifdef "next"
+                GT  20 127               ; Si falló la carga de la imagen...
                 XNEXTCLS                 ; Deshabilita y borra Layer2
-#endif       
-
-> _      _      NOTZERO fDarkF
-                CLS
-
-
-#ifndef "noretryImage"
-> _        _    GT 20 127
-                XPICTURE 255            ; Si XPICTURE falló, trata de poner el gráfico de relleno 255
-                #ifdef "nativeraster"
-                                DISPLAY @fDarkF         ; Y mostrarlo si no está oscuro, en caso contrario, borra la ventana
-                #endif       
-#endif                
-
-
-#ifndef "hasSplitMode"
-> _        _    GT 20 127                ; XPICTURE falló
-                CLS
-                WINDOW 1
-                WINAT 0 0
-                WINSIZE 25 127           ; Full screen
-                CLS
-                SKIP 1
-#endif
-
-> _        _    WINDOW 1
-                WINAT 0 0
-                #ifndef "tape"
-                WINAT 14 0
                 #endif
 #else
-;ZX 128
-> _       _     PICTURE @fPlayer        ; Si hay gráfico, cárgalo
-                DISPLAY @fDarkF         ; Muestralo si no oscuro; si oscuro hace un CLS
-                SKIP    2               ; Saltamos
-
-> _        _    PICTURE 255             ; Si hemos fallado, cargamos la localidad 255 (pantalla de paso)
-                DISPLAY @fDarkF
-                SKIP    1               ; Saltamos
-
-> _        _    CLS                     ; Fallback si no encontramos imagen
-                WINDOW  1
-                WINAT   0 0
-                WINSIZE 24      42      ; Ventana máxima para texto
-                CLS
-                SKIP    1               ; Saltar parte inferior.
-
-> _        _    WINDOW 1                ; Ventana en la parte inferior
-                WINAT  14 0
+> _ _           CLS                      ; Si falló la carga pero tenemos split mode, nos limitamos a hacer el CLS de la ventana gráfica
 #endif
 
-> _       _     NOTZERO fDarkF           ; Oscuro
+$pictureOK
+
+> _       _     WINDOW 1                 ; Ventana de texto
+                NOTZERO fDarkF           ; Oscuro
                 SYSMESS 0
 
 > _       _     ZERO    fDarkF
@@ -526,8 +501,10 @@ LUEGO   2       conjugation
 
 ; En este proceso se da respuesta a la ordenes del jugador, por lo que las entradas suelen
 ; tener verbo y nombre, o al menos verbo. Las órdenes del jugador ejecutarán cada entrada
-; si coinciden con las palabras indicadas en cada una. Para los que venís de PAW, es el 
-; equivalente a la tabla de respuestas.
+; si coinciden con las palabras indicadas en cada una. Ten en cuenta que se ejecutan en 
+; el orden en el que están en el fichero, por lo que las respuestás más genéricas deben
+; detrás de las más específicas. Para los que venís de PAW, es el equivalente a la tabla 
+; de respuestas.
 
 
 > I       _     SYSMESS 9
@@ -560,19 +537,19 @@ LUEGO   2       conjugation
 
 > FIN     _     DONE                    
 
-> SAVE    _     #ifndef "tape"
+> SAVE    _     #ifndef "tape48"
                 XSAVE 0                  ;ditto
                 #endif
-                #ifdef "tape"
+                #ifdef "tape48"
                 SAVE 0
                 #endif
                 CLS
                 RESTART
 
-> LOAD    _     #ifndef "tape"
+> LOAD    _     #ifndef "tape48"
                 XLOAD  0
                 #endif
-                #ifdef "tape"
+                #ifdef "tape48"
                 LOAD   0
                 #endif
                 CLS
@@ -591,67 +568,55 @@ LUEGO   2       conjugation
 
 /PRO 6 ; Inicialización
 
-#ifndef "zx128"
-> _       _     WINDOW  1               ; Inicializamos las ventanas
-                #ifdef "pc"
+> _       _     #ifdef "pc"
                     PAPER 0
                     INK 15
                 #endif
-                #ifndef "tape"
-                    WINAT   14       0
-                #endif
-                #ifdef "tape"
-                    WINAT   0       0
-                #endif
-                WINSIZE 25      127     ; Tamaño máximo
                 CLS
-                DESC    0               ; Introducción
-                #ifndef "tape"
-                    #ifdef "nativeraster"
-                        WINDOW 0
-                        PICTURE 0
-                        DISPLAY 0
-                    #else
+                WINDOW  1               ; Ventana de texto a mitad
+                WINAT 14 0
+                WINSIZE 25 128
+                WINDOW   0
+                CLS
+                #ifdef "nativeraster"     ; Gráfico de localidad 0
+                    PICTURE 0 
+                    DISPLAY 0
+                    SKIP $picture0OK
+                #else 
+                    #ifndef "tape48"
+                        CLEAR 20
                         XPICTURE 0
-                        WINDOW 0
-                    #endif
+                        ZERO 20
+                        SKIP $picture0OK
+                    #endif    
                 #endif
 
-> _       _     
+#ifndef "splitModeON"                  
+>  _     _      WINDOW  1                   ; Si llegamos aquí, el gráfico 000 no estaba
+                WINAT 0 0              
+                WINSIZE 25 128             ; Ponemos la pantalla a full screen, salvo si  es split mode
+#endif
+$picture0OK
+
+> _       _     WINDOW 1
+                DESC    0               ; Texto Introducción
                 ANYKEY
                 CLS
                 SET   255             
-#else
-;ZX 128
-> _       _     WINDOW  1               ; Inicializamos las ventanas
-                WINAT   14       0
-                WINSIZE 25      127     ; Tamaño máximo
-                CLS
-                PICTURE 0
-                DISPLAY 0
-                SKIP    1
 
-> _       _     WINAT   0       0
-                WINSIZE 25 127
-                CLS
-
-> _       _     DESC    0               ; Introducción
-                ANYKEY
-                CLS
-                SET   255
-#endif
-
-> _       _     MINUS  255 1          ; Pone a cero todos los flags
+$initLoop                
+> _       _     MINUS   255 1          ; Pone a cero todos los flags
                 NOTEQ   255  fGFlags  ; menos GFlags!!!
                 CLEAR   @255
 
 > _       _     NOTZERO 255             
-                SKIP    -2              
+                SKIP    $initLoop
 
-> _       _     RESET                   ; Objetos a su loc. inicial / Flag 1
+> _       _     RESET                     ; Objetos a su loc. inicial / Flag 1
                 LET     fStrength 10
-                LET     fMaxCarr  4
+                LET     fMaxCarr 4
                 SET     fCPronounNoun
                 SET     fCPronounAdject
-                GOTO    1               ; Primera localidad del juego
+                ; LET fObjectsCarried   0 ; Inicializar este flag con el número de objetos que lleva el jugador de inicio
+                GOTO    1                 ; Primera localidad del juego
 /END
