@@ -19,39 +19,51 @@
 
 
 ; --- Please don't remove the following code, it makes sure the game works fine for all supported targets 
+
 #ifdef "SPLIT"
-#define hasSplitMode 1
+#define splitModeON 1
+#endif
+
+#ifdef "tape48"
+#define tape 1
 #endif
 
 #ifndef "tape"
 #ifndef "st"
 #ifndef "amiga"
 #ifndef "zx128"
-#extern "MALUVA"
+#ifndef "next"
+    #extern "MALUVA"
+#endif
 #endif
 #endif
 #endif
 #endif
 
+#ifdef "zx128"
+#define nativeraster 1
+#endif
 
 #ifdef "html"
 #define nativeraster 1
 #endif
+
 #ifdef "pcw"
 #define nativeraster 1
 #endif
+
 #ifdef "amiga"
 #define nativeraster 1
 #endif
+
 #ifdef "pc"
 #define nativeraster 1
 #endif
+
 #ifdef "st"
 #define nativeraster 1
 #endif
-#ifdef "nativeraster"
-#echo  "Target supports native raster graphics"
-#endif
+
 
 #ifdef "uno"
 #int "MLV_UNO_INT.BIN"
@@ -66,20 +78,12 @@
 #int "MLV_CPC_INT.BIN"
 #endif
 
-#ifdef "hasSplitMode"
-#echo "Target will make use of split mode"
+#ifdef "splitModeON"
+#echo "La máquina destino usará split mode"
 #endif
 
 #ifdef "canBoostSpeed"
-#echo "Target has turbo mode"
-#endif
-
-#ifdef "tape"
-#define noretryImage 1
-#endif
-
-#ifdef "nativeraster"
-#define noretryImage 1
+#echo "La máquina destino tiene modo turbo"
 #endif
 
 ; --- Please don't remove the code above, it makes sure the game works fine for all supported targets 
@@ -362,94 +366,67 @@ S 1
 ;------------------------------------------------------------------------------
 /PRO 0       ;Main Location Loop
 
-> _       _     AT      0                ; Starting game
+> _       _     AT      0                ; Are we starting the game?
                 #ifdef "canBoostSpeed"
-                #echo "Target using boosted CPU speed"
-                XSPEED  1                ; if a boostable target, boost CPU speed to 7Mhz
+                    XSPEED  1                ; if CPU can boost speed, activate it
                 #endif
-                #ifdef "hasSplitMode"    ; If a split screen target, set split screen
-                #echo "Target using split mode"
-                XSPLITSCR 1
+                #ifdef "splitModeON"    ; if split mode is supported, activate it
+                    XSPLITSCR 1
                 #endif
-                PROCESS 6                ; then we need init sequence
+                PROCESS 6               ; Initialise DAAD system
 
-> _       _     WINDOW  0                ; Select graphics window
-                CLEAR   fDarkF           ; Assume light
-;               MINUS   2       1       ; Decrement flag 2    (See notes)
+
+> _       _     WINDOW 1
+                WINAT 14 0              ; by default, text window is at the bottom
+                WINSIZE 25 127
+
+
+> _       _     WINDOW  0               ; graphics window
+                CLEAR   fDarkF          ; Assumes there's light
                 NOTZERO 0
-;               MINUS   3       1       ; & Flag 3 if Dark    (See notes)
                 ABSENT  0
-;               MINUS   4       1       ; & Flag 4 if No Lamp (See notes)
-                SET     fDarkF           ; Dark
+                SET     fDarkF          ; It's dark!
+                
 
-#ifndef "zx128"
-> _       _     CLEAR 20
-#ifndef "tape"
-                ZERO fDarkF
-                XPICTURE @fPlayer        ; If there is a picture, Load it
-#endif
-#ifdef "nativeraster"
-                DISPLAY @fDarkF         ; & Display it if not dark, else CLS
-#endif
-#ifdef "next"
-                GT  20 127               ; Muestralo si no oscuro; si oscuro
-                XNEXTCLS                 ; Disable adn clear Layer2
+                
+#ifdef "nativeraster"               ; Picture for targets with native raster graphics
+> _       _     ZERO fDarkF
+                PICTURE @fPlayer        ; if any image, load it
+                DISPLAY 0
+                SKIP $pictureOK
+
+#else                               ; Picture for targets without native raster graphics
+    #ifndef "tape48"                ; and not Spectrum 48K 
+    > _       _     ZERO fDarkF
+                    CLEAR 20
+                    XPICTURE @fPlayer        ; if any image, load it
+                    ZERO 20                  ; if it was loaded...
+                    SKIP $pictureOK
+    #endif
 #endif
 
-> _      _      NOTZERO fDarkF
+#ifndef "splitModeON"                  ; You only get to this entry if there if failed to load image or it's dark (or Spectrum 48k)
+> _       _     WINDOW 1
+                WINAT 0 0               ; If no image, full screen text window
+                WINSIZE 25 127
                 CLS
-
-
-#ifndef "noretryImage"
-> _        _    GT 20 127
-                XPICTURE 255            ; If XPICTURE failed, then try to paint filler picture 255
-                #ifdef "nativeraster"
-                DISPLAY @fDarkF
+                #ifdef "next"
+                    GT  20 127               ; If loading image failed, we also have to eras...
+                    XNEXTCLS                 ; Layer2 in Spectrum  Next
                 #endif
-
-#endif
-
-#ifndef "hasSplitMode"
-> _        _    GT 20 127                ; XPICTURE failed to load
-                CLS
-                WINDOW 1    
-                WINAT 0 0
-                WINSIZE 25      127     ; Maximum window
-                CLS
-                SKIP 1
-#endif
-
-> _        _    WINDOW 1
-                #ifndef "tape"
-                WINAT 14 0
-                #endif
-
 #else
-;ZX 128
-> _       _     PICTURE @fPlayer        ; If there is image, it loads it
-                DISPLAY @fDarkF         ; Show it if not dark, else do a CLS
-                SKIP    2               ; Skip to window on text on lower edge
+> _ _           CLS                      ; if load failed but split mode is ON, we only have to clear the graphic window
 
-> _        _    PICTURE 255             ; On image fail, loads image num. 255
-                DISPLAY @fDarkF
-                SKIP    1               ; Skip to window on text on lower edge
-
-> _        _    CLS                     ; Fallback si no image found
-                WINDOW  1
-                WINAT   0 0
-                WINSIZE 24      42      ; All screen for text
-                CLS
-                SKIP    1               ; Skip.
-
-> _        _    WINDOW 1                ; Window on the lower end of the screen
-                WINAT  14 0
 #endif
 
-> _       _     NOTZERO fDarkF           ; Dark
+$pictureOK
+
+> _       _     WINDOW 1                 ; text window
+                NOTZERO fDarkF           ; Dark
                 SYSMESS 0
 
 > _       _     ZERO    fDarkF
-                DESC    @fPlayer        ; Doesn't exit loop now
+                DESC   @fPlayer        
 
 > _       _     PROCESS 3
 
@@ -590,72 +567,57 @@ S 1
 > LOOK    _     CLS
                 RESTART
 ;------------------------------------------------------------------------------
-/PRO 6 ; Initialise the DAAD system
+/PRO 6 ; Initialisation
 
-#ifndef "zx128"
-> _       _     WINDOW  1               ; Windows are random
-                #ifdef "pc"   
-                PAPER 0
-                INK 15
+> _       _     #ifdef "pc"
+                    PAPER 0
+                    INK 15
                 #endif
-             
-> _       _     #ifndef "tape"
-                WINAT   14       0
-                #endif
-                #ifdef "tape"
-                WINAT   0       0
-                #endif
-                WINSIZE 25      127     ; Maximum window
                 CLS
-                DESC    0               ; Introduction
-                #ifndef "tape"
-                    #ifdef "nativeraster"
-                        WINDOW 0
-                        PICTURE 0
-                        DISPLAY 0
-                    #else
+                WINDOW  1               ; Half screen text window
+                WINAT 14 0
+                WINSIZE 25 128
+                WINDOW   0
+                CLS
+                #ifdef "nativeraster"     ; location 0  picture
+                    PICTURE 0 
+                    DISPLAY 0
+                    SKIP $picture0OK
+                #else 
+                    #ifndef "tape48"
+                        CLEAR 20
                         XPICTURE 0
-                        WINDOW 0
-                    #endif
+                        ZERO 20
+                        SKIP $picture0OK
+                    #endif    
                 #endif
 
-> _       _     
+#ifndef "splitModeON"                  
+>  _     _      WINDOW  1                   ; if we got here, graphic 000 was missing
+                WINAT 0 0              
+                WINSIZE 25 128             ; Full screen text mode unless split mode is ON
+#endif
+$picture0OK
+
+> _       _     WINDOW 1
+                DESC    0               ; Intro text
                 ANYKEY
                 CLS
                 SET   255             
-#else
-;ZX 128
-> _       _     WINDOW  1               ; Windows are random
-                WINAT   14       0
-                WINSIZE 25      127     ; Maximum window
-                CLS
-                PICTURE 0
-                DISPLAY 0
-                SKIP    1
 
-> _       _     WINAT   0       0
-                WINSIZE 25 127
-                CLS
-
-> _       _     DESC    0               ; Introduction
-                ANYKEY
-                CLS
-                SET   255
-#endif
-
-> _       _     MINUS  255 1          ; Clear all flags
-                NOTEQ   255  fGFlags  ; except fGFlags!!!
+$initLoop                
+> _       _     MINUS   255 1          ; Clear all flags
+                NOTEQ   255  fGFlags  ; but GFlags!!!
                 CLEAR   @255
 
 > _       _     NOTZERO 255             
-                SKIP    -2              
+                SKIP    $initLoop
 
-> _       _     RESET                   ; Set objects to start location & Flag 1
+> _       _     RESET                     ; Objects to initial locations / Flag 1
                 LET     fStrength 10
-                LET     fMaxCarr  4
+                LET     fMaxCarr 4
                 SET     fCPronounNoun
                 SET     fCPronounAdject
-                GOTO    1               ; Main game
-
+                ; LET fObjectsCarried   0 ; Remmeber to  set this flag with the number of objects the player is carrying on start
+                GOTO    1                 ; Go to first location 
 /END
-

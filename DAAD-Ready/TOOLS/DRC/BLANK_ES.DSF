@@ -9,15 +9,22 @@
 ; mente si abres el fichero con una codificación que no es la correcta (ISO-8859-1 o Win1252)
 
 ; --- Por favor no quites este código, es importante para controlar los distintos objetivos
+
 #ifdef "SPLIT"
 #define splitModeON 1
 #endif
 
-#ifndef "tape48"
+#ifdef "tape48"
+#define tape 1
+#endif
+
+#ifndef "tape"
 #ifndef "st"
 #ifndef "amiga"
 #ifndef "zx128"
+#ifndef "next"
     #extern "MALUVA"
+#endif
 #endif
 #endif
 #endif
@@ -45,10 +52,6 @@
 
 #ifdef "st"
 #define nativeraster 1
-#endif
-
-#ifdef "nativeraster"
-#echo  "La máquina de destino soporta gráficos raster de manera nativa"
 #endif
 
 #ifdef "uno"
@@ -327,9 +330,8 @@ LUEGO   2       conjugation
 /2 S 1
 ;------------------------------------------------------------------------------
 /OBJ    ;Objetos
-;obj  starts  weight    c w  5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0    noun   adjective
-;num    at
-/0      1  1       _ _  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _    LINTER  _
+;num    starts at   weight    c w  5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0    noun   adjective
+/0      CARRIED       1       _ _  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _    LINTER  _
 ;------------------------------------------------------------------------------
 /PRO 0   
 
@@ -383,8 +385,8 @@ LUEGO   2       conjugation
                 WINSIZE 25 127
                 CLS
                 #ifdef "next"
-                GT  20 127               ; Si falló la carga de la imagen...
-                XNEXTCLS                 ; Deshabilita y borra Layer2
+                    GT  20 127               ; Si falló la carga de la imagen...
+                    XNEXTCLS                 ; Deshabilita y borra Layer2
                 #endif
 #else
 > _ _           CLS                      ; Si falló la carga pero tenemos split mode, nos limitamos a hacer el CLS de la ventana gráfica
@@ -397,7 +399,7 @@ $pictureOK
                 SYSMESS 0
 
 > _       _     ZERO    fDarkF
-                DESC   @fPlayer        ; DESC No sale del bucle ahora
+                DESC   @fPlayer        
 
 > _       _     PROCESS 3
 

@@ -24,37 +24,49 @@
 
 
 ; --- Please don't remove the following code, it makes sure the game works fine for all supported targets 
+
 #ifdef "SPLIT"
-#define hasSplitMode 1
+#define splitModeON 1
+#endif
+
+#ifdef "tape48"
+#define tape 1
 #endif
 
 #ifndef "tape"
 #ifndef "st"
 #ifndef "amiga"
 #ifndef "zx128"
-#extern "MALUVA"
+#ifndef "next"
+    #extern "MALUVA"
+#endif
 #endif
 #endif
 #endif
 #endif
 
+#ifdef "zx128"
+#define nativeraster 1
+#endif
+
 #ifdef "html"
 #define nativeraster 1
 #endif
+
 #ifdef "pcw"
 #define nativeraster 1
 #endif
+
 #ifdef "amiga"
 #define nativeraster 1
 #endif
+
 #ifdef "pc"
 #define nativeraster 1
 #endif
+
 #ifdef "st"
 #define nativeraster 1
-#endif
-#ifdef "nativeraster"
-#echo  "Target supports native raster graphics"
 #endif
 
 #ifdef "uno"
@@ -70,20 +82,12 @@
 #int "MLV_CPC_INT.BIN"
 #endif
 
-#ifdef "hasSplitMode"
-#echo "Target will make use of split mode"
+#ifdef "splitModeON"
+#echo "La máquina destino usará split mode"
 #endif
 
 #ifdef "canBoostSpeed"
-#echo "Target has turbo mode"
-#endif
-
-#ifdef "tape"
-#define noretryImage 1
-#endif
-
-#ifdef "nativeraster"
-#define noretryImage 1
+#echo "La máquina destino tiene modo turbo"
 #endif
 
 ; --- Please don't remove the code above, it makes sure the game works fine for all supported targets 
@@ -374,107 +378,84 @@ S 1
 
 ;------------------------------------------------------------------------------
 /OBJ    ;Object Definitions
-;obj  starts  weight    c w  5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0    noun   adjective
-;num    at
-/0      CARRIED 1       _ _  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _    FACKE  _
+;num  starts at  weight    c w  5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0    noun   adjective
+/0    CARRIED       1      _ _  _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _    FACKE  _
 
 
 ;------------------------------------------------------------------------------
 /PRO 0       ;Main Location Loop
 
-> _       _     AT      0                ; Starting game
+; Dieser Vorgang ist der erste, der vom DAAD durchgeführt wird, und enthält somit einen ersten Eintrag, der
+; Springt zu dem Prozess, der Objekte, Flags usw. initialisiert. und dann jedes Mal, wenn er gerufen wird, und das
+; Befindet sich der Spieler nicht mehr am Ort 0, ist er für die Darstellung der Grafik und des Textes des Ortes verantwortlich
+; aktuell, falls zutreffend, und springen Sie zu Prozess 1, wo sich das System befindet, das den Spieler nach Befehlen fragt.
+
+> _       _     AT      0                ; Wenn wir uns in der ersten Lokalität befinden...
                 #ifdef "canBoostSpeed"
-                    #echo "Target using boosted CPU speed"
-                    XSPEED  1                ; if a boostable target, boost CPU speed to 7Mhz
+                    XSPEED  1                ; Wenn Sie die CPU-Geschwindigkeit ändern können, stellen Sie sie auf 7 MHz ein
                 #endif
-                #ifdef "hasSplitMode"    ; If a split screen target, set split screen
-                    #echo "Target using split mode"
+                #ifdef "splitModeON"    ; Wenn es den geteilten Bildschirm unterstützt, aktivieren Sie es
                     XSPLITSCR 1
                 #endif
-                PROCESS 6                ; then we need init sequence
+                PROCESS 6               ; Der Initialisierungsprozess
 
-> _       _     WINDOW  0                ; Select graphics window
-                CLEAR   fDarkF           ; Assume light
-;               MINUS   2       1       ; Decrement flag 2    (See notes)
+
+> _       _     WINDOW 1
+                WINAT 14 0              ; Standardmäßig befindet sich das Textfenster unten
+                WINSIZE 25 127
+
+
+> _       _     WINDOW  0               ; Grafikfenster
+                CLEAR   fDarkF          ; Gehen Sie davon aus, dass es Licht gibt
                 NOTZERO 0
-;               MINUS   3       1       ; & Flag 3 if Dark    (See notes)
                 ABSENT  0
-;               MINUS   4       1       ; & Flag 4 if No Lamp (See notes)
-                SET     fDarkF           ; Dark
+                SET     fDarkF          ; Dunkel
+                
 
-#ifndef "zx128"
-> _       _     CLEAR 20
-#ifndef "tape"
-                ZERO fDarkF
-                XPICTURE @fPlayer        ; If there is a picture, Load it
-#endif
-#ifdef "nativeraster"
-                DISPLAY @fDarkF         ; & Display it if not dark, else CLS
-#endif
-#ifdef "next"
-                GT  20 127               ; Muestralo si no oscuro; si oscuro
-                XNEXTCLS                 ; Disable adn clear Layer2
+                
+#ifdef "nativeraster"               ; GRAPH FÜR ZIELE MIT NATÜRLICHER RASTERGRAFIK
+> _       _     ZERO fDarkF
+                PICTURE @fPlayer        ; Wenn es ein Bild gibt, laden Sie es hoch
+                DISPLAY 0
+                SKIP $pictureOK
+
+#else                               ; GRAPH FÜR ZIELE MIT NICHT-NATIVER RASTERGRAFIKEN, DIE NICHT Spectrum 48K SIND
+    #ifndef "tape48"                 
+    > _       _     ZERO fDarkF
+                    CLEAR 20
+                    XPICTURE @fPlayer        ; Wenn es ein Bild gibt, laden Sie es hoch
+                    ZERO 20                  ; Wenn es geladen wurde...
+                    SKIP $pictureOK
+    #endif
 #endif
 
-> _      _      NOTZERO fDarkF
+#ifndef "splitModeON"                  ; Dieser Eintrag wird nur ausgeführt, wenn kein geteilter Bildschirm vorhanden ist, und wir gelangen nur zu ihm, wenn das Laden des Bildes fehlgeschlagen ist oder es dunkel ist
+> _       _     WINDOW 1
+                WINAT 0 0               ; Wenn kein Bild vorhanden ist, wechseln wir zum Vollbildtext
+                WINSIZE 25 127
                 CLS
-
-
-#ifndef "noretryImage"
-> _        _    GT 20 127
-                XPICTURE 255            ; If XPICTURE failed, then try to paint filler picture 255
-                #ifdef "nativeraster"
-                                DISPLAY @fDarkF         ; & Display it if not dark, else CLS
-                #endif       
-
-#endif
-
-#ifndef "hasSplitMode"
-> _        _    GT 20 127                ; XPICTURE failed to load
-                CLS
-                WINDOW 1    
-                WINAT 0 0
-                WINSIZE 25      127     ; Maximum window
-                CLS
-                SKIP 1
-#endif
-
-> _        _    WINDOW 1
-                #ifndef "tape"
-                WINAT 14 0
+                #ifdef "next"
+                    GT  20 127          ; Wenn das Laden des Bildes fehlschlägt...
+                    XNEXTCLS           ; Deaktivieren und löschen Sie Layer2
                 #endif
-                              
 #else
-;ZX 128
-> _       _     PICTURE @fPlayer        ; If there is image, it loads it
-                DISPLAY @fDarkF         ; Show it if not dark, else do a CLS
-                SKIP    2               ; Skip to window on text on lower edge
+> _ _           CLS                      ; Wenn das Laden fehlschlägt, wir aber über den Split-Modus verfügen, beschränken wir uns auf die CLS des Grafikfensters
 
-> _        _    PICTURE 255             ; On image fail, loads image num. 255
-                DISPLAY @fDarkF
-                SKIP    1               ; Skip to window on text on lower edge
-
-> _        _    CLS                     ; Fallback si no image found
-                WINDOW  1
-                WINAT   0 0
-                WINSIZE 24      42      ; All screen for text
-                CLS
-                SKIP    1               ; Skip.
-
-> _        _    WINDOW 1                ; Window on the lower end of the screen
-                WINAT  14 0
 #endif
 
-> _       _     NOTZERO fDarkF           ; Dark
+$pictureOK
+
+> _       _     WINDOW 1                 ; Textfenster
+                NOTZERO fDarkF           ; Dunkel
                 SYSMESS 0
 
 > _       _     ZERO    fDarkF
-                DESC    @fPlayer        ; Doesn't exit loop now
+                DESC   @fPlayer         
 
 > _       _     PROCESS 3
 
-; Now we use Process 1 as the main code loop, a return from it is the end
-; of the game
+; Jetzt verwenden wir Prozess 1 als Hauptspielschleife. Eine Rückkehr von
+; hier bedeutet es das Ende des Spiels
 
 > _       _     PROCESS 1
 
@@ -525,12 +506,12 @@ S 1
                 SYSMESS 35
                 DONE
 
-> _       _     SYSMESS 6               ; I didn't understand
+> _       _     SYSMESS 6               ; Ich habe es nicht verstanden
 
 ;------------------------------------------------------------------------------
-/PRO 3 ; Old process 1. Note that both the response table and the old PAW 
-; process tables 1 and 2 can now be anywhere or completely absent. Everything
-; is implemented in the DAAD language itself.
+/PRO 3 ; Alter Prozess 1. Beachten Sie, dass sowohl die Antworttabelle als auch die alte PAW
+; Die Prozesstabellen 1 und 2 können nun irgendwo vorhanden sein oder ganz fehlen. Alles
+; ist in der DAAD-Sprache selbst implementiert.
 
 ;This is better carried out thus
 > _       _     NEWLINE
@@ -612,68 +593,55 @@ S 1
 ;------------------------------------------------------------------------------
 /PRO 6 ; Initialise the DAAD system
 
-#ifndef "zx128"
-> _       _     WINDOW  1               ; Windows are random
-                #ifdef "pc"
-                  PAPER 0
+> _       _     #ifdef "pc"
+                    PAPER 0
                     INK 15
                 #endif
-             
-> _       _     #ifndef "tape"
-                    WINAT   14       0
-                #endif
-                #ifdef "tape"
-                    WINAT   0       0
-                #endif
-                WINSIZE 25      127     ; Maximum window
                 CLS
-                DESC    0               ; Introduction
-                #ifndef "tape"
-                    #ifdef "nativeraster"
-                        WINDOW 0
-                        PICTURE 0
-                        DISPLAY 0
-                    #else
+                WINDOW  1               ; Halbes Textfenster
+                WINAT 14 0
+                WINSIZE 25 128
+                WINDOW   0
+                CLS
+                #ifdef "nativeraster"     ; Ortsdiagramm 0
+                    PICTURE 0 
+                    DISPLAY 0
+                    SKIP $picture0OK
+                #else 
+                    #ifndef "tape48"
+                        CLEAR 20
                         XPICTURE 0
-                        WINDOW 0
-                    #endif
+                        ZERO 20
+                        SKIP $picture0OK
+                    #endif    
                 #endif
-> _       _     
+
+#ifndef "splitModeON"                  
+>  _     _      WINDOW  1                  ; Als wir hier ankamen, war die 000-Grafik nicht vorhanden
+                WINAT 0 0              
+                WINSIZE 25 128             ; Wir stellen den Bildschirm auf Vollbild ein, es sei denn, es handelt sich um einen Split-Modus
+#endif
+$picture0OK
+
+> _       _     WINDOW 1
+                DESC    0               ; Texteinführung
                 ANYKEY
                 CLS
                 SET   255             
-#else
-;ZX 128
-> _       _     WINDOW  1               ; Windows are random
-                WINAT   14       0
-                WINSIZE 25      127     ; Maximum window
-                CLS
-                PICTURE 0
-                DISPLAY 0
-                SKIP    1
 
-> _       _     WINAT   0       0
-                WINSIZE 25 127
-                CLS
-
-> _       _     DESC    0               ; Introduction
-                ANYKEY
-                CLS
-                SET   255
-#endif
-
-> _       _     MINUS  255 1          ; Clear all flags
-                NOTEQ   255  fGFlags  ; except fGFlags!!!
+$initLoop                
+> _       _     MINUS   255 1          ; Setzt alle Flags zurück
+                NOTEQ   255  fGFlags  ; außer GFlags!!!
                 CLEAR   @255
 
 > _       _     NOTZERO 255             
-                SKIP    -2              
+                SKIP    $initLoop
 
-> _       _     RESET                   ; Set objects to start location & Flag 1
+> _       _     RESET                     ; Objekte an ihrem ursprünglichen Standort / Flag 1
                 LET     fStrength 10
-                LET     fMaxCarr  4
+                LET     fMaxCarr 4
                 SET     fCPronounNoun
                 SET     fCPronounAdject
-                GOTO    1               ; Main game
-
+                ; LET fObjectsCarried   0 ; Initialisieren Sie diese Flagge mit der Anzahl der Gegenstände, die der Startspieler trägt
+                GOTO    1                 ; Erster Ort im Spiel
 /END

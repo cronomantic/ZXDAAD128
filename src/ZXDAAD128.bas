@@ -1790,6 +1790,8 @@ SUB prompt(printPromptMsg AS uByte)
   DIM p, extChars AS uInteger
   DIM c, f AS uByte
   DIM newPrompt AS uByte
+  DIM prevCursorY AS uByte
+
 
   IF flags(fInStream) <> 0 THEN
     pushCurrentWindow(flags(fCurWin))
@@ -1811,7 +1813,9 @@ SUB prompt(printPromptMsg AS uByte)
 
   LET doingPrompt = TRUE
   LET printedLines = 0
+
   printSystemMsg(33)  'Prompt
+  'LET prevCursorY = ccursorY
   PutInputEcho(DdbCursor, TRUE)
 
   POKE p, 0
@@ -1896,11 +1900,13 @@ retContinue:
   IF flags(fInStream) <> 0 THEN
     pushCurrentWindow(flags(fInStream))
     popCurrentWindow(flags(fCurWin))
+    LET printedLines = 0
+''  ELSE
+    'LET printedLines = (ccursorY-prevCursorY)
   END IF
 
   ' Reset variables
   LET doingPrompt = FALSE
-  LET printedLines = 0
 
 END SUB
 '==============================================================================

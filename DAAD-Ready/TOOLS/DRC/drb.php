@@ -239,7 +239,7 @@ var $newConversions = array(16=>'à',17=>'ã',18=>'ä',19=>'â',20=>'è',21=>'ë
 
 }
 define('VERSION_HI',0);
-define('VERSION_LO',29);
+define('VERSION_LO',34);
 
 
 function summary($adventure)
@@ -725,6 +725,7 @@ function getCondactsHash($adventure, $condacts, $from)
 
 function checkMaluva($adventure)
 {
+    if ($adventure->subtarget=='NEXT') return true;
     $count = 0;
     foreach ($adventure->externs as $extern)
     {
@@ -1202,12 +1203,16 @@ function getMachineIDByTarget($target, $subtarget)
 
 function getBaseAddressByTarget($target)
 {
-  if ($target=='ZX')  return 0x8400; else
-  if ($target=='MSX') return 0x0100; else
-  if ($target=='CPC') return 0x2880; else
-  if ($target=='PCW') return 0x100; else
-  if ($target=='CP4') return 0x7080; else
-  if ($target=='C64') return 0x3880; else return 0;
+    switch($target)
+    {
+        case 'ZX': return 0x8400;break;
+        case 'MSX': return 0x0100;break;
+        case 'CPC': return 0x2880;break;
+        case 'PCW': return 0x100;break;
+        case 'CP4': return 0x7080;break;
+        case 'C64': return 0x3880;break;
+        default: return 0;
+    }
 };
 
 function isPaddingPlatform($target)
@@ -1573,6 +1578,8 @@ if (!file_exists($tokensFilename)) {
 }
 
 // Parse optional parameters
+$adventure->target  =$target;
+$adventure->subtarget  =$subtarget;
 $adventure->verbose = false;
 $adventure->prependC64Header = false;
 $adventure->prependPlus3Header = false;

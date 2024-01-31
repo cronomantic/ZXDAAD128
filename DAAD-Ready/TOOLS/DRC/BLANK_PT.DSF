@@ -9,38 +9,49 @@
 ; facilmente se o arquivo for aberto com uma codificação que não é a correta (ISO-8859 ou Win1252) 
 
 ; --- Por favor, não remova o código abaixo, pois é importante para controlar o suporte das plataformas 
+
 #ifdef "SPLIT"
-#define hasSplitMode 1
+#define splitModeON 1
+#endif
+
+#ifdef "tape48"
+#define tape 1
 #endif
 
 #ifndef "tape"
 #ifndef "st"
 #ifndef "amiga"
 #ifndef "zx128"
-#extern "MALUVA"
+#ifndef "next"
+    #extern "MALUVA"
 #endif
 #endif
 #endif
 #endif
-
+#endif
 
 #ifdef "html"
 #define nativeraster 1
 #endif
+
 #ifdef "pcw"
 #define nativeraster 1
 #endif
+
 #ifdef "amiga"
 #define nativeraster 1
 #endif
+
 #ifdef "pc"
 #define nativeraster 1
 #endif
+
 #ifdef "st"
 #define nativeraster 1
 #endif
+
 #ifdef "nativeraster"
-#echo  "A máquina de destino suporta gráficos raster de forma nativa"
+#echo  "La máquina de destino soporta gráficos raster de manera nativa"
 #endif
 
 #ifdef "uno"
@@ -56,21 +67,14 @@
 #int "MLV_CPC_INT.BIN"
 #endif
 
-#ifdef "hasSplitMode"
-#echo "A máquina destino usará a tela dividida (split mode)"
+#ifdef "splitModeON"
+#echo "La máquina destino usará split mode"
 #endif
 
 #ifdef "canBoostSpeed"
-#echo "A máquina destino tem modo turbo"
+#echo "La máquina destino tiene modo turbo"
 #endif
 
-#ifdef "tape"
-#define noretryImage 1
-#endif
-
-#ifdef "nativeraster"
-#define noretryImage 1
-#endif
 ; --- Por favor, não remova o código acima, pois é importante para controlar o suporte das plataformas 
 
 
@@ -360,92 +364,66 @@ LOGO    2       conjugation
 /PRO 0       ; Laço principal dos locais
 
 
-> _       _     AT      0                   ; Iniciando o jogo
+> _       _     AT      0                ; Iniciando o jogo
                 #ifdef "canBoostSpeed"
-                XSPEED  1                   ; Se a plataforma possuir boost, acelerar a velocidade da CPU para 7Mhz
+                    XSPEED  1                ; Se você puder alterar a velocidade da CPU, defina-a para 7Mhz
                 #endif
-                #ifdef "hasSplitMode"       ; Se a plataforma possuir o recurso de divisão de tela, executar a divisão
-                XSPLITSCR 1                 ; Comando do Maluva para dividir a tela
+                #ifdef "splitModeON"    ; Se suportar tela dividida, ative-o
+                    XSPLITSCR 1
                 #endif
-                PROCESS 6                   ; Processo de inicialização
-                
-                
+                PROCESS 6               ; O processo de inicialização
 
-> _       _     WINDOW  0                   ; Janela de gráficos
-                CLEAR   fDarkF              ; Assume que o local está iluminado
+
+> _       _     WINDOW 1
+                WINAT 14 0              ; Por padrão, a janela de texto está na parte inferior
+                WINSIZE 25 127
+
+
+> _       _     WINDOW  0               ; janela gráfica
+                CLEAR   fDarkF          ; Suponha que haja luz
                 NOTZERO 0
                 ABSENT  0
-                SET     fDarkF              ; Escuro
+                SET     fDarkF          ; Escuro
+                
 
-#ifndef "zx128"
-> _       _     CLEAR 20
-#ifndef "tape"
-                ZERO fDarkF
-                XPICTURE @fPlayer           ; Se existir uma imagem, carrega
-#endif
-#ifdef "nativeraster"
-                DISPLAY @fDarkF             ; Faz o DISPLAY se não estiver escuro, senão CLS
-#endif       
-#ifdef "next"
-                GT  20 127                  ; Se estiver escuro
-                XNEXTCLS                    ; desabilitar adn clear Layer2
-#endif       
+                
+#ifdef "nativeraster"               ; GRÁFICO PARA MÁQUINAS COM GRÁFICOS RASTER NATIVOS
+> _       _     ZERO fDarkF
+                PICTURE @fPlayer        ; Se houver uma imagem, carregue-a
+                DISPLAY 0
+                SKIP $pictureOK
 
-> _      _      NOTZERO fDarkF
-                CLS
-
-
-#ifndef "noretryImage"
-> _        _    GT 20 127
-                XPICTURE 255                ; Se o XPICTURE falhar, tentar mostrar a imagem 255 (filler)
-                #ifdef "nativeraster"
-                                DISPLAY @fDarkF         ; & Display it if not dark, else CLS
-                #endif       
-#endif                
-
-
-#ifndef "hasSplitMode"
-> _        _    GT 20 127                   ; XPICTURE falhou na leitura da tela
-                CLS
-                WINDOW 1
-                WINAT 0 0
-                WINSIZE 25 127              ; Maximum window
-                CLS
-                SKIP 1
+#else                               ; GRÁFICO PARA MÁQUINAS  COM GRÁFICOS RASTER NO NATIVOS
+    #ifndef "tape48"                ; E NÃO SÃO Spectrum 48K
+    > _       _     ZERO fDarkF
+                    CLEAR 20
+                    XPICTURE @fPlayer        ; Se houver uma imagem, carregue-a
+                    ZERO 20                  ; Se estivesse carregado...
+                    SKIP $pictureOK
+    #endif
 #endif
 
-> _        _    WINDOW 1
-                WINAT 0 0
-                #ifndef "tape"
-                WINAT 14 0
+#ifndef "splitModeON"                  ; Esta entrada só é executada se não houver split screen, e só chegaremos a ela se o carregamento da imagem falhar ou estiver escuro
+> _       _     WINDOW 1
+                WINAT 0 0               ; Se não houver imagem, vamos para texto em tela cheia
+                WINSIZE 25 127
+                CLS
+                #ifdef "next"
+                    GT  20 127               ; Se o carregamento da imagem falhou...
+                    XNEXTCLS                 ; Desative e exclua Layer2
                 #endif
-
 #else
-;ZX 128
-> _       _     PICTURE @fPlayer        ; Se houver imagem, ele a carrega
-                DISPLAY @fDarkF         ; Mostre se não estiver escuro, senão faça um CLS
-                SKIP    2               ; Pular para janela no texto na borda inferior
-
-> _        _    PICTURE 255             ; Na falha da imagem, carrega a imagem num. 255
-                DISPLAY @fDarkF
-                SKIP    1               ; Pular para janela no texto na borda inferior
-
-> _        _    CLS                     ; Fallback sem imagem encontrada
-                WINDOW  1
-                WINAT   0 0
-                WINSIZE 24      42      ; Toda a tela para texto
-                CLS
-                SKIP    1               ; Skip.
-
-> _        _    WINDOW 1                ; Ventana na parte inferior
-                WINAT  14 0
+> _ _           CLS                      ; Se o carregamento falhou mas temos modo split, nos limitamos a fazer o CLS da janela gráfica
 #endif
 
-> _       _     NOTZERO fDarkF              ; Escuro
+$pictureOK
+
+> _       _     WINDOW 1                 ; janela de texto
+                NOTZERO fDarkF           ; Escuro
                 SYSMESS 0
 
 > _       _     ZERO    fDarkF
-                DESC   @fPlayer        ; DESC No sale del bucle ahora
+                DESC   @fPlayer        
 
 > _       _     PROCESS 3
 
@@ -573,68 +551,55 @@ LOGO    2       conjugation
 
 /PRO 6 ; Inicialização
 
-
-#ifndef "zx128"
-> _       _     WINDOW  1               ; Inicializamos as janelas
-                #ifdef "pc"
+> _       _     #ifdef "pc"
                     PAPER 0
                     INK 15
                 #endif
-                #ifndef "tape"
-                    WINAT   14       0
-                #endif
-                #ifdef "tape"
-                    WINAT   0       0
-                #endif
-                WINSIZE 25      127     ; Tamanho máximo
                 CLS
-                DESC    0               ; Introdução
-                #ifndef "tape"
-                    #ifdef "nativeraster"
-                        WINDOW 0
-                        PICTURE 0
-                        DISPLAY 0
-                    #else
+                WINDOW  1               ; Janela de meio texto
+                WINAT 14 0
+                WINSIZE 25 128
+                WINDOW   0
+                CLS
+                #ifdef "nativeraster"     ; Gráfico de localidade 0
+                    PICTURE 0 
+                    DISPLAY 0
+                    SKIP $picture0OK
+                #else 
+                    #ifndef "tape48"
+                        CLEAR 20
                         XPICTURE 0
-                        WINDOW 0
-                    #endif
+                        ZERO 20
+                        SKIP $picture0OK
+                    #endif    
                 #endif
 
-> _       _     
+#ifndef "splitModeON"                  
+>  _     _      WINDOW  1                   ; Se chegássemos aqui, o gráfico 000 não era
+                WINAT 0 0              
+                WINSIZE 25 128             ; Definimos a tela para tela inteira, a menos que esteja no modo split
+#endif
+$picture0OK
+
+> _       _     WINDOW 1
+                DESC    0               ; Introdução de texto
                 ANYKEY
                 CLS
                 SET   255             
-#else
-;ZX 128
-> _       _     WINDOW  1               ; Inicializamos as janelas
-                WINAT   14       0
-                WINSIZE 25      127     ; Tamanho máximo
-                CLS
-                PICTURE 0
-                DISPLAY 0
-                SKIP    1
 
-> _       _     WINAT   0       0
-                WINSIZE 25 127
-                CLS
-
-> _       _     DESC    0               ; Introdução
-                ANYKEY
-                CLS
-                SET   255
-#endif
-
-> _       _     MINUS  255 1            ; Reinicia todos os flags
-                NOTEQ   255  fGFlags    ; Menos o GFlags!!!
+$initLoop                
+> _       _     MINUS   255 1          ; Redefine todos os flags
+                NOTEQ   255  fGFlags  ; menos GFlags!!!
                 CLEAR   @255
 
 > _       _     NOTZERO 255             
-                SKIP    -2              
+                SKIP    $initLoop
 
-> _       _     RESET                   ; Objetos em seu local inicial / Flag 1
-                LET     fStrength 10    ; Capacidade do jogador (peso)
-                LET     fMaxCarr  4     ; Número máximo de objetos que consegue carregar
+> _       _     RESET                     ; Objetos para o seu local. inicial / Flag 1
+                LET     fStrength 10
+                LET     fMaxCarr 4
                 SET     fCPronounNoun
                 SET     fCPronounAdject
-                GOTO    1               ; Primeiro local do jogo
+                ; LET fObjectsCarried   0 ; Lembre-se de inicializar esta bandeira com o número de objetos que o jogador inicial está carregando
+                GOTO    1                 ; Primeira localização no jogo
 /END
