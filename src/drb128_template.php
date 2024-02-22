@@ -14,7 +14,7 @@ global $maxFileSizeForXMessages;
 $isBigEndian = false;
 
 define('VERSION_HI',0);
-define('VERSION_LO',5);
+define('VERSION_LO',6);
 
 define('FAKE_DEBUG_CONDACT_CODE',220);
 define('FAKE_USERPTR_CONDACT_CODE',256);
@@ -44,6 +44,9 @@ define('XPLAY_OCTAVE', 0);
 define('XPLAY_VOLUME', 1);
 define('XPLAY_LENGTH', 2);
 define('XPLAY_TEMPO',  3);
+
+define('MESSAGE_OPCODE',38);
+define('MES_OPCODE',77);
 
 //================================================================= interpreters ========================================================
 $interpreters = array(
@@ -1400,6 +1403,102 @@ function dataToLet($flagno, $value)
     return $condact;
 }
 
+//This function will move messages from MTX to XMESSAGES it they overflow the size of the Spectrum bank
+function moveMessagesToXmessages($adventure)
+{
+    // Skip this step if size of MTX is less than 128Kb
+    if (getSizeMTX($adventure) <= 16*1024) return $adventure;
+
+    // Find maximum xMessage index
+    $xMessNextId = -1;
+    for($i=0;$i<sizeof($adventure->xmessages);$i++)
+    {
+        $xmsg = $adventure->xmessages[$i];
+        if ($xmsg->Value > $xMessNextId) $xMessNextId = $xmsg->Value;
+    }
+    $xMessNextId += 1;
+
+    // Extract messages until MTX is less than 16Kb
+    $messagesToTransfer = array();
+    while (getSizeMTX($adventure) > 16*1024)   //Do this until MTX is less than bank size.
+    {
+        $msg = array_pop($adventure->messages);
+        $id = $msg->Value;
+        $messagesToTransfer[$id] = $msg;
+    }
+
+    // Search for condacts with the extracted messages and rewrite transfered Messages for xMessages
+    $messageToXMes = array();
+    $mesToXMes = array();
+    for ($procID=0;$procID<sizeof($adventure->processes);$procID++)
+    {
+        $process = $adventure->processes[$procID];
+        for ($entryID=0;$entryID<sizeof($process->entries);$entryID++)
+        {
+            $entry = $process->entries[$entryID];
+            for($condactID=0;$condactID<sizeof($entry->condacts);$condactID++)
+            {
+                $condact = $entry->condacts[$condactID];
+                if (($condact->Opcode == MES_OPCODE) && ($condact->Indirection1 == 0) && 
+                    array_key_exists($condact->Param1, $messagesToTransfer))
+                {
+                    $msgId = $condact->Param1;
+                    if (array_key_exists($msgId, $mesToXMes))
+                    {
+                        //We already have this message transferred.
+                        $xMessId = $mesToXMes[$msgId];
+                    } else {
+                        //insert message on xMessages
+                        $xMessId = $xMessNextId;
+                        $xMessNextId += 1;
+                        $mesToXMes[$msgId] = $xMessId;
+
+                        $msg = clone($messagesToTransfer[$msgId]);
+                        $msg->Value = $xMessId;
+                        $adventure->xmessages[] = $msg;
+
+                        echo "Warning: MTX message $msgId will be replaced with xMessage $xMessId.\n";
+                    }
+                    //Convert MES into XMESS
+                    $condact->Opcode = XMES_OPCODE;
+                    $condact->Condact = 'XMES';
+                    $condact->Param1 = $xMessId;
+
+                }
+                elseif (($condact->Opcode == MESSAGE_OPCODE) && ($condact->Indirection1 == 0) && 
+                    array_key_exists($condact->Param1, $messagesToTransfer))
+                {
+                    $msgId = $condact->Param1;
+                    if (array_key_exists($msgId, $messageToXMes))
+                    {
+                        //We already have this message transferred.
+                        $xMessId = $messageToXMes[$msgId];
+                    } else {
+                        //insert message on xMessages
+                        $xMessId = $xMessNextId;
+                        $xMessNextId += 1;
+                        $messageToXMes[$msgId] = $xMessId;
+
+                        // Since MESSAGE prints a NewLine at the end, we add it now:
+                        $msg = clone($messagesToTransfer[$msgId]);
+                        $msg->Value = $xMessId;
+                        $msg->Text = ($msg->Text).chr(13);
+                        $msg->originalText = ($msg->originalText).chr(13);
+                        $adventure->xmessages[] = $msg;
+
+                        echo "Warning: MTX message $msgId will be replaced with xMessage $xMessId.\n";
+                    }
+                    //Convert MESSAGE into XMESS
+                    $condact->Opcode = XMES_OPCODE;
+                    $condact->Condact = 'XMES';
+                    $condact->Param1 = $xMessId;
+                }
+            }
+        }
+    }
+    return $adventure;
+}
+
 //********************************************** XPLAY *************************************************************** */
 
 function mmlToBeep($note, &$values, $subtarget)
@@ -1949,6 +2048,9 @@ $bankCurrentAddress[$currBank]+= ($numberOfObjects * 5);
 if ($adventure->verbose) echo "Object buffer      [" . prettyFormat($objectBufferOffset) . "][$currBank]\n";
 addPaddingIfRequired($bankCurrentAddress[$currBank]);
 
+// Move messages to xMessages if MTX is too big
+$adventure = moveMessagesToXmessages($adventure);
+
 // Generate XMessagess if avaliable
 $xMessages = generateXMessages($adventure);
 
@@ -1984,6 +2086,16 @@ if (sizeof($screenFileSizes) > 0)
     foreach ($screenFileSizes as $scrKey => $scrSize) $blockSize[$scrKey] = $scrSize;
 }
 
+if ($adventure->verbose) echo "Blocks to assign:\n";
+foreach($blockSize as $currBlock => $bSize)
+{
+    if ($adventure->verbose) echo "Block $currBlock: $bSize bytes.\n";
+    if ($bSize > 16*1024)
+    {
+        Error("Block " . $currBlock . " has more of 16kb, can not be allocated!\n");
+    }
+}
+
 // Stores bank id of the block allocated to a block
 // Initially no bank is assigned to any block
 $blockBank = array_fill_keys(array_keys($blockSize), -1);
@@ -2015,7 +2127,18 @@ foreach(array_keys($blockSize) as $currBlock)
 }
 
 //Checking if all blocks have been assigned
-if (in_array(-1, $blockBank)) Error("Can not allocate the data on RAM");
+if (in_array(-1, $blockBank)) {
+    echo "Unassigned blocks:\n";
+    foreach($blockBank as $currBlock => $bIndex)
+    {
+        if ($bIndex == -1)
+        {
+            $bSize = $blockSize[$currBlock];
+            echo "Block $currBlock: $bSize bytes not assigned!\n";
+        }
+    }
+    Error("Can not allocate the data on RAM");
+}
 
 // *********************************************
 // 5 ********* DUMP OTHER DATA *****************

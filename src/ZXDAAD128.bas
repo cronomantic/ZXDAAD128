@@ -630,7 +630,31 @@ ASM
 PROC
 LOCAL BLPaintHeightLoop, BLPaintWidthLoop, BLPaintWidthExitLoop
 LOCAL clearbox_outer_loop, clearbox_mid_loop, clearbox_inner_loop
-LOCAL clearbox_row_skip
+LOCAL clearbox_row_skip, check_width, check_height, start_clear_box
+LOCAL t1, t2
+
+check_height:
+    ld a,(IX+11)   ; height
+    ld b, a
+t1: add a,(IX+7)   ; ypos
+    cp 24+1
+    jr c, check_width
+    dec b
+    ld a, b
+    jr t1
+check_width:
+    ld a,(IX+9)    ; get width
+    ld c, a
+t2: add a,(IX+5)   ; xpos
+    cp 32+1
+    jr c, start_clear_box
+    dec c
+    ld a, c
+    jr t2
+
+start_clear_box:
+    ld (IX+9), c    ; get width
+    ld (IX+11), b    ; get height
 
     ld      a,(IX+7)   ;ypos
     rrca
@@ -814,7 +838,7 @@ PROC
     ld e, a          ; Put the result in e (Since the screen has 8 pixel bytes, pixel/8 = which char pos along our first pixel is in)
     ld a, l          ; Grab our pixel number again
     and 7          ; And do mod 8 [So now we have how many pixels into the character square we're starting at]
-    push af          ; Save A
+    ;-- push af          ; Save A
     ex af, af'
     ld a, d          ; Put y Coord into A'
     sra a          ; Divide by 2
@@ -835,9 +859,10 @@ PROC
     ld e, a          ; Copy ATTR into e
     ld (hl), e       ; Drop ATTR value into screen
     inc hl          ; Go to next position along
-    pop af          ; Pull how many pixels into this square we are
-    cp 3              ; It more than 2?
-    jr c, hop1       ; No? It all fits in this square - jump changing the next attribute
+    ;-- DAAD does'nt do this check, it seems
+    ;-- pop af          ; Pull how many pixels into this square we are
+    ;-- cp 3              ; It more than 2?
+    ;-- jr c, hop1       ; No? It all fits in this square - jump changing the next attribute
 
     ld (hl), e       ; 63446 Must be yes - we're setting the attributes in the next square too.
 
@@ -1043,20 +1068,31 @@ SUB clearCurrentLine()
 END SUB
 
 SUB scrollUp()
+
+  DIM charAdd AS uInteger
+  DIM px, py, b AS uByte
+
+  LET charAdd = GetCharAddress(32)
+  LET py = cwinH + cwinY - 1
+  LET px = 0
+
 #ifdef FONT32
-
   WinScrollUp(cwinY, cwinX, cwinW, cwinH)
-
 #else
-
   DIM x, w AS uByte
-
   LET x = cwinX
   LET w = cwinW
   PRIVATEconvertCoords42(x, w)
   WinScrollUp(cwinY, x, w, cwinH)
-
 #endif
+
+  LET b = SetRAMBank(DdbBnkFnt bOR ROM48KBASIC)
+  DO UNTIL px >= cwinW
+    PRINT_GLYPH(px + cwinX, py, charAdd)
+    LET px = px + 1
+  LOOP
+  SetRAMBank(b)
+
 END SUB
 
 
@@ -1112,11 +1148,12 @@ SUB printChar(c AS uByte)
     LET offsetText = FALSE
   ELSE
     IF c = 13 THEN '\n newline
+      clearCurrentLine() 'DAAD seems to do this...
       LET ccursorX = 0
       LET ccursorY = ccursorY + 1
       checkPrintedLines()
     ELSE
-      IF ccursorX = 0 THEN clearCurrentLine()
+      'IF ccursorX = 0 THEN clearCurrentLine()
       LET b = SetRAMBank(DdbBnkFnt bOR ROM48KBASIC)
       PRINT_GLYPH(ccursorX + cwinX, ccursorY + cwinY, GetCharAddress(c))
       SetRAMBank(b)
@@ -1979,7 +2016,7 @@ FUNCTION populateLogicalSentence(parseMode AS uByte) AS uByte
 
   IF parseMode = 0 THEN
     ' word that works like noun and verb
-    IF v = NULLWORD AND n <> NULLWORD AND (n < LAST_CONVERTIBLE_NOUN) THEN
+    IF v = NULLWORD AND n <> NULLWORD AND (n < FIRST_NON_CONVERTIBLE_NOUN) THEN
       LET v = n
       LET flags(fVerb) = v
     END IF
@@ -1991,7 +2028,7 @@ FUNCTION populateLogicalSentence(parseMode AS uByte) AS uByte
     LET flags(fVerb) = previousVerb
   END IF
 
-  IF n <> NULLWORD AND n >= LAST_PROPER_NOUN THEN
+  IF n <> NULLWORD AND n >= FIRST_NON_PROPER_NOUN THEN
     LET flags(fCPNoun) = n
     LET flags(fCPAdject) = flags(fAdject1)
   END IF
@@ -4506,9 +4543,12 @@ condactPRINTAT:
 'Sets current print position to given point if in current window. If not then
 'print position becomes top left of window.
 #ifndef DISABLE_PRINTAT
-  LET c = flags(fCurWin)
   LET ccursorY = getValueOrIndirection()
   LET ccursorX = getCondOrValueAndInc()
+  IF ccursorX >= cwinW OR ccursorY >= cwinH THEN
+    LET ccursorX = 0
+    LET ccursorY = 0
+  END IF
 #endif
   GOTO NextCondact
 ' =============================================================================
