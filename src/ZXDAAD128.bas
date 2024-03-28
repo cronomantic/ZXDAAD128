@@ -1148,7 +1148,7 @@ SUB printChar(c AS uByte)
     LET offsetText = FALSE
   ELSE
     IF c = 13 THEN '\n newline
-      clearCurrentLine() 'DAAD seems to do this...
+      clearCurrentLine() 'Original DAAD interpreter seems to do this...
       LET ccursorX = 0
       LET ccursorY = ccursorY + 1
       checkPrintedLines()

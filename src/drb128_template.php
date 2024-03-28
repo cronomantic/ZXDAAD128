@@ -1406,7 +1406,7 @@ function dataToLet($flagno, $value)
 //This function will move messages from MTX to XMESSAGES it they overflow the size of the Spectrum bank
 function moveMessagesToXmessages($adventure)
 {
-    // Skip this step if size of MTX is less than 128Kb
+    // Skip this step if size of MTX is less than 16 Kb
     if (getSizeMTX($adventure) <= 16*1024) return $adventure;
 
     // Find maximum xMessage index
@@ -1427,7 +1427,7 @@ function moveMessagesToXmessages($adventure)
         $messagesToTransfer[$id] = $msg;
     }
 
-    // Search for condacts with the extracted messages and rewrite transfered Messages for xMessages
+    // Search for condacts with the extracted messages and rewrite transfered Messages as xMessages
     $messageToXMes = array();
     $mesToXMes = array();
     for ($procID=0;$procID<sizeof($adventure->processes);$procID++)
