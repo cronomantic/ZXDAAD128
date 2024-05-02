@@ -1,4 +1,4 @@
-;------------------------------------------------------------------------------------------
+    ;------------------------------------------------------------------------------------------
 ;ÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑ
 ;ÑÑÑÑÑ                                                                                  ÑÑÑÑÑ
 ;ÑÑÑÑÑ Este es el fichero de inicio de la librería para DAAD Reborn Compiler en español ÑÑÑÑÑ
@@ -28,6 +28,10 @@
 #endif
 #endif
 #endif
+#endif
+
+#ifdef "oldnext"
+    #extern "MALUVA"
 #endif
 
 #ifdef "zx128"
@@ -177,7 +181,7 @@ ABAJO   11      noun
 BAJAR   11      verb
 
 
-;                       Nombres <20 indica que se pueden usar como verbos
+;                       Nombres <40 indica que se pueden usar como verbos
 ;                               <50 indica nombre propio (no admite lo, la...)
 I       14      noun
 INVEN   14      noun

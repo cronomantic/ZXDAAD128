@@ -5,8 +5,8 @@
 global $isBigEndian;
 $isBigEndian = false;
 
-define('VERSION_HI',0);
-define('VERSION_LO',2);
+define('VERSION_HI',1);
+define('VERSION_LO',0);
 
 //================================================================= Error ========================================================
 function Error($msg)

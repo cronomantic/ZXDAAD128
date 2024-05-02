@@ -30,6 +30,10 @@
 #endif
 #endif
 
+#ifdef "oldnext"
+    #extern "MALUVA"
+#endif
+
 #ifdef "html"
 #define nativeraster 1
 #endif
@@ -181,7 +185,7 @@ DESCA   11      noun
 DESCE   11      noun
 ABAIX	11	    noun
 
-;                       Nomes <20 indica que podem ser usados como verbos
+;                       Nomes <40 indica que podem ser usados como verbos
 ;                             <50 indica nome próprio (não admite -o, -a...)
 
 T       14      noun

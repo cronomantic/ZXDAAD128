@@ -45,6 +45,10 @@
 #endif
 #endif
 
+#ifdef "oldnext"
+    #extern "MALUVA"
+#endif
+
 #ifdef "zx128"
 #define nativeraster 1
 #endif
@@ -194,7 +198,7 @@ R       11      noun
 RUNTE   11      noun
 UNTEN   11      verb
 
-;                       Nomen   <20 koennen auch als Verben eingesetzt
+;                       Nomen   <40 koennen auch als Verben eingesetzt
 ;                               <50 keine Verwendung von Pronomen
 I       14      noun
 INVEN   14      noun

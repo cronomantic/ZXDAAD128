@@ -40,6 +40,10 @@
 #endif
 #endif
 
+#ifdef "oldnext"
+    #extern "MALUVA"
+#endif
+
 #ifdef "zx128"
 #define nativeraster 1
 #endif
@@ -187,7 +191,7 @@ D       11      noun
 DOWN    11      noun
 DESCE   11      verb
 
-;                       Nouns   <20 means can be used as verbs
+;                       Nouns   <40 means can be used as verbs
 ;                               <50 means a proper noun ie not an 'IT'
 I       14      noun
 INVEN   14      noun

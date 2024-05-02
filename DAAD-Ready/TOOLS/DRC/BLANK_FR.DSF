@@ -44,6 +44,10 @@
 #endif
 #endif
 
+#ifdef "oldnext"
+    #extern "MALUVA"
+#endif
+
 #ifdef "html"
 #define nativeraster 1
 #endif
@@ -190,7 +194,7 @@ B       11      noun
 BAS     11      noun
 DESCE   11      verb
 
-;                       Noms    <20 signifie qu'ils peuvent être utilisés comme verbes
+;                       Noms    <40 signifie qu'ils peuvent être utilisés comme verbes
 ;                               <50 pour les noms propres (pas le, la)
 I       14      noun
 INVEN   14      noun
