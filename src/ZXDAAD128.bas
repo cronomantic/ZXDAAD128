@@ -4827,7 +4827,10 @@ condactRESTART:
 condactTAB:
 'Sets current print position to given column on current line.
 #ifndef DISABLE_TAB
-  LET cursorX(flags(fCurWin)) = getValueOrIndirection()
+  LET ccursorX = getValueOrIndirection()
+  IF ccursorX >= cwinW THEN
+    LET ccursorX = 0
+  END IF
 #endif
   GOTO NextCondact
 ' =============================================================================
