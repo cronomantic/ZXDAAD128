@@ -1129,7 +1129,7 @@ SUB checkPrintedLines()
     waitForTimeout(TIME_MORE)
     LET printedLines = 0
     LET ccursorX = 0
-    'clearCurrentLine()
+    clearCurrentLine()
   END IF
   LET checkPrintedLinesinUse = FALSE
 
