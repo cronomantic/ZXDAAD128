@@ -1516,7 +1516,7 @@ l1:
     ld a, (hl)
     cp 0        ;Found EOS
     jr z, l3
-    cp 46        ;Found Dot character
+    cp 46       ;Found Dot character
     jr z, l2
     cp 10       ;Found EOL
     jr z, l2
@@ -2279,6 +2279,7 @@ DIM condactIniProc(0 TO NUM_PROCS-1) AS uInteger       'First condact in current
 DIM condactProc(0 TO NUM_PROCS-1) AS uInteger          'Current condact in current entry
 DIM entryDOALLProc(0 TO NUM_PROCS-1) AS uInteger       'Entry where is located the DOALL
 DIM condactDOALLProc(0 TO NUM_PROCS-1) AS uInteger     'Next condact to the DOALL (NULL if not in a loop)
+DIM nobjDOALLProc(0 TO NUM_PROCS-1) AS uByte           'Number of processed objects after DOALL
 DIM continueEntryProc(0 TO NUM_PROCS-1) AS uByte       'Boolean to check if a Process entry must continue or a condition fails.
 DIM currProc AS uByte = $FF                            'Current process
 DIM indirection AS uByte = FALSE                       'True if the current condact use indirection for the first argument.
@@ -2375,6 +2376,7 @@ FUNCTION popPROC() AS uByte
     LET entryDOALLProc(currProc) = 0
     LET condactDOALLProc(currProc) = 0
     LET continueEntryProc(currProc)  = 0
+    LET nobjDOALLProc(currProc) = 0
   END IF
   LET currProc = currProc - 1
 
@@ -2660,6 +2662,13 @@ FUNCTION PRIVATEGetObjectLocParam() AS uByte
 
 END FUNCTION
 
+FUNCTION FASTCALL PRIVATECheckLocHere(loc AS uByte) AS uByte
+
+  IF loc = LOC_HERE THEN RETURN flags(fPlayer)
+  RETURN loc
+
+END FUNCTION
+
 SUB PRIVATEDoALL()
 
   DIM pPROC AS uInteger
@@ -2668,12 +2677,15 @@ SUB PRIVATEDoALL()
   LET objno = flags(fDAObjNo) + 1
   LET locno = PEEK(condactDOALLProc(currProc) - 1)
   IF PEEK(condactDOALLProc(currProc) - 2) > 127 THEN LET locno = flags(locno)
-  if locno = LOC_HERE THEN LET locno = flags(fPlayer)
+  'IF locno = LOC_HERE THEN LET locno = flags(fPlayer)
   DO WHILE (PEEK(objLocation + objno) <> locno OR _
     (PEEK(objNounId + objno) = flags(fNoun2) AND PEEK(objAdjetiveId + objno) = flags(fAdject2)))
     LET objno = objno + 1
     IF objno >= DdbNumObjDsc THEN
       LET condactDOALLProc(currProc) = NULL
+      IF nobjDOALLProc(currProc) = 0 THEN
+        printSystemMsg(8)
+      END IF
       PRIVATEDoDONE()
       RETURN
     END IF
@@ -2683,7 +2695,8 @@ SUB PRIVATEDoALL()
   LET flags(fCONum) = objno
   LET flags(fNoun1) = PEEK(objNounId + objno)
   LET flags(fAdject1) = PEEK(objAdjetiveId + objno)
-  LET objno = objno + 1
+  ' LET objno = objno + 1
+  LET nobjDOALLProc(currProc) = nobjDOALLProc(currProc) + 1
   LET condactProc(currProc) = condactDOALLProc(currProc)
   LET entryProc(currProc) = entryDOALLProc(currProc)
 
@@ -2873,6 +2886,7 @@ SUB PRIVATEDoPUTIN(objno AS uByte, locno AS uByte)
   ELSEIF loc <> fp AND loc <> LOC_CARRIED THEN
     printSystemMsg(28)
   ELSE
+    IF locno = LOC_HERE THEN LET locno = flags(fPlayer)
     POKE (objLocation + objno), locno
     IF carr THEN LET flags(fNOCarr) = carr - 1
     printSystemMsg(44)
@@ -2889,6 +2903,7 @@ END SUB
 SUB PRIVATEDoTAKEOUT(objno AS uByte, locno AS uByte)
   DIM loc, fp, carr AS uByte
 
+  IF locno = LOC_HERE THEN LET locno = flags(fPlayer)
   LET carr = flags(fNOCarr)
   LET fp = flags(fPlayer)
   LET loc = PEEK(objLocation + objno)
@@ -3215,6 +3230,7 @@ MemSet(@condactProc(0), 0, NUM_PROCS * 2)
 MemSet(@entryDOALLProc(0), 0, NUM_PROCS * 2)
 MemSet(@condactDOALLProc(0), 0, NUM_PROCS * 2)
 MemSet(@continueEntryProc(0), 0, NUM_PROCS)
+MemSet(@nobjDOALLProc(0), 0, NUM_PROCS)
 LET currProc = $FF
 '-------------------------------------------------------------------------------
 'Setting interrupt routine
@@ -3882,6 +3898,7 @@ condactPLACE:
   referencedObject(objno)
   IF c = LOC_CARRIED AND flagno <> 0 THEN LET flagno = flagno - 1
   LET flagno2 = getCondOrValueAndInc()
+  IF flagno2 = LOC_HERE THEN LET flagno2 = flags(fPlayer)
   POKE (objLocation + objno), flagno2
   IF flagno2 = LOC_CARRIED THEN LET flags(fNOCarr) = flagno + 1
   LET flags(fNOCarr) = flagno
@@ -4369,7 +4386,9 @@ condactDOALL:
   LET condactDOALLProc(currProc) = pPROC
   LET condactProc(currProc) = pPROC
   LET entryDOALLProc(currProc) = entryProc(currProc)
+  LET nobjDOALLProc(currProc) = 0
   LET flags(fDAObjNo) = $FF
+
   PRIVATEDoALL()
 #endif
   GOTO NextCondact
@@ -4590,6 +4609,7 @@ condactPUTO:
   LET c = flags(fNOCarr)
   IF locno = LOC_CARRIED AND c <> 0 THEN LET c = c - 1
   LET locno = getValueOrIndirection()
+  IF locno = LOC_HERE THEN LET locno = flags(fPlayer)
   POKE (objLocation + objno), locno
   IF locno = LOC_CARRIED THEN LET c = c + 1
   LET flags(fNOCarr) = c

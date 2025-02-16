@@ -1,5 +1,5 @@
 @echo off
-SET DAADSCRIPT=ZX128PLUS3
+SET DAADSCRIPT=%~n0
 
 GOTO START
 REM ---- Check if the file to compress is already compressed or is newer
@@ -132,7 +132,7 @@ tools\cecho\cecho {07}
 
 PAUSE
 cd TOOLS\ZESARUX
-zesarux --noconfigfile --quickexit --zoom 2 --machine P341 --realvideo --nosplash --forcevisiblehotkeys --forceconfirmyes  --nowelcomemessage  --cpuspeed 100 "..\..\RELEASE\ZX128PLUS3\%GAME%.DSK"
+zesarux --noconfigfile --quickexit --fastautoload --zoom 2 --machine P341 --realvideo --nosplash --forcevisiblehotkeys --forceconfirmyes  --nowelcomemessage  --cpuspeed 100 "..\..\RELEASE\ZX128PLUS3\%GAME%.DSK"
 CD ..\..
 GOTO END
 

@@ -1,5 +1,5 @@
 @echo off
-SET DAADSCRIPT=ZX128TAPE
+SET DAADSCRIPT=%~n0
 
 GOTO START
 REM ---- Check if the file to compress is already compressed or is newer
@@ -126,7 +126,7 @@ tools\cecho\cecho {07}
 
 PAUSE
 cd TOOLS\ZESARUX
-zesarux --noconfigfile --quickexit --zoom 2 --machine 128k --realvideo --nosplash --forcevisiblehotkeys --forceconfirmyes  --nowelcomemessage  --cpuspeed 100 "..\..\RELEASE\ZX128TAPE\%GAME%.tap"
+zesarux --noconfigfile --quickexit --fastautoload --zoom 2 --machine 128k --realvideo --nosplash --forcevisiblehotkeys --forceconfirmyes  --nowelcomemessage  --cpuspeed 100 "..\..\RELEASE\ZX128TAPE\%GAME%.tap"
 CD ..\..
 GOTO END
 
