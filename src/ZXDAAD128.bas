@@ -2662,10 +2662,13 @@ FUNCTION PRIVATEGetObjectLocParam() AS uByte
 
 END FUNCTION
 
-FUNCTION FASTCALL PRIVATECheckLocHere(loc AS uByte) AS uByte
+FUNCTION PRIVATECheckLocHERE(loc AS uByte) AS uByte
 
-  IF loc = LOC_HERE THEN RETURN flags(fPlayer)
-  RETURN loc
+  IF loc = LOC_HERE THEN 
+    RETURN flags(fPlayer)
+  ELSE
+    RETURN loc
+  END IF
 
 END FUNCTION
 
@@ -2675,9 +2678,8 @@ SUB PRIVATEDoALL()
   DIM objno, locno AS uByte
 
   LET objno = flags(fDAObjNo) + 1
-  LET locno = PEEK(condactDOALLProc(currProc) - 1)
+  LET locno = PRIVATECheckLocHERE(PEEK(condactDOALLProc(currProc) - 1))
   IF PEEK(condactDOALLProc(currProc) - 2) > 127 THEN LET locno = flags(locno)
-  'IF locno = LOC_HERE THEN LET locno = flags(fPlayer)
   DO WHILE (PEEK(objLocation + objno) <> locno OR _
     (PEEK(objNounId + objno) = flags(fNoun2) AND PEEK(objAdjetiveId + objno) = flags(fAdject2)))
     LET objno = objno + 1
@@ -2886,8 +2888,7 @@ SUB PRIVATEDoPUTIN(objno AS uByte, locno AS uByte)
   ELSEIF loc <> fp AND loc <> LOC_CARRIED THEN
     printSystemMsg(28)
   ELSE
-    IF locno = LOC_HERE THEN LET locno = flags(fPlayer)
-    POKE (objLocation + objno), locno
+    POKE (objLocation + objno), PRIVATECheckLocHERE(locno)
     IF carr THEN LET flags(fNOCarr) = carr - 1
     printSystemMsg(44)
     printChar(32)
@@ -2903,7 +2904,7 @@ END SUB
 SUB PRIVATEDoTAKEOUT(objno AS uByte, locno AS uByte)
   DIM loc, fp, carr AS uByte
 
-  IF locno = LOC_HERE THEN LET locno = flags(fPlayer)
+  LET locno = PRIVATECheckLocHERE(locno)
   LET carr = flags(fNOCarr)
   LET fp = flags(fPlayer)
   LET loc = PEEK(objLocation + objno)
@@ -3897,8 +3898,7 @@ condactPLACE:
   LET flagno = flags(fNOCarr)
   referencedObject(objno)
   IF c = LOC_CARRIED AND flagno <> 0 THEN LET flagno = flagno - 1
-  LET flagno2 = getCondOrValueAndInc()
-  IF flagno2 = LOC_HERE THEN LET flagno2 = flags(fPlayer)
+  LET flagno2 = PRIVATECheckLocHERE(getCondOrValueAndInc())
   POKE (objLocation + objno), flagno2
   IF flagno2 = LOC_CARRIED THEN LET flags(fNOCarr) = flagno + 1
   LET flags(fNOCarr) = flagno
@@ -4608,8 +4608,7 @@ condactPUTO:
   LET locno = PEEK(objLocation + objno)
   LET c = flags(fNOCarr)
   IF locno = LOC_CARRIED AND c <> 0 THEN LET c = c - 1
-  LET locno = getValueOrIndirection()
-  IF locno = LOC_HERE THEN LET locno = flags(fPlayer)
+  LET locno = PRIVATECheckLocHERE(getValueOrIndirection())
   POKE (objLocation + objno), locno
   IF locno = LOC_CARRIED THEN LET c = c + 1
   LET flags(fNOCarr) = c
