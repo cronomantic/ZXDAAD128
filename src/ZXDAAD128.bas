@@ -4219,7 +4219,7 @@ condactLISTAT:
 'is printed - note that you will usually have to precede this action with a
 'message along the lines of "In the bag is:" etc.
 #ifndef DISABLE_LISTAT
-  PRIVATEDoLISTAT(getValueOrIndirection(), FALSE)
+  PRIVATEDoLISTAT(PRIVATECheckLocHERE(getValueOrIndirection()), FALSE)
   LET flagno = flags(fOFlags)
   IF (flagno bAND F53_LISTED) THEN
     IF (flagno bAND F53_CONT) THEN
