@@ -3897,10 +3897,10 @@ condactPLACE:
   LET c = PEEK(objLocation + objno)
   LET flagno = flags(fNOCarr)
   referencedObject(objno)
-  IF c = LOC_CARRIED AND flagno <> 0 THEN LET flagno = flagno - 1
+  IF c = LOC_CARRIED AND flagno > 0 THEN LET flagno = flagno - 1
   LET flagno2 = PRIVATECheckLocHERE(getCondOrValueAndInc())
   POKE (objLocation + objno), flagno2
-  IF flagno2 = LOC_CARRIED THEN LET flags(fNOCarr) = flagno + 1
+  IF flagno2 = LOC_CARRIED AND flagno < 255 THEN LET flagno = flagno + 1
   LET flags(fNOCarr) = flagno
 #endif
   GOTO NextCondact
