@@ -281,6 +281,7 @@ FUNCTION memAlloc(s AS uInteger) AS uInteger
 
 END FUNCTION
 
+/'
 FUNCTION ToUpper(c AS uByte) AS uByte
   IF c >= 97 AND c <= 122 THEN
     LET c = c - 97
@@ -288,7 +289,25 @@ FUNCTION ToUpper(c AS uByte) AS uByte
   END IF
   RETURN c
 END FUNCTION
+'/
 
+
+FUNCTION FASTCALL ToUpper(c AS uByte) AS uByte
+  ASM
+  PROC
+  ; IF c < 97
+  CP 97                    ; A - 97 
+  RET C
+  ; IF c > 122
+  CP 123                   ; A - 123
+  RET NC
+  ; C - 97 + 65 => C - 32
+  SUB 32
+  ENDP
+  END ASM
+END FUNCTION
+
+/'
 FUNCTION ToLower(c AS uByte) AS uByte
   IF c >= 65 AND c <= 90 THEN
     LET c = c - 65
@@ -296,6 +315,22 @@ FUNCTION ToLower(c AS uByte) AS uByte
   END IF
   RETURN c
 END FUNCTION
+'/
+
+FUNCTION FASTCALL ToLower(c AS uByte) AS uByte
+  ASM
+  PROC
+  ; IF c < 65
+  CP 65                    ; A - 65
+  RET C
+  ; IF c > 90
+  CP 91                   ; A - 91
+  RET NC
+  ADD A, 32
+  ENDP
+  END ASM
+END FUNCTION
+
 
 FUNCTION strnicmp(s1 AS uInteger, s2 AS uInteger, n AS uInteger) AS uByte
 
@@ -1006,6 +1041,7 @@ END SUB
   #define PRINT_GLYPH(x, y, a) putGlyph42(x, y, a)
 #endif
 
+
 FUNCTION GetCharAddress(c AS uByte) AS uInteger
 
   DIM add AS uInteger
@@ -1015,6 +1051,35 @@ FUNCTION GetCharAddress(c AS uByte) AS uInteger
   RETURN add
 
 END FUNCTION
+
+
+/'
+FUNCTION FASTCALL GetCharAddress(c AS uByte) AS uInteger
+  ASM
+  PROC
+
+  LD HL, 0
+  LD L, A
+  ADD HL, HL
+  ADD HL, HL
+  ADD HL, HL
+  EX DE, HL
+  LD HL, (_DdbFntPos)
+  ADD HL, DE
+  LD A, (_cwinMode)
+  AND 1
+  LD C, A
+  LD A, (_offsetText)
+  OR C
+  RET Z
+  LD DE, 1024
+  ADD HL, DE
+
+  ENDP
+  END ASM
+END FUNCTION
+'/
+
 
 #ifndef FONT32
 SUB PRIVATEconvertCoords42(ByRef x AS uByte, ByRef w AS uByte)
@@ -1175,7 +1240,7 @@ SUB printChar(c AS uByte)
 
 END SUB
 
-
+/'
 SUB printOutMsg(strPtr AS uInteger)
 
   DIM st, aux, pointer AS uInteger
@@ -1217,6 +1282,104 @@ SUB printOutMsg(strPtr AS uInteger)
     LET c = PEEK(pointer)
   LOOP
 
+END SUB
+'/
+
+SUB FASTCALL printOutMsg(strPtr AS uInteger)
+  ASM
+  PROC
+  LOCAL printOutMsg_end, printOutMsg_start, printOutMsg_loop
+  LOCAL find_next_word, find_next_word_end, find_next_word_loop, find_next_word_loop_end
+  LOCAL not_space1, print_str, do_ptr_char, next_chr
+  LOCAL aux_ptr, char1
+
+printOutMsg_start:
+  LD A, H
+  OR L
+  JP Z, printOutMsg_end     ; Test if pointer is null
+  LD (aux_ptr), HL
+  LD DE, 0
+printOutMsg_loop:
+  LD A, (HL)
+  OR A
+  JR Z, printOutMsg_end     ; test if character is null
+  LD (char1), A             ; Store current char
+  CP 32                     ; Is Space
+  JR Z, find_next_word
+  LD A, D
+  OR E
+  JR Z, find_next_word_end
+find_next_word:
+  ; Check if next word can be printed in current line
+  PUSH HL
+  POP DE                    ; DE <- HL + 1
+  INC DE
+  LD C, 0                   ; Character counter
+find_next_word_loop:
+  LD A, (DE)
+  OR A
+  JR Z, find_next_word_loop_end
+  CP 32
+  JR Z, find_next_word_loop_end
+  CP 13
+  JR Z, find_next_word_loop_end
+  CP 10
+  JR Z, find_next_word_loop_end
+  INC DE
+  INC C
+  JR find_next_word_loop
+find_next_word_loop_end:
+  LD A, (_ccursorX)
+  LD B, A
+  LD A, (_cwinW)
+  SUB B                   ; cwinW - ccursorX = Num character remainder on line
+  LD B, A
+  LD A, C                ; A >= B
+  CP B                   ; A - B
+  JR C, find_next_word_end  ; A < B, the word size is greater than the space available
+  LD A, (char1)
+  CP 32
+  JR NZ, not_space1      ;Substitutes the space with a CR
+  LD A, 13
+  LD (char1), A
+  JR find_next_word_end
+not_space1:              ; Prints CR
+  LD A, 13
+  CALL print_str
+find_next_word_end:
+  ; doingPrompt OR strPtr = pointer OR c <> 32 OR ccursorX <> 0 => PRINT_CHAR
+  LD A, (_doingPrompt)
+  OR A
+  JR NZ, do_ptr_char
+  LD DE, (aux_ptr)
+  OR A                ; clear carry flag
+  SBC HL, DE
+  ADD HL, DE
+  JR Z, do_ptr_char
+  LD A, (_ccursorX)
+  OR A
+  JR NZ, do_ptr_char
+  LD A, (char1)
+  CP 32
+  JR Z, next_chr
+do_ptr_char:
+  LD A, (char1)
+  CALL print_str
+next_chr:
+  INC HL
+  JR printOutMsg_loop
+aux_ptr:
+  DEFW 0
+char1:
+  DEFB 0
+print_str:
+  PUSH HL
+  PUSH AF
+  CALL _printChar
+  POP HL
+printOutMsg_end:
+  ENDP
+  END ASM
 END SUB
 
 /'
@@ -1653,6 +1816,7 @@ SUB printObjectMsg(num AS uByte, cut AS uByte)
 END SUB
 
 '-----------------------------------------------------------------------
+
 SUB printBase10(value AS uInteger)
 
   IF value < 10 THEN
@@ -1664,6 +1828,7 @@ SUB printBase10(value AS uInteger)
   printChar($30 + CAST(uByte, value MOD 10))
 
 END SUB
+
 
 '==============================================================================
 ' Return the object ID by Noun+Adjc ID.
@@ -1946,7 +2111,7 @@ retContinue:
   END IF
 
   ' Reset variables
-  LET doingPrompt = FALSE
+  IF doingPrompt THEN LET doingPrompt = FALSE
 
 END SUB
 '==============================================================================
@@ -3058,8 +3223,8 @@ END SUB
 '   IX - Address of Flag 0, 256 bytes after this are the objects.
 '   BC - points at the second parameter of the call, you can advance this pointer and leave it 
 '        pointing at the last inline parameter if you wish.
-FUNCTION FASTCALL doCALL(a AS uByte, hl AS uInteger, de AS uInteger,_
-                    bc AS uInteger, callAddr AS uInteger) AS uInteger
+FUNCTION FASTCALL doCALL(a AS uByte, callAddr AS uInteger, de AS uInteger,_
+                         bc AS uInteger, hl AS uInteger) AS uInteger
 ASM
 PROC
     LOCAL jumpIsr
@@ -3068,8 +3233,8 @@ PROC
     EX (SP), HL
     LD (jumpIsr+1), HL    ;Call Address
     POP HL                ;Return Address
-    POP BC                ;Value of BC
     POP DE                ;Value of DE
+    POP BC                ;Value of BC
     EX (SP), HL           ;Exchange return address with HL
 
     PUSH IY
@@ -3194,6 +3359,9 @@ ASM
   ld (_NextCondactPtr), hl          ;Store at $6000
 END ASM
 
+'LET DdbFntPos = DdbFntPos + 0
+'LET offsetText = offsetText + 0
+
 'Check header data
 IF (DdbVersion <> 3) OR (DdbCtl <> 95) THEN resetSys()
 
@@ -3274,7 +3442,7 @@ DO
       condactSWAP,     condactPLACE,     condactSET,       condactCLEAR,     condactPLUS,     _ ' 45-49
       condactMINUS,    condactLET,       condactNEWLINE,   condactPRINT,     condactSYSMESS,  _ ' 50-54
       condactISAT,     condactSETCO,     condactSPACE,     condactHASAT,     condactHASNAT,   _ ' 55-59
-      condactLISTOBJ,  condactEXTERN,    condactRAMSAVE,   condactRAMLOAD,   condactBEEP,     _ ' 63-64
+      condactLISTOBJ,  condactEXTERN,    condactRAMSAVE,   condactRAMLOAD,   condactBEEP,     _ ' 60-64
       condactPAPER,    condactINK,       condactBORDER,    condactPREP,      condactNOUN2,    _ ' 65-69
       condactADJECT2,  condactADD,       condactSUB,       condactPARSE,     condactLISTAT,   _ ' 70-74
       condactPROCESS,  condactSAME,      condactMES,       condactWINDOW,    condactNOTEQ,    _ ' 75-79
@@ -3465,7 +3633,7 @@ condactSFX:
   LET total = condactProc(currProc)
   LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 2)
   IF addr <> 0 THEN 
-    LET total = doCALL(c, @flags(c), (objLocation + c), total, addr)
+    LET total = doCALL(c, addr, (objLocation + c), total, @flags(c))
   ELSE
     LET total = total + 1
   END IF
@@ -4075,7 +4243,7 @@ condactEXTERN:
     LET addr = PEEK(uInteger, tmpTok + VECTOR_OFFSET + 0)
     IF addr <> 0 THEN 
       LET condactProc(currProc) = 1 + _
-          doCALL(c, @flags(c), (objLocation + c), condactProc(currProc)-1, addr)
+          doCALL(c, addr, (objLocation + c), condactProc(currProc)-1, @flags(c))
     END IF
     GOTO NextCondact
   END IF
@@ -4594,7 +4762,7 @@ condactCALL:
 #ifndef DISABLE_CALL
   LET objno = getCondOrValueAndInc()
   LET addr = (CAST(uInteger, getCondOrValueAndInc()) << 8) bOR objno
-  LET condactProc(currProc) = doCALL(0, 0, 0, condactProc(currProc), addr)
+  LET condactProc(currProc) = doCALL(0, addr, 0, condactProc(currProc), 0)
 #endif
   GOTO NextCondact
 ' =============================================================================
@@ -4919,6 +5087,20 @@ condactRESET:
 condactNOT_USED:
   errorCode(5)
 '==============================================================================
+/''
+    AND %00010111                 ;mask correct bytes
+    LD B, A
+    LD A,($5b5c)                  ; Previous value of the port
+    PUSH AF                       ; Saving in stack
+    AND %11101000                 ; Change only bank bits
+    OR B                          ; Select bank on B
+    LD BC,$7ffd
+    DI
+    LD ($5b5c),A
+    OUT (C),A                     ;update port
+    EI
+    POP AF                        ;Recovering previous value
+'/
 '==============================================================================
 'Interrupt routine
 ASM
@@ -4938,11 +5120,15 @@ PROC
     PUSH DE
     PUSH IX
     PUSH IY
-    PUSH AF                       ; Saving context
+    PUSH AF                     ; Saving context
 
-    LD A, %00010000               ; Sets Bank 0
-    CALL _SetRAMBank
+    LD A, ($5b5c)                ; Previous value of the port
     PUSH AF
+    AND %11101000               ; Mask
+    OR %00010000               ; Sets Bank 0 & 48K rom
+    LD BC, $7ffd
+    PUSH BC
+    OUT (C), A
 
     ;Interrupt vector
     LD IX, (FlagsPtr)
@@ -4953,8 +5139,10 @@ PROC
 jumpIsr:
     CALL NZ, 0           ; Calling INT routine, on HL is the routine address
 
+    POP BC
     POP AF               ; Recover bank from stack
-    CALL _SetRAMBank     ; Restore current bank
+    LD ($5b5c), A
+    OUT (C), A
 
     POP AF               ; Restoring context
     POP IY
