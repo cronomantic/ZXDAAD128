@@ -1240,7 +1240,7 @@ SUB printChar(c AS uByte)
 
 END SUB
 
-/'
+
 SUB printOutMsg(strPtr AS uInteger)
 
   DIM st, aux, pointer AS uInteger
@@ -1283,8 +1283,8 @@ SUB printOutMsg(strPtr AS uInteger)
   LOOP
 
 END SUB
-'/
 
+/'
 SUB FASTCALL printOutMsg(strPtr AS uInteger)
   ASM
   PROC
@@ -1381,6 +1381,7 @@ printOutMsg_end:
   ENDP
   END ASM
 END SUB
+'/
 
 /'
  ' Function: errorCode
