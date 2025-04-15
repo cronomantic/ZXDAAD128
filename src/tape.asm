@@ -28,7 +28,9 @@ LOAD_CODE:
     LOCAL LD_NAME
     LOCAL LD_CH_PR
     LOCAL LOAD_END
-    LOCAL VR_CONTROL, VR_CONT_1, VR_CONT_2
+    LOCAL VR_CONTROL
+    LOCAL VR_CONT_1
+    ;LOCAL VR_CONT_2
     LOCAL MEM0
     LOCAL TMP_SP
 
@@ -220,12 +222,13 @@ VR_CONT_1:
 ;    jr nz, VR_CONT_2        ; Jump if there was a start
 
 ;Ignore the header address on tape, we will use our own destination address
-    ld l, (ix + 13)         ; otherwise use destination in header
-    ld h, (ix + 14)         ; and load code at addr. saved from
-
-VR_CONT_2:
-    push hl
-    pop ix                  ; Transfer load addr to IX
+    ;ld l, (ix + 13)         ; otherwise use destination in header
+    ;ld h, (ix + 14)         ; and load code at addr. saved from
+;VR_CONT_2:
+;    push hl
+;    pop ix                  ; Transfer load addr to IX
+;Ignore the header address on tape, we will use our own destination address from the original header
+    ld ix, (HEAD1 + 13)
 
     ld a, (TMP_FLAG)        ; load verify/load flag
     sra a                   ; shift bit 0 to Carry (1 => Load, 0 = Verify), A = 0
