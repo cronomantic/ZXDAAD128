@@ -41,8 +41,12 @@ CONST ROM48KBASIC AS uByte = %00010000
   #endif
 #else
   #include once "plus3dos.bas"
-  #define SCR_BUFF_ADDR ($F000-$1B06)
+  #define DSK_BUFF_ADDR $F000
+  #define SCR_BUFF_ADDR (DSK_BUFF_ADDR-$1B06)
   #define SCR_BUFF_BANK 6
+  #define SAVEGAME_BUFF_ADDR (SCR_BUFF_ADDR-$400)
+  #define SAVEGAME_BUFF_BANK 6
+  #define RAMSAVE_BUFF_ADDR (SAVEGAME_BUFF_ADDR+$200)
 #endif
 '---------------------------------------------------------------------
 #ifndef SCREEN_WIDTH
@@ -184,7 +188,10 @@ DIM borderScr AS uByte = 0
 DIM previousVerb AS uByte = NULLWORD
 
 DIM tmpMsg AS uInteger
+
+#ifndef PLUS3
 DIM ramSave AS uInteger
+#endif
 
 'Object entries
 DIM objLocation AS uInteger
@@ -2699,24 +2706,39 @@ END FUNCTION
 
 SUB PRIVATEDoSAVE(opt AS uByte)
 
-  DIM sav, size, buff, buff2 AS uInteger
-  DIM ioerr AS uByte
+  DIM size, buff AS uInteger
+#ifdef PLUS3
+  DIM buff2 AS uInteger
+  DIM bnk AS Byte
   DIM h AS Byte
+#else
+  DIM sav AS uInteger
+#endif
+  DIM ioerr AS uByte
 
   LET opt = PRIVATESaveOption(opt)
   IF opt = 0 THEN RETURN
 
   LET ioerr = FALSE
   LET size = 256 + DdbNumObjDsc
+#ifdef PLUS3
+  LET bnk = SetRAMBank(SAVEGAME_BUFF_BANK bOR ROM48KBASIC)
+  MemCopy(@flags(0), SAVEGAME_BUFF_ADDR, size)
+#else
   LET sav = memAlloc(512)
   MemCopy(@flags(0), sav, size)
+#endif
 
   LET buff = PRIVATEGetFilename()
 
   IF opt = 1 THEN 'TAPE
     printSystemMsg(61)
     WaitForKey()
+#ifdef PLUS3
+    PRIVATETapeOp(TRUE, buff, size, SAVEGAME_BUFF_ADDR)
+#else
     PRIVATETapeOp(TRUE, buff, size, sav)
+#endif
     BORDER(borderScr)
   ELSE
 #ifdef PLUS3
@@ -2725,7 +2747,7 @@ SUB PRIVATEDoSAVE(opt AS uByte)
     IF h <> 0 THEN
       LET ioerr = TRUE
     ELSE
-      LET buff2 = Plus3DOSWrite(0, 0, sav, size)
+      LET buff2 = Plus3DOSWrite(0, SAVEGAME_BUFF_BANK, SAVEGAME_BUFF_ADDR, size)
       LET h = Plus3DOSClose(0)
       LET ioerr = (buff2 <> 0) OR (h <> 0)
     END IF
@@ -2734,7 +2756,12 @@ SUB PRIVATEDoSAVE(opt AS uByte)
     LET ioerr = TRUE
 #endif
   END IF
+
+#ifdef PLUS3
+  SetRAMBank(bnk)
+#else
   deallocate(sav)
+#endif
 
   IF ioerr THEN 'Error
     printSystemMsg(57)
@@ -2747,23 +2774,39 @@ END SUB
 
 SUB PRIVATEDoLOAD(opt AS uByte)
 
-  DIM sav, size, buff, buff2 AS uInteger
-  DIM ioerr AS uByte
+  DIM size, buff AS uInteger
+#ifdef PLUS3
+  DIM buff2 AS uInteger
+  DIM bnk AS Byte
   DIM h AS Byte
+#else
+  DIM sav AS uInteger
+#endif
+  DIM ioerr AS uByte
 
   LET opt = PRIVATESaveOption(opt)
   IF opt = 0 THEN RETURN
 
   LET ioerr = FALSE
   LET size = 256 + DdbNumObjDsc
+
+#ifdef PLUS3
+  LET bnk = SetRAMBank(SAVEGAME_BUFF_BANK bOR ROM48KBASIC)
+#else
   LET sav = memAlloc(512)
+#endif
+
   LET buff = PRIVATEGetFilename()
 
   IF opt = 1 THEN 'TAPE
     LET ErrNr = 0
     printSystemMsg(61)
     WaitForKey()
+#ifdef PLUS3
+    PRIVATETapeOp(FALSE, buff, size, SAVEGAME_BUFF_ADDR)
+#else
     PRIVATETapeOp(FALSE, buff, size, sav)
+#endif
     BORDER(borderScr)
     IF ErrNr = 26 THEN LET ioerr = TRUE
   ELSE 'DISC
@@ -2773,7 +2816,7 @@ SUB PRIVATEDoLOAD(opt AS uByte)
     IF h <> 0 THEN
       LET ioerr = TRUE
     ELSE
-      LET buff2 = Plus3DOSRead(0, 0, sav, size)
+      LET buff2 = Plus3DOSRead(0, SAVEGAME_BUFF_BANK, SAVEGAME_BUFF_ADDR, size)
       LET h = Plus3DOSClose(0)
       LET ioerr = (buff2 <> 0) OR (h <> 0)
     END IF
@@ -2788,9 +2831,18 @@ SUB PRIVATEDoLOAD(opt AS uByte)
     flags(fPlayer) = 0
     PRIVATEDoRESTART()
   ELSE
+#ifdef PLUS3
+    MemCopy(SAVEGAME_BUFF_ADDR, @flags(0), size)
+#else
     MemCopy(sav, @flags(0), size)
+#endif
   END IF
+
+#ifdef PLUS3
+  SetRAMBank(bnk)
+#else
   deallocate(sav)
+#endif
 
 END SUB
 
@@ -3369,7 +3421,9 @@ IF (DdbVersion <> 3) OR (DdbCtl <> 95) THEN resetSys()
 'Apparently, token table starts one byte after the token pointer (Why Tim?, Why?)
 LET DdbTokensPos = DdbTokensPos + 1 'Skip first token
 
+#ifndef PLUS3
 LET ramSave = memAlloc(512) '256 bytes for Flags + 256 bytes for Objects location
+#endif
 
 'Get memory for objects
 LET objLocation = @flags(256)
@@ -4269,7 +4323,15 @@ condactRAMSAVE:
 'which should be made clear to the player. The next action is always carried
 'out.
 #ifndef DISABLE_RAMSAVE
+
+#ifdef PLUS3
+  LET locno = SetRAMBank(SAVEGAME_BUFF_BANK bOR ROM48KBASIC)
+  MemCopy(@flags(0), RAMSAVE_BUFF_ADDR, 256 + DdbNumObjDsc)
+  SetRAMBank(locno)
+#else
   MemCopy(@flags(0), ramSave, 256 + DdbNumObjDsc)
+#endif
+
 #endif
   GOTO NextCondact
 ' =============================================================================
@@ -4285,8 +4347,17 @@ condactRAMLOAD:
 'should normally always be followed by a RESTART or describe in order that
 'the game state is restored to an identical position.
 #ifndef DISABLE_RAMLOAD
+
   LET pPROC = CAST(uInteger, getValueOrIndirection()) + 1
+
+#ifdef PLUS3
+  LET locno = SetRAMBank(SAVEGAME_BUFF_BANK bOR ROM48KBASIC)
+  MemCopy(RAMSAVE_BUFF_ADDR, @flags(0), pPROC + DdbNumObjDsc)
+  SetRAMBank(locno)
+#else
   MemCopy(ramSave, @flags(0), pPROC + DdbNumObjDsc)
+#endif
+
 #endif
   GOTO NextCondact
 ' =============================================================================

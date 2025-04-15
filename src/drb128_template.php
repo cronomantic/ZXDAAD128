@@ -1847,6 +1847,7 @@ $baseAddress = 0x6000;
 $baseAddressBanks = 0xC000;
 $screenBufferSize = 0x1B06;
 $diskBufferSize = 0x1000;
+$savegameBufferSize = 0x400;
 
 $bankCurrentAddress = array(
     0 => $baseAddress,
@@ -1869,7 +1870,7 @@ $bankSizeAvailable = array(
 // Special case for plus3, the bank 7 is not available and needs some cache
 if ($subtarget == 'PLUS3')
 {
-    $bankSizeAvailable[6] = $bankSizeAvailable[6] - $diskBufferSize - $screenBufferSize;
+    $bankSizeAvailable[6] = $bankSizeAvailable[6] - $diskBufferSize - $screenBufferSize - $savegameBufferSize;
     $bankSizeAvailable[7] = 0;
 }
 

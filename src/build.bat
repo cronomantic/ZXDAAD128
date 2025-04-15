@@ -6,31 +6,32 @@ color 0B
 echo --------------------------------
 
 set start_addr=0x6002
-set parameters=--optimize 4 -H 2048 --explicit --strict --org %start_addr% --expect-warnings 999999
+set heap_disk=-H 1024
+set heap_tape=-H 2048
+set parameters=--optimize 4 --explicit --strict --org %start_addr% --expect-warnings 999999
 
-
-zxbc -o ZXD128_TAPE_EN_C42.BIN --mmap ZXD128_TAPE_EN_C42.map %parameters% -D LANG_EN -D FONT42 ZXDAAD128.bas  || goto :error
+zxbc -o ZXD128_TAPE_EN_C42.BIN --mmap ZXD128_TAPE_EN_C42.map %heap_tape% %parameters% -D LANG_EN -D FONT42 ZXDAAD128.bas  || goto :error
 call :create_start_file "ZXD128_TAPE_EN_C42.BIN" "ZXD128_TAPE_EN_C42.map"
 echo TAPE-EN-42 built
-zxbc -o ZXD128_TAPE_ES_C42.BIN --mmap ZXD128_TAPE_ES_C42.map %parameters% -D LANG_ES -D FONT42 ZXDAAD128.bas  || goto :error
+zxbc -o ZXD128_TAPE_ES_C42.BIN --mmap ZXD128_TAPE_ES_C42.map %heap_tape% %parameters% -D LANG_ES -D FONT42 ZXDAAD128.bas  || goto :error
 call :create_start_file "ZXD128_TAPE_ES_C42.BIN" "ZXD128_TAPE_ES_C42.map"
 echo TAPE-ES-42 built
-zxbc -o ZXD128_PLUS3_EN_C42.BIN --mmap ZXD128_PLUS3_EN_C42.map %parameters% -D LANG_EN -D PLUS3 -D FONT42 ZXDAAD128.bas  || goto :error
+zxbc -o ZXD128_PLUS3_EN_C42.BIN --mmap ZXD128_PLUS3_EN_C42.map %heap_disk% %parameters% -D LANG_EN -D PLUS3 -D FONT42 ZXDAAD128.bas  || goto :error
 call :create_start_file "ZXD128_PLUS3_EN_C42.BIN" "ZXD128_PLUS3_EN_C42.map"
 echo PLUS3-EN-42 built
-zxbc -o ZXD128_PLUS3_ES_C42.BIN --mmap ZXD128_PLUS3_ES_C42.map %parameters% -D LANG_ES -D PLUS3 -D FONT42 ZXDAAD128.bas  || goto :error
+zxbc -o ZXD128_PLUS3_ES_C42.BIN --mmap ZXD128_PLUS3_ES_C42.map %heap_disk% %parameters% -D LANG_ES -D PLUS3 -D FONT42 ZXDAAD128.bas  || goto :error
 call :create_start_file "ZXD128_PLUS3_ES_C42.BIN" "ZXD128_PLUS3_ES_C42.map"
 echo PLUS3-ES-42 built
-zxbc -o ZXD128_TAPE_EN_C32.BIN --mmap ZXD128_TAPE_EN_C32.map %parameters% -D LANG_EN -D FONT32 ZXDAAD128.bas  || goto :error
+zxbc -o ZXD128_TAPE_EN_C32.BIN --mmap ZXD128_TAPE_EN_C32.map %heap_tape% %parameters% -D LANG_EN -D FONT32 ZXDAAD128.bas  || goto :error
 call :create_start_file "ZXD128_TAPE_EN_C32.BIN" "ZXD128_TAPE_EN_C32.map"
 echo TAPE-EN-32 built
-zxbc -o ZXD128_TAPE_ES_C32.BIN --mmap ZXD128_TAPE_ES_C32.map %parameters% -D LANG_ES -D FONT32 ZXDAAD128.bas  || goto :error
+zxbc -o ZXD128_TAPE_ES_C32.BIN --mmap ZXD128_TAPE_ES_C32.map %heap_tape% %parameters% -D LANG_ES -D FONT32 ZXDAAD128.bas  || goto :error
 call :create_start_file "ZXD128_TAPE_ES_C32.BIN" "ZXD128_TAPE_ES_C32.map"
 echo TAPE-ES-32 built
-zxbc -o ZXD128_PLUS3_EN_C32.BIN --mmap ZXD128_PLUS3_EN_C32.map %parameters% -D LANG_EN -D PLUS3 -D FONT32 ZXDAAD128.bas  || goto :error
+zxbc -o ZXD128_PLUS3_EN_C32.BIN --mmap ZXD128_PLUS3_EN_C32.map %heap_disk% %parameters% -D LANG_EN -D PLUS3 -D FONT32 ZXDAAD128.bas  || goto :error
 call :create_start_file "ZXD128_PLUS3_EN_C32.BIN" "ZXD128_PLUS3_EN_C32.map"
 echo PLUS3-EN-32 built
-zxbc -o ZXD128_PLUS3_ES_C32.BIN --mmap ZXD128_PLUS3_ES_C32.map %parameters% -D LANG_ES -D PLUS3 -D FONT32 ZXDAAD128.bas  || goto :error
+zxbc -o ZXD128_PLUS3_ES_C32.BIN --mmap ZXD128_PLUS3_ES_C32.map %heap_disk% %parameters% -D LANG_ES -D PLUS3 -D FONT32 ZXDAAD128.bas  || goto :error
 call :create_start_file "ZXD128_PLUS3_ES_C32.BIN" "ZXD128_PLUS3_ES_C32.map"
 echo PLUS3-ES-32 built
 python build_drb128.py || goto :error
