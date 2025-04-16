@@ -13,8 +13,8 @@ global $maxFileSizeForXMessages;
 
 $isBigEndian = false;
 
-define('VERSION_HI',0);
-define('VERSION_LO',7);
+define('VERSION_HI',1);
+define('VERSION_LO',10);
 
 define('FAKE_DEBUG_CONDACT_CODE',220);
 define('FAKE_USERPTR_CONDACT_CODE',256);
